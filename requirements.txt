@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+llama-index
+chromadb
+streamlit
+sentence-transformers
+pydantic
+python-jose
+python-dotenv

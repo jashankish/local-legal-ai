@@ -1,0 +1,31 @@
+# Orchestrates backend, frontend, n8n, and ChromaDB services
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_ENDPOINT=http://model:8001
+    volumes:
+      - ./logs:/app/logs
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8501:8501"
+
+  chromadb:
+    image: chromadb/chroma
+    ports:
+      - "8002:8000"
+
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
