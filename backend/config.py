@@ -1,1 +1,1 @@
-# Configuration and environment management
+# Configuration and environment management for Docker
