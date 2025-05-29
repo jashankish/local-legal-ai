@@ -11,7 +11,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import json
 
-from .config import settings
+from config import settings
 
 
 # Security

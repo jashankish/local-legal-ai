@@ -2,7 +2,8 @@
 
 import os
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -55,10 +56,12 @@ class Settings(BaseSettings):
     n8n_webhook_url: Optional[str] = Field(default=None, env="N8N_WEBHOOK_URL")
     slack_webhook_url: Optional[str] = Field(default=None, env="SLACK_WEBHOOK_URL")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "ignore"
+    }
 
     def get_chromadb_url(self) -> str:
         """Get the complete ChromaDB URL."""

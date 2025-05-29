@@ -5,6 +5,7 @@ chromadb
 streamlit
 sentence-transformers
 pydantic
+pydantic-settings
 python-jose[cryptography]
 python-dotenv
 passlib[bcrypt]

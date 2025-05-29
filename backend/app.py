@@ -4,8 +4,8 @@ from fastapi.security import HTTPBearer
 from datetime import timedelta
 import logging
 
-from .config import settings
-from .auth import (
+from config import settings
+from auth import (
     user_manager, create_access_token, get_current_active_user, 
     require_admin, check_ip_whitelist, UserLogin, UserCreate, Token, User
 )

@@ -7,8 +7,12 @@ from typing import List, Dict, Optional, Any
 import hashlib
 import json
 from datetime import datetime
+import sys
+import os
 
-from backend.config import settings
+# Add the backend directory to the path so we can import config
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+from config import settings
 
 
 logger = logging.getLogger(__name__)
@@ -26,10 +30,9 @@ class ChromaDBManager:
     def _connect(self):
         """Connect to ChromaDB."""
         try:
-            # Connect to ChromaDB server
-            self.client = chromadb.HttpClient(
-                host=settings.chromadb_host,
-                port=settings.chromadb_port,
+            # Use embedded ChromaDB instead of server
+            self.client = chromadb.PersistentClient(
+                path="./data/chroma_db",
                 settings=ChromaSettings(
                     anonymized_telemetry=False,
                     allow_reset=True

@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "id": "admin",
+    "username": "admin",
+    "email": "admin@legalai.local",
+    "hashed_password": "$2b$12$iuXLAiQHklprvZ/y97vYaOL66P9A6gUbF48aHB2viHsbwAZ81IVSS",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2025-05-29T22:24:55.860637"
+  }
+}
