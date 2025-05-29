@@ -1,232 +1,538 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBearer
-from datetime import timedelta
+import os
+import sys
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any
 import logging
+import json
+from contextlib import asynccontextmanager
 
-from config import settings
-from auth import (
-    user_manager, create_access_token, get_current_active_user, 
-    require_admin, check_ip_whitelist, UserLogin, UserCreate, Token, User
-)
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import uvicorn
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(settings.log_file),
-        logging.StreamHandler()
-    ]
-)
+# Add path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'vector_store'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'rag'))
+
+# Configure logging early
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from config import settings
+from auth import user_manager, create_access_token, User, get_current_user, get_current_active_user
+from vector_store.chromadb_setup import chroma_manager
+
+# Try to import the sentence-transformers embedder, fallback to simple embedder
+try:
+    from rag.embedder import get_embedder
+    logger.info("Using sentence-transformers embedder")
+except Exception as e:
+    logger.warning(f"Failed to import sentence-transformers embedder: {e}")
+    logger.info("Falling back to simple TF-IDF embedder")
+    from rag.simple_embedder import get_simple_embedder as get_embedder
+
+try:
+    from rag.rag_pipeline import get_rag_pipeline
+    logger.info("RAG pipeline imported successfully")
+except Exception as e:
+    logger.warning(f"Failed to import RAG pipeline: {e}")
+    get_rag_pipeline = None
+
+# HTTPBearer for JWT tokens
+security = HTTPBearer()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager."""
+    logger.info("Starting Local Legal AI API...")
+    
+    # Initialize services here if needed
+    try:
+        # Test ChromaDB connection
+        chroma_manager.get_collection_stats()
+        logger.info("ChromaDB connection verified")
+        
+        # Initialize embedder
+        embedder = get_embedder()
+        logger.info("Embedder initialized")
+        
+        # Initialize RAG pipeline
+        rag_pipeline = get_rag_pipeline()
+        logger.info("RAG pipeline initialized")
+        
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
+    
+    yield
+    
+    logger.info("Shutting down Local Legal AI API...")
+
 app = FastAPI(
-    title=settings.app_name,
-    version=settings.app_version,
-    description="A fully private, self-hosted LLM-powered assistant for law firms"
+    title="Local Legal AI",
+    description="AI-powered legal document analysis and Q&A system",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Configure appropriately for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-security = HTTPBearer()
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+    role: str = "user"
+
+class HealthResponse(BaseModel):
+    status: str
+    version: str
+    timestamp: str
+    services: Dict[str, str]
+
+class DocumentUploadResponse(BaseModel):
+    success: bool
+    message: str
+    document_id: Optional[str] = None
+    chunks_processed: int = 0
+    processing_time: float = 0.0
+
+class RAGQueryRequest(BaseModel):
+    question: str
+    num_documents: int = 5
+    filter_metadata: Optional[Dict[str, Any]] = None
+
+class RAGQueryResponse(BaseModel):
+    answer: str
+    sources: List[Dict[str, Any]]
+    query: str
+    total_tokens_used: Optional[int] = None
+    processing_time: Optional[float] = None
+    confidence_score: Optional[float] = None
+
+# Root endpoint
 @app.get("/")
-def read_root():
-    """Root endpoint with basic information."""
+async def root():
+    """Root endpoint."""
     return {
         "message": "Local Legal AI API",
-        "version": settings.app_version,
+        "version": "1.0.0",
         "status": "healthy"
     }
 
-@app.get("/health")
+# Health check endpoint
+@app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Health check endpoint."""
+    services = {}
+    
+    # Check API
+    services["api"] = "healthy"
+    
+    # Check ChromaDB
     try:
-        # Check ChromaDB connection
-        from vector_store.chromadb_setup import chroma_manager
-        chromadb_healthy = chroma_manager.health_check()
+        chroma_manager.get_collection_stats()
+        services["chromadb"] = "healthy"
+    except Exception:
+        services["chromadb"] = "unhealthy"
+    
+    # Check model endpoint (if configured)
+    if settings.model_endpoint:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"{settings.model_endpoint}/health")
+                if response.status_code == 200:
+                    services["model"] = "healthy"
+                else:
+                    services["model"] = "unhealthy"
+        except Exception:
+            services["model"] = "checking..."
+    else:
+        services["model"] = "not_configured"
+    
+    return HealthResponse(
+        status="healthy",
+        version="1.0.0",
+        timestamp=datetime.now().isoformat(),
+        services=services
+    )
+
+# Authentication endpoints
+@app.post("/auth/login")
+async def login(request: LoginRequest):
+    """User login."""
+    try:
+        user = user_manager.authenticate_user(request.username, request.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
+        access_token = create_access_token(data={"sub": user["username"]})
         return {
-            "status": "healthy",
-            "version": settings.app_version,
-            "services": {
-                "api": "healthy",
-                "chromadb": "healthy" if chromadb_healthy else "unhealthy",
-                "model": "checking..."  # Will be updated when model is integrated
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "username": user["username"],
+                "email": user["email"],
+                "role": user["role"],
+                "is_active": user["is_active"]
             }
         }
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        logger.error(f"Login error: {e}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service unhealthy"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
         )
 
-# Authentication endpoints
-@app.post("/auth/login", response_model=Token)
-async def login(request: Request, user_credentials: UserLogin):
-    """Authenticate user and return JWT token."""
-    # Check IP whitelist
-    check_ip_whitelist(request)
-    
-    user = user_manager.authenticate_user(
-        user_credentials.username, 
-        user_credentials.password
-    )
-    
-    if not user:
+@app.post("/auth/register")
+async def register(request: RegisterRequest, current_user: User = Depends(get_current_active_user)):
+    """User registration (admin only)."""
+    if current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
         )
-    
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
-        data={"sub": user["username"], "role": user["role"]},
-        expires_delta=access_token_expires
-    )
-    
-    # Convert user dict to User model (excluding password)
-    user_model = User(**{k: v for k, v in user.items() if k != "hashed_password"})
-    
-    logger.info(f"User {user['username']} logged in successfully")
-    
-    return Token(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.access_token_expire_minutes * 60,
-        user=user_model
-    )
-
-@app.post("/auth/register", response_model=User)
-async def register(request: Request, user_data: UserCreate, current_user: User = Depends(require_admin)):
-    """Register a new user (admin only)."""
-    check_ip_whitelist(request)
     
     try:
-        new_user = user_manager.create_user(user_data)
-        logger.info(f"New user {new_user.username} created by {current_user.username}")
-        return new_user
-        
-    except HTTPException:
-        raise
+        from auth import UserCreate
+        user_data = UserCreate(
+            username=request.username,
+            password=request.password,
+            email=request.email,
+            role=request.role
+        )
+        user = user_manager.create_user(user_data)
+        return {
+            "message": "User created successfully",
+            "user": {
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "is_active": user.is_active
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
-        logger.error(f"User registration failed: {e}")
+        logger.error(f"Registration error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed"
         )
 
-@app.get("/auth/me", response_model=User)
+@app.get("/auth/me")
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     """Get current user information."""
-    return current_user
+    return {
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role,
+        "is_active": current_user.is_active
+    }
 
-@app.get("/auth/users")
-async def list_users(current_user: User = Depends(require_admin)):
-    """List all users (admin only)."""
-    users = user_manager._load_users()
-    return [
-        {k: v for k, v in user.items() if k != "hashed_password"}
-        for user in users.values()
-    ]
-
-# Document management endpoints (placeholders for Phase 2)
+# Document management endpoints
 @app.get("/documents")
-async def list_documents(
-    limit: int = 10,
-    offset: int = 0,
-    current_user: User = Depends(get_current_active_user)
-):
-    """List documents in the vector store."""
+async def list_documents(current_user: User = Depends(get_current_active_user)):
+    """List all documents in the vector store."""
     try:
-        from vector_store.chromadb_setup import chroma_manager
-        documents = chroma_manager.list_documents(limit=limit, offset=offset)
+        stats = chroma_manager.get_collection_stats()
         return {
-            "documents": documents,
-            "total": len(documents),
-            "limit": limit,
-            "offset": offset
+            "total_documents": stats.get("count", 0),
+            "collection_name": chroma_manager.collection_name,
+            "status": "healthy"
         }
     except Exception as e:
-        logger.error(f"Failed to list documents: {e}")
+        logger.error(f"Error listing documents: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve documents"
+            detail="Failed to list documents"
         )
 
 @app.get("/documents/stats")
 async def get_document_stats(current_user: User = Depends(get_current_active_user)):
-    """Get document collection statistics."""
+    """Get detailed document statistics."""
     try:
-        from vector_store.chromadb_setup import chroma_manager
         stats = chroma_manager.get_collection_stats()
         return stats
     except Exception as e:
-        logger.error(f"Failed to get document stats: {e}")
+        logger.error(f"Error getting document stats: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve statistics"
+            detail="Failed to get document statistics"
         )
 
-@app.delete("/documents/{doc_id}")
-async def delete_document(
-    doc_id: str,
-    current_user: User = Depends(require_admin)
-):
+@app.delete("/documents/{document_id}")
+async def delete_document(document_id: str, current_user: User = Depends(get_current_active_user)):
     """Delete a document (admin only)."""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    
     try:
-        from vector_store.chromadb_setup import chroma_manager
-        success = chroma_manager.delete_document(doc_id)
-        
+        success = chroma_manager.delete_document(document_id)
         if success:
-            logger.info(f"Document {doc_id} deleted by {current_user.username}")
-            return {"message": "Document deleted successfully"}
+            return {"message": f"Document {document_id} deleted successfully"}
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Document not found"
             )
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Failed to delete document {doc_id}: {e}")
+        logger.error(f"Error deleting document: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete document"
         )
 
-# Configuration endpoint
-@app.get("/config")
-async def get_config(current_user: User = Depends(require_admin)):
-    """Get application configuration (admin only)."""
-    return {
-        "app_name": settings.app_name,
-        "app_version": settings.app_version,
-        "chromadb_collection": settings.chromadb_collection_name,
-        "model_endpoint": settings.model_endpoint,
-        "max_file_size_mb": settings.max_file_size_mb,
-        "supported_file_types": settings.supported_file_types,
-        "embedding_model": settings.embedding_model
-    }
+# Document upload endpoint
+@app.post("/documents/upload", response_model=DocumentUploadResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    title: Optional[str] = Form(None),
+    category: Optional[str] = Form("general"),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Upload and process a legal document."""
+    start_time = datetime.now()
+    
+    # Validate file type
+    allowed_types = ["text/plain", "application/pdf", "application/msword", 
+                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type: {file.content_type}"
+        )
+    
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # For now, handle text files directly
+        if file.content_type == "text/plain":
+            text_content = content.decode('utf-8')
+        else:
+            # For other formats, you'd implement proper parsing here
+            # For demo purposes, convert bytes to string (not ideal for PDFs/Word docs)
+            try:
+                text_content = content.decode('utf-8', errors='ignore')
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Could not process file content. Please ensure it's a valid text file."
+                )
+        
+        # Get embedder and process document
+        embedder = get_embedder()
+        
+        # Process document with metadata
+        document_metadata = {
+            "source": title or file.filename,
+            "category": category,
+            "uploaded_by": current_user.username,
+            "upload_date": datetime.now().isoformat(),
+            "content_type": file.content_type,
+            "file_size": len(content)
+        }
+        
+        # Process document using the embedder
+        chunks, embeddings = embedder.process_document(
+            text=text_content,
+            metadata=document_metadata
+        )
+        
+        # Store chunks in ChromaDB
+        document_id = None
+        chunks_processed = 0
+        
+        if chunks:
+            # Prepare data for ChromaDB
+            texts = [chunk['text'] for chunk in chunks]
+            metadatas = [chunk['metadata'] for chunk in chunks]
+            ids = [chunk['id'] for chunk in chunks]
+            
+            # Store in ChromaDB
+            success = chroma_manager.add_documents(
+                texts=texts,
+                metadatas=metadatas,
+                ids=ids
+            )
+            
+            if success:
+                document_id = ids[0] if ids else None  # Use first chunk ID as document ID
+                chunks_processed = len(chunks)
+                logger.info(f"Successfully stored {chunks_processed} chunks in ChromaDB")
+            else:
+                logger.error("Failed to store documents in ChromaDB")
+        
+        processing_time = (datetime.now() - start_time).total_seconds()
+        
+        return DocumentUploadResponse(
+            success=True,
+            message=f"Document '{title or file.filename}' processed successfully",
+            document_id=document_id,
+            chunks_processed=chunks_processed,
+            processing_time=processing_time
+        )
+        
+    except Exception as e:
+        logger.error(f"Document upload error: {e}")
+        processing_time = (datetime.now() - start_time).total_seconds()
+        
+        return DocumentUploadResponse(
+            success=False,
+            message=f"Failed to process document: {str(e)}",
+            processing_time=processing_time
+        )
+
+# RAG Query endpoints
+@app.post("/query", response_model=RAGQueryResponse)
+async def query_documents(
+    request: RAGQueryRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Query legal documents using simple embedder and ChromaDB."""
+    try:
+        start_time = datetime.now()
+        
+        # Get embedder for query processing
+        embedder = get_embedder()
+        
+        # Generate query embedding
+        query_embedding = embedder.embed_query(request.question)
+        
+        # Search documents in ChromaDB
+        search_results = chroma_manager.search_documents(
+            query=request.question,
+            n_results=request.num_documents,
+            where=request.filter_metadata
+        )
+        
+        # Extract search results
+        sources = []
+        if search_results and 'documents' in search_results:
+            documents = search_results['documents']
+            metadatas = search_results.get('metadatas', [])
+            distances = search_results.get('distances', [])
+            ids = search_results.get('ids', [])
+            
+            # Flatten nested lists if needed
+            if documents and isinstance(documents[0], list):
+                documents = documents[0]
+            if metadatas and isinstance(metadatas[0], list):
+                metadatas = metadatas[0]
+            if distances and isinstance(distances[0], list):
+                distances = distances[0]
+            if ids and isinstance(ids[0], list):
+                ids = ids[0]
+            
+            for i, (doc, meta, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
+                # Safely calculate similarity score
+                similarity_score = 0.0
+                if distance is not None:
+                    try:
+                        similarity_score = 1.0 - float(distance)
+                    except (TypeError, ValueError):
+                        similarity_score = 0.0
+                
+                sources.append({
+                    "document_id": doc_id,
+                    "content": doc,
+                    "metadata": meta or {},
+                    "similarity_score": similarity_score,
+                    "chunk_index": i
+                })
+        
+        # Generate a simple answer based on retrieved documents
+        if sources:
+            # Combine relevant content
+            relevant_content = "\n".join([src["content"][:500] for src in sources[:3]])
+            answer = f"Based on the retrieved documents: {relevant_content[:1000]}..."
+            confidence_score = sources[0]["similarity_score"] if sources else 0.0
+        else:
+            answer = "I couldn't find any relevant documents to answer your question."
+            confidence_score = 0.0
+        
+        processing_time = (datetime.now() - start_time).total_seconds()
+        
+        return RAGQueryResponse(
+            answer=answer,
+            sources=sources,
+            query=request.question,
+            total_tokens_used=None,  # Not applicable for TF-IDF
+            processing_time=processing_time,
+            confidence_score=confidence_score
+        )
+        
+    except Exception as e:
+        logger.error(f"Query error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Query processing failed: {str(e)}"
+        )
+
+@app.post("/query/stream")
+async def stream_query(
+    request: RAGQueryRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Stream RAG query response for real-time updates."""
+    try:
+        rag_pipeline = get_rag_pipeline()
+        
+        async def generate_stream():
+            async for chunk in rag_pipeline.stream_query(
+                question=request.question,
+                num_documents=request.num_documents,
+                filter_metadata=request.filter_metadata
+            ):
+                yield f"data: {json.dumps(chunk)}\n\n"
+        
+        return StreamingResponse(
+            generate_stream(),
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Stream query error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Stream query failed: {str(e)}"
+        )
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
         "app:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.debug,
-        log_level=settings.log_level.lower()
+        host="0.0.0.0",
+        port=8000,
+        reload=True
     )
 
 
