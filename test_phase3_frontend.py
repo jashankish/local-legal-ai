@@ -129,8 +129,8 @@ class Phase3Tester:
         try:
             headers = {"Authorization": f"Bearer {self.auth_token}"}
             query_data = {
-                "query": "What are the legal terms and conditions in the uploaded documents?",
-                "max_results": 3
+                "question": "What are the legal terms and conditions in the uploaded documents?",
+                "num_documents": 3
             }
             
             response = requests.post(f"{self.backend_url}/query", 
@@ -140,7 +140,7 @@ class Phase3Tester:
                 query_result = response.json()
                 answer = query_result.get("answer", "")
                 sources = query_result.get("sources", [])
-                confidence = query_result.get("confidence", 0)
+                confidence = query_result.get("confidence_score", 0)
                 
                 success = len(answer) > 10 and len(sources) > 0 and confidence > 0
                 self.log_test("Document Query", success, 
