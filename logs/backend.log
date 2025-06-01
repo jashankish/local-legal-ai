@@ -798,3 +798,490 @@ INFO:     127.0.0.1:60876 - "GET /analytics/performance HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:60878 - "GET /analytics/similarity HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:60880 - "GET /analytics/activity?days=30 HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:60882 - "GET /analytics/report?format=json HTTP/1.1" 404 Not Found
+WARNING:  WatchFiles detected changes in 'backend/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84501]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:  WatchFiles detected changes in 'backend/app.py'. Reloading...
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [85926]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [85938]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'backend/app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85938]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [85956]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:     127.0.0.1:63074 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63364 - "GET /analytics/usage HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63366 - "GET /analytics/performance HTTP/1.1" 401 Unauthorized
+WARNING:passlib.handlers.bcrypt:(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:63619 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63621 - "GET /analytics/usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63623 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63881 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 1 results
+INFO:     127.0.0.1:63883 - "POST /documents/query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64161 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64167 - "POST /documents/upload HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:64460 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:rag.embedder:Processing document: Test Document
+INFO:rag.embedder:Created 1 chunks
+INFO:rag.embedder:Generating embeddings for 1 chunks
+INFO:rag.embedder:Using fallback embedding method
+INFO:rag.embedder:Successfully generated embeddings for 1 chunks
+INFO:vector_store.chromadb_setup:Added 1 documents to collection
+INFO:backend.app:Successfully stored 1 chunks in ChromaDB with document ID: Test Document_20250531_224958
+INFO:     127.0.0.1:64466 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65308 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65362 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49586 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:rag.embedder:Processing document: Verification Document
+INFO:rag.embedder:Created 1 chunks
+INFO:rag.embedder:Generating embeddings for 1 chunks
+INFO:rag.embedder:Using fallback embedding method
+INFO:rag.embedder:Successfully generated embeddings for 1 chunks
+INFO:vector_store.chromadb_setup:Added 1 documents to collection
+INFO:backend.app:Successfully stored 1 chunks in ChromaDB with document ID: Verification Document_20250531_225519
+INFO:     127.0.0.1:49588 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49726 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 3 results
+INFO:     127.0.0.1:49732 - "POST /query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49783 - "GET /documents/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET /documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49882 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49888 - "GET /analytics/usage HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50068 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50073 - "GET / HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 3 results
+INFO:     127.0.0.1:51319 - "POST /documents/query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51983 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51990 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51992 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51994 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52138 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52140 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52142 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52144 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52146 - "GET /analytics/report?format=json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52228 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52230 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52232 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52234 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53132 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53139 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53141 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53143 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:rag.embedder:Processing document: CALIFORNIA EMPLOYMENT CONTRACTÂ .docx 3.pdf
+INFO:rag.embedder:Created 15 chunks
+INFO:rag.embedder:Generating embeddings for 15 chunks
+INFO:rag.embedder:Using fallback embedding method
+INFO:rag.embedder:Successfully generated embeddings for 15 chunks
+[1;31m2025-05-31 23:09:37.693361 [E:onnxruntime:, sequential_executor.cc:516 ExecuteKernel] Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs.[m
+ERROR:vector_store.chromadb_setup:Failed to add documents: [ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs. in add.
+ERROR:backend.app:Failed to store documents in ChromaDB
+INFO:     127.0.0.1:53427 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 3 results
+INFO:     127.0.0.1:53824 - "POST /documents/query HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 3 results
+INFO:     127.0.0.1:54742 - "POST /documents/query HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 3 results
+INFO:     127.0.0.1:57393 - "POST /documents/query HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57502 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57504 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57506 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57508 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57811 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57813 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57815 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:57817 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57823 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57825 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57827 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57829 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57840 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57842 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57844 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:57846 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57927 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57929 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57931 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:57933 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57935 - "GET /analytics/report?format=json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58012 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58014 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58016 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:58018 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:rag.embedder:Processing document: PVS term sheet.pdf
+INFO:rag.embedder:Created 32 chunks
+INFO:rag.embedder:Generating embeddings for 32 chunks
+INFO:rag.embedder:Using fallback embedding method
+INFO:rag.embedder:Successfully generated embeddings for 32 chunks
+[1;31m2025-05-31 23:29:39.681250 [E:onnxruntime:, sequential_executor.cc:516 ExecuteKernel] Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs.[m
+ERROR:vector_store.chromadb_setup:Failed to add documents: [ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs. in add.
+ERROR:backend.app:Failed to store documents in ChromaDB
+INFO:     127.0.0.1:58713 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59055 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59058 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59061 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59063 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59073 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59075 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59077 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:59079 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59099 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59101 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59103 - "GET /documents/list HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:59105 - "GET /analytics/activity?days=14 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59386 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59388 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59390 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59392 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59412 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59414 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59416 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59418 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59429 - "GET /documents/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59431 - "GET /documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59524 - "GET /analytics/usage?days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59526 - "GET /analytics/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59528 - "GET /analytics/similarity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59530 - "GET /analytics/activity?days=30 HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [85956]
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87661]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87661]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87681]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87693]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87693]
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87702]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87719]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87719]
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87732]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87732]
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87767]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87785]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87785]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87800]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87814]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87814]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [87870]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87870]
+INFO:     Stopping reloader process [76564]

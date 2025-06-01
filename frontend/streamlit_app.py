@@ -308,7 +308,7 @@ def show_dashboard():
         if len(st.session_state.chat_history) > 0:
             st.write("Recent queries:")
             for i, msg in enumerate(st.session_state.chat_history[-3:]):
-                if msg['role'] == 'user':
+                if msg.get('role') == 'user':
                     st.write(f"• {msg['content'][:50]}...")
         else:
             st.write("No recent activity")
@@ -560,7 +560,7 @@ def show_document_management():
     
     if len(st.session_state.chat_history) > 0:
         st.markdown("**Recent Queries:**")
-        recent_queries = [msg for msg in st.session_state.chat_history if msg['role'] == 'user'][-5:]
+        recent_queries = [msg for msg in st.session_state.chat_history if msg.get('role') == 'user']
         
         for query in recent_queries:
             st.markdown(f"• {query['content'][:80]}...")
@@ -710,12 +710,17 @@ def show_usage_analytics():
             
             col1, col2 = st.columns(2)
             with col1:
-                st.info(f"**Average File Size:** {doc_metrics['avg_file_size']:.0f} bytes")
-                st.info(f"**Average Chunks per Document:** {doc_metrics['avg_chunks_per_doc']:.1f}")
+                # Use safe access for potentially missing keys
+                avg_file_size = doc_metrics.get('avg_file_size', 'N/A')
+                if isinstance(avg_file_size, (int, float)):
+                    st.info(f"**Average File Size:** {avg_file_size:.0f} bytes")
+                else:
+                    st.info(f"**Average File Size:** {avg_file_size}")
+                st.info(f"**Average Chunks per Document:** {doc_metrics.get('avg_chunks_per_doc', 0):.1f}")
             
             with col2:
-                st.info(f"**Average Processing Time:** {doc_metrics['avg_processing_time']:.3f}s")
-                st.info(f"**Average Legal Complexity:** {doc_metrics['avg_legal_complexity']:.3f}")
+                st.info(f"**Average Processing Time:** {doc_metrics.get('avg_processing_time', 0):.3f}s")
+                st.info(f"**Average Legal Complexity:** {doc_metrics.get('avg_legal_complexity', 0):.3f}")
             
             # Query types distribution
             if analytics_data["top_query_types"]:
@@ -751,7 +756,7 @@ def show_performance_analytics():
             perf_data = response.json()["data"]
             
             # Performance distribution
-            if perf_data["performance_distribution"]:
+            if perf_data.get("performance_distribution"):
                 st.subheader("🚀 Query Performance Distribution")
                 
                 df_perf = pd.DataFrame(perf_data["performance_distribution"])
@@ -769,9 +774,11 @@ def show_performance_analytics():
                     yaxis_title="Number of Queries"
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Performance distribution data not available")
             
             # Quality distribution
-            if perf_data["quality_distribution"]:
+            if perf_data.get("quality_distribution"):
                 st.subheader("🎯 Query Quality Distribution")
                 
                 df_quality = pd.DataFrame(perf_data["quality_distribution"])
@@ -790,9 +797,11 @@ def show_performance_analytics():
                     }
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Quality distribution data not available")
             
             # Slowest queries
-            if perf_data["slowest_queries"]:
+            if perf_data.get("slowest_queries"):
                 st.subheader("🐌 Slowest Queries")
                 
                 df_slow = pd.DataFrame(perf_data["slowest_queries"])
@@ -801,13 +810,17 @@ def show_performance_analytics():
                     with st.expander(f"Query {idx + 1} - {row['processing_time']:.3f}s"):
                         st.text(row['query'])
                         st.caption(f"Similarity Score: {row['similarity_score']:.3f}")
+            else:
+                st.info("Slowest queries data not available")
             
             # Optimization suggestions
-            if perf_data["optimization_suggestions"]:
+            if perf_data.get("optimization_suggestions"):
                 st.subheader("💡 Optimization Suggestions")
                 
                 for suggestion in perf_data["optimization_suggestions"]:
                     st.info(f"💡 {suggestion}")
+            else:
+                st.info("No optimization suggestions available")
         
         else:
             st.error(f"Failed to fetch performance analytics: {response.status_code}")
@@ -959,12 +972,12 @@ def show_user_activity_analytics():
             # Active users metric
             st.metric(
                 "Active Users",
-                activity_data["active_users"],
+                activity_data.get("active_users", 0),
                 help=f"Number of active users in the last {days} days"
             )
             
             # Activity types distribution
-            if activity_data["activity_types"]:
+            if activity_data.get("activity_types"):
                 st.subheader("📊 Activity Types Distribution")
                 
                 df_activities = pd.DataFrame(activity_data["activity_types"])
@@ -982,9 +995,11 @@ def show_user_activity_analytics():
                     yaxis_title="Number of Activities"
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Activity types data not available")
             
             # Hourly activity patterns
-            if activity_data["hourly_patterns"]:
+            if activity_data.get("hourly_patterns"):
                 st.subheader("🕐 Hourly Activity Patterns")
                 
                 df_hourly = pd.DataFrame(activity_data["hourly_patterns"])
@@ -1001,15 +1016,19 @@ def show_user_activity_analytics():
                     yaxis_title="Activity Count"
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Hourly patterns data not available")
             
             # Top users
-            if activity_data["top_users"]:
+            if activity_data.get("top_users"):
                 st.subheader("🏆 Most Active Users")
                 
                 df_users = pd.DataFrame(activity_data["top_users"])
                 
                 for idx, row in df_users.head(5).iterrows():
                     st.info(f"👤 **{row['user_id']}** - {row['activity_count']} activities")
+            else:
+                st.info("Top users data not available")
         
         else:
             st.error(f"Failed to fetch activity analytics: {response.status_code}")
@@ -1174,14 +1193,18 @@ def show_enhanced_chat():
         for i, entry in enumerate(reversed(st.session_state.chat_history[-5:])):  # Show last 5
             with st.expander(f"Query {len(st.session_state.chat_history) - i}: {entry['query'][:50]}...", expanded=(i == 0)):
                 st.caption(f"Asked at: {entry['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}")
-                display_enhanced_query_result(entry['result'], include_suggestions, highlight_entities)
+                display_enhanced_query_result(entry['result'], include_suggestions, highlight_entities, entry_id=f"entry_{entry.get('timestamp', datetime.now()).strftime('%Y%m%d_%H%M%S_%f')}")
         
         if st.button("🗑️ Clear Chat History", key="clear_enhanced_chat"):
             st.session_state.chat_history = []
             st.rerun()
 
-def display_enhanced_query_result(result: Dict, include_suggestions: bool = True, highlight_entities: bool = True):
+def display_enhanced_query_result(result: Dict, include_suggestions: bool = True, highlight_entities: bool = True, entry_id: str = None):
     """Display enhanced query result with Phase 4 features."""
+    
+    # Generate unique identifier for this entry if not provided
+    if entry_id is None:
+        entry_id = str(int(time.time() * 1000))  # Use timestamp as unique ID
     
     # Main answer
     st.markdown("### 🤖 AI Response")
@@ -1190,11 +1213,11 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
     # Metadata
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Confidence", f"{result['confidence']:.3f}")
+        st.metric("Confidence", f"{result.get('confidence_score', result.get('confidence', 0)):.3f}")
     with col2:
         st.metric("Sources Found", len(result["sources"]))
     with col3:
-        st.metric("Processing Time", f"{result['processing_time']:.3f}s")
+        st.metric("Processing Time", f"{result.get('processing_time', 0):.3f}s")
     
     # Legal entities (Phase 4 feature)
     if highlight_entities and result.get("legal_entities"):
@@ -1220,7 +1243,7 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
         cols = st.columns(2)
         for i, suggestion in enumerate(suggestions[:6]):  # Show up to 6 suggestions
             with cols[i % 2]:
-                if st.button(f"💭 {suggestion}", key=f"suggestion_{i}_{len(st.session_state.get('chat_history', []))}"):
+                if st.button(f"💭 {suggestion}", key=f"suggestion_{i}_{entry_id}"):
                     st.session_state.enhanced_chat_input = suggestion
                     st.rerun()
     
@@ -1229,8 +1252,12 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
         st.markdown("### 📚 Source Documents")
         
         for i, source in enumerate(result["sources"]):
-            with st.expander(f"📄 Source {i+1} - {source['source']} (Similarity: {source['similarity']:.3f})"):
-                
+            # Use container instead of nested expander
+            source_name = source.get('source', source.get('document_id', 'Unknown'))
+            similarity = source.get('similarity', source.get('similarity_score', 0))
+            st.markdown(f"**📄 Source {i+1} - {source_name} (Similarity: {similarity:.3f})**")
+            
+            with st.container():
                 # Enhanced source metadata
                 col1, col2 = st.columns(2)
                 
@@ -1239,16 +1266,19 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
                     st.markdown(f"**Chunk Index:** {source.get('chunk_index', 'N/A')}")
                 
                 with col2:
-                    if 'legal_score' in source:
+                    if source.get('legal_score'):
                         st.markdown(f"**Legal Relevance:** {source['legal_score']:.3f}")
-                    if 'complexity_score' in source:
+                    if source.get('complexity_score'):
                         st.markdown(f"**Complexity:** {source['complexity_score']:.3f}")
-                    if 'section_type' in source:
+                    if source.get('section_type'):
                         st.markdown(f"**Section Type:** {source['section_type']}")
                 
                 # Source text
                 st.markdown("**Content:**")
-                st.text(source["text"])
+                # Use safe access for content - check multiple possible key names
+                content = source.get("content") or source.get("text") or source.get("document_content") or "Content not available"
+                st.text_area(f"Source {i+1} Content", content, height=100, key=f"source_content_{i}_{entry_id}")
+                st.divider()
 
 # Update the main navigation to include analytics
 def main():
@@ -1256,10 +1286,29 @@ def main():
     st.sidebar.title("⚖️ Local Legal AI")
     st.sidebar.markdown("*Phase 4 - Enhanced Analytics & RAG*")
     
-    # Authentication check - using the correct session state variables
+    # Initialize session state variables
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    if "access_token" not in st.session_state:
+        st.session_state.access_token = None
+    if "user_info" not in st.session_state:
+        st.session_state.user_info = {}
     
+    # Validate existing token if present
+    if st.session_state.authenticated and st.session_state.access_token:
+        try:
+            headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+            response = requests.get(f"{BACKEND_URL}/auth/me", headers=headers)
+            if response.status_code != 200:
+                # Token expired or invalid, reset session
+                st.session_state.authenticated = False
+                st.session_state.access_token = None
+                st.session_state.user_info = {}
+        except:
+            # Network error, assume token is still valid
+            pass
+    
+    # Authentication check
     if not st.session_state.authenticated:
         show_login_page()
         return

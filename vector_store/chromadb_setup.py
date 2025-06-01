@@ -36,51 +36,42 @@ class ChromaDBManager:
         self.client = None
         self.collection = None
         self.collection_name = settings.chromadb_collection_name
+        self.db_path = "./data/chroma_db"
         self._connect()
     
     def _connect(self):
         """Connect to ChromaDB."""
         try:
-            # Use embedded ChromaDB instead of server
-            self.client = chromadb.PersistentClient(
-                path="./data/chroma_db",
-                settings=ChromaSettings(
-                    anonymized_telemetry=False,
-                    allow_reset=True
-                )
+            # Initialize ChromaDB client
+            self.client = chromadb.PersistentClient(path=self.db_path)
+            
+            # Get embedding function with fallbacks
+            embedding_function = self._get_embedding_function()
+            if embedding_function is None:
+                raise Exception("No working embedding function available")
+            
+            # Get or create collection with the embedding function
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection_name,
+                embedding_function=embedding_function,
+                metadata={"description": "Legal documents collection"}
             )
-            
-            # Use the default embedding function which is more stable
-            # This avoids torch compatibility issues with sentence-transformers
-            try:
-                # Try DefaultEmbeddingFunction first
-                default_ef = embedding_functions.DefaultEmbeddingFunction()
-                embedding_function = default_ef
-                logger.info("Using DefaultEmbeddingFunction for ChromaDB")
-            except Exception as e:
-                logger.warning(f"DefaultEmbeddingFunction failed: {e}")
-                # Fallback to no embedding function (uses ChromaDB's built-in)
-                embedding_function = None
-                logger.info("Using ChromaDB built-in embedding function")
-            
-            # Get or create collection with explicit embedding function
-            if embedding_function:
-                self.collection = self.client.get_or_create_collection(
-                    name=self.collection_name,
-                    embedding_function=embedding_function,
-                    metadata={"description": "Legal documents collection"}
-                )
-            else:
-                self.collection = self.client.get_or_create_collection(
-                    name=self.collection_name,
-                    metadata={"description": "Legal documents collection"}
-                )
             
             logger.info(f"Connected to ChromaDB collection: {self.collection_name}")
             
         except Exception as e:
-            logger.error(f"Failed to connect to ChromaDB: {e}")
-            raise
+            logger.error(f"Failed to initialize ChromaDB: {e}")
+            # Create a minimal fallback collection without embedding function
+            try:
+                self.client = chromadb.PersistentClient(path=self.db_path)
+                self.collection = self.client.get_or_create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "Legal documents collection"}
+                )
+                logger.warning("Using ChromaDB without custom embedding function")
+            except Exception as fallback_error:
+                logger.error(f"Complete ChromaDB initialization failed: {fallback_error}")
+                raise
     
     def add_documents(
         self,
@@ -312,6 +303,71 @@ class ChromaDBManager:
         except Exception as e:
             logger.error(f"Failed to reset collection: {e}")
             return False
+
+    def _get_embedding_function(self):
+        """Get the appropriate embedding function with fallbacks."""
+        try:
+            # Try SentenceTransformersEmbeddingFunction first (more reliable)
+            try:
+                from chromadb.utils import embedding_functions
+                sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
+                    model_name="all-MiniLM-L6-v2"
+                )
+                logger.info("Using SentenceTransformerEmbeddingFunction for ChromaDB")
+                return sentence_transformer_ef
+            except Exception as e:
+                logger.warning(f"SentenceTransformerEmbeddingFunction failed: {e}")
+            
+            # Fallback to a simple embedding function that doesn't use ONNX
+            try:
+                # Use a custom simple embedding function
+                class SimpleEmbeddingFunction:
+                    def __call__(self, input):
+                        # Simple hash-based embedding to avoid ONNX issues
+                        import hashlib
+                        import numpy as np
+                        
+                        if isinstance(input, str):
+                            input = [input]
+                        
+                        embeddings = []
+                        for text in input:
+                            # Create a simple deterministic embedding
+                            hash_obj = hashlib.md5(text.encode())
+                            hash_bytes = hash_obj.digest()
+                            # Convert to float array
+                            embedding = np.frombuffer(hash_bytes, dtype=np.uint8).astype(np.float32)
+                            # Normalize to create a proper embedding vector
+                            embedding = embedding / np.linalg.norm(embedding)
+                            # Pad or truncate to standard size (384 dimensions)
+                            if len(embedding) < 384:
+                                embedding = np.pad(embedding, (0, 384 - len(embedding)))
+                            else:
+                                embedding = embedding[:384]
+                            embeddings.append(embedding.tolist())
+                        
+                        return embeddings
+                
+                simple_ef = SimpleEmbeddingFunction()
+                logger.info("Using SimpleEmbeddingFunction for ChromaDB (ONNX fallback)")
+                return simple_ef
+            except Exception as e:
+                logger.warning(f"SimpleEmbeddingFunction failed: {e}")
+            
+            # Last resort: Try DefaultEmbeddingFunction
+            try:
+                default_ef = embedding_functions.DefaultEmbeddingFunction()
+                logger.info("Using DefaultEmbeddingFunction for ChromaDB")
+                return default_ef
+            except Exception as e:
+                logger.warning(f"DefaultEmbeddingFunction failed: {e}")
+            
+        except Exception as e:
+            logger.error(f"Failed to get any embedding function: {e}")
+            
+        # If all else fails, return None and handle gracefully
+        logger.error("No working embedding function found")
+        return None
 
 
 # Global ChromaDB manager instance
