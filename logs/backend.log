@@ -1,0 +1,800 @@
+INFO:     Will watch for changes in these directories: ['/Users/alfredodiaz/udemy practice/local-legal-ai']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [76564] using WatchFiles
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [76568]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:     127.0.0.1:58972 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58984 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58997 - "GET /health HTTP/1.1" 200 OK
+WARNING:passlib.handlers.bcrypt:(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:59001 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:rag.simple_embedder:Processing document: Test Employment Agreement
+INFO:rag.simple_embedder:Created 1 chunks
+INFO:rag.simple_embedder:Generating TF-IDF embeddings for 1 chunks
+INFO:rag.simple_embedder:Fitting TF-IDF vectorizer on document corpus
+INFO:rag.simple_embedder:Successfully generated TF-IDF embeddings for 1 chunks
+INFO:vector_store.chromadb_setup:Added 1 documents to collection
+INFO:backend.app:Successfully stored 1 chunks in ChromaDB
+INFO:     127.0.0.1:59003 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59005 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 1 results
+INFO:     127.0.0.1:59007 - "POST /query HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'vector_store/chromadb_setup.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76568]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [76679]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'vector_store/chromadb_setup.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76679]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [76695]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'debug_content_type.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [76695]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [80067]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'debug_content_type.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [80067]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [82681]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:     127.0.0.1:59186 - "GET /health HTTP/1.1" 200 OK
+WARNING:passlib.handlers.bcrypt:(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:59190 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:rag.simple_embedder:Processing document: Test Employment Agreement
+INFO:rag.simple_embedder:Created 1 chunks
+INFO:rag.simple_embedder:Generating TF-IDF embeddings for 1 chunks
+INFO:rag.simple_embedder:Fitting TF-IDF vectorizer on document corpus
+INFO:rag.simple_embedder:Successfully generated TF-IDF embeddings for 1 chunks
+INFO:vector_store.chromadb_setup:Added 1 documents to collection
+INFO:backend.app:Successfully stored 1 chunks in ChromaDB
+INFO:     127.0.0.1:59192 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59194 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:vector_store.chromadb_setup:Search completed: 1 results
+INFO:     127.0.0.1:59196 - "POST /query HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'test_upload_fix.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [82681]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [82767]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:passlib.handlers.bcrypt:(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:59240 - "POST /auth/login HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [82767]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83622]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83622]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83637]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83637]
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83665]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83683]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/rag_pipeline.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83683]
+WARNING:  WatchFiles detected changes in 'rag/rag_pipeline.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83719]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/simple_embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83719]
+WARNING:  WatchFiles detected changes in 'rag/simple_embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83749]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83760]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83760]
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83769]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83786]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83786]
+WARNING:  WatchFiles detected changes in 'rag/rag_pipeline.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83850]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py', 'frontend/streamlit_app.py', 'rag/simple_embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83880]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83880]
+WARNING:  WatchFiles detected changes in 'rag/embedder.py', 'test_simple_setup.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83916]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/simple_embedder.py', 'rag/rag_pipeline.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83942]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py', 'frontend/streamlit_app.py', 'rag/embedder.py', 'rag/rag_pipeline.py', 'rag/simple_embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83976]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [83989]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [83989]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84144]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84144]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84163]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84163]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84195]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:passlib.handlers.bcrypt:(trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+INFO:     127.0.0.1:59938 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59941 - "POST /auth/login HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'frontend/streamlit_app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84195]
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84279]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'test_simple_setup.py', 'rag/embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84302]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84305]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84315]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84315]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84327]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84327]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:backend.app:Failed to import sentence-transformers embedder: module 'torch' has no attribute 'compiler'
+INFO:backend.app:Falling back to simple TF-IDF embedder
+INFO:rag.simple_embedder:Simple Legal Document Embedder initialized successfully
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:backend.app:Failed to import RAG pipeline: module 'torch' has no attribute 'compiler'
+INFO:     Started server process [84355]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+ERROR:backend.app:Startup error: 'NoneType' object is not callable
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84355]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [84481]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'rag/embedder.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:backend.app:Shutting down Local Legal AI API...
+INFO:     Application shutdown complete.
+INFO:     Finished server process [84481]
+INFO:vector_store.chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:vector_store.chromadb_setup:Connected to ChromaDB collection: legal_documents
+INFO:backend.app:Enhanced document processor loaded (Phase 4)
+Disabling PyTorch because PyTorch >= 2.1 is required but found 2.0.1
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:rag.embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:Using sentence-transformers embedder
+INFO:chromadb_setup:Using DefaultEmbeddingFunction for ChromaDB
+INFO:chromadb_setup:Connected to ChromaDB collection: legal_documents
+WARNING:root:SentenceTransformers not available: module 'torch' has no attribute 'compiler'. Will use fallback embedder.
+WARNING:embedder:SentenceTransformers not available. Using fallback embedding method.
+INFO:backend.app:RAG pipeline imported successfully
+INFO:     Started server process [84501]
+INFO:     Waiting for application startup.
+INFO:backend.app:Starting Local Legal AI API...
+INFO:backend.app:ChromaDB connection verified
+INFO:backend.app:Embedder initialized
+INFO:backend.app:RAG pipeline initialized
+INFO:     Application startup complete.
+INFO:     127.0.0.1:60176 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60661 - "GET /analytics/usage?days=30 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60663 - "GET /analytics/performance HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60665 - "GET /analytics/similarity HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60667 - "GET /analytics/activity?days=30 HTTP/1.1" 404 Not Found
+INFO:rag.embedder:Processing document: CALIFORNIA EMPLOYMENT CONTRACTÂ .docx 3.pdf
+INFO:rag.embedder:Created 15 chunks
+INFO:rag.embedder:Generating embeddings for 15 chunks
+INFO:rag.embedder:Using fallback embedding method
+INFO:rag.embedder:Successfully generated embeddings for 15 chunks
+[1;31m2025-05-31 22:28:38.309263 [E:onnxruntime:, sequential_executor.cc:516 ExecuteKernel] Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs.[m
+ERROR:vector_store.chromadb_setup:Failed to add documents: [ONNXRuntimeError] : 1 : FAIL : Non-zero status code returned while running CoreML_7326074372303502078_1 node. Name:'CoreMLExecutionProvider_CoreML_7326074372303502078_1_1' Status Message: Error executing model: Error computing NN outputs. in add.
+ERROR:backend.app:Failed to store documents in ChromaDB
+INFO:     127.0.0.1:60685 - "POST /documents/upload HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60780 - "POST /documents/query HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:60824 - "GET /analytics/usage?days=30 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60826 - "GET /analytics/performance HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60828 - "GET /analytics/similarity HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60830 - "GET /analytics/activity?days=30 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60874 - "GET /analytics/usage?days=30 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60876 - "GET /analytics/performance HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60878 - "GET /analytics/similarity HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60880 - "GET /analytics/activity?days=30 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:60882 - "GET /analytics/report?format=json HTTP/1.1" 404 Not Found

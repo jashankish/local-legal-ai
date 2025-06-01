@@ -2,6 +2,7 @@
 
 import chromadb
 from chromadb.config import Settings as ChromaSettings
+from chromadb.utils import embedding_functions
 import logging
 from typing import List, Dict, Optional, Any
 import hashlib
@@ -11,8 +12,18 @@ import sys
 import os
 
 # Add the backend directory to the path so we can import config
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-from config import settings
+backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+sys.path.append(backend_path)
+
+try:
+    from config import settings
+except ImportError:
+    # Fallback configuration if config module is not available
+    class FallbackSettings:
+        chromadb_collection_name = "legal_documents"
+    
+    settings = FallbackSettings()
+    logging.warning("Using fallback settings - config module not found")
 
 
 logger = logging.getLogger(__name__)
@@ -39,11 +50,31 @@ class ChromaDBManager:
                 )
             )
             
-            # Get or create collection
-            self.collection = self.client.get_or_create_collection(
-                name=self.collection_name,
-                metadata={"description": "Legal documents collection"}
-            )
+            # Use the default embedding function which is more stable
+            # This avoids torch compatibility issues with sentence-transformers
+            try:
+                # Try DefaultEmbeddingFunction first
+                default_ef = embedding_functions.DefaultEmbeddingFunction()
+                embedding_function = default_ef
+                logger.info("Using DefaultEmbeddingFunction for ChromaDB")
+            except Exception as e:
+                logger.warning(f"DefaultEmbeddingFunction failed: {e}")
+                # Fallback to no embedding function (uses ChromaDB's built-in)
+                embedding_function = None
+                logger.info("Using ChromaDB built-in embedding function")
+            
+            # Get or create collection with explicit embedding function
+            if embedding_function:
+                self.collection = self.client.get_or_create_collection(
+                    name=self.collection_name,
+                    embedding_function=embedding_function,
+                    metadata={"description": "Legal documents collection"}
+                )
+            else:
+                self.collection = self.client.get_or_create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "Legal documents collection"}
+                )
             
             logger.info(f"Connected to ChromaDB collection: {self.collection_name}")
             

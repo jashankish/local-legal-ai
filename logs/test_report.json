@@ -1,0 +1,95 @@
+{
+  "timestamp": "2025-05-31T21:08:53.730451",
+  "summary": {
+    "total_tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "tests": [
+    {
+      "test": "Backend Health Check",
+      "success": true,
+      "message": "Status: healthy",
+      "timestamp": "2025-05-31T21:08:44.527521"
+    },
+    {
+      "test": "Frontend Accessibility",
+      "success": true,
+      "message": "HTTP 200",
+      "timestamp": "2025-05-31T21:08:44.532272"
+    },
+    {
+      "test": "API Documentation",
+      "success": true,
+      "message": "",
+      "timestamp": "2025-05-31T21:08:44.538255"
+    },
+    {
+      "test": "Admin Authentication",
+      "success": true,
+      "message": "Admin token obtained",
+      "timestamp": "2025-05-31T21:08:44.951796"
+    },
+    {
+      "test": "User Registration (Admin)",
+      "success": true,
+      "message": "New user created by admin",
+      "timestamp": "2025-05-31T21:08:45.282038"
+    },
+    {
+      "test": "Document Upload",
+      "success": true,
+      "message": "Doc ID: 85143e1c58f459931ade1c692d67b441",
+      "timestamp": "2025-05-31T21:08:47.824842"
+    },
+    {
+      "test": "Document Listing",
+      "success": true,
+      "message": "0 documents found",
+      "timestamp": "2025-05-31T21:08:47.828902"
+    },
+    {
+      "test": "RAG Query Processing",
+      "success": true,
+      "message": "Response: Based on the retrieved documents: EMPLOYMENT AGREE...",
+      "timestamp": "2025-05-31T21:08:49.414588"
+    },
+    {
+      "test": "Document Statistics",
+      "success": true,
+      "message": "Stats: {'name': 'legal_documents', 'document_count': 9, 'status': 'healthy'}",
+      "timestamp": "2025-05-31T21:08:49.418444"
+    },
+    {
+      "test": "Frontend Loading",
+      "success": true,
+      "message": "",
+      "timestamp": "2025-05-31T21:08:49.423920"
+    },
+    {
+      "test": "Frontend Health Check",
+      "success": true,
+      "message": "",
+      "timestamp": "2025-05-31T21:08:49.427424"
+    },
+    {
+      "test": "Enhanced Dependencies",
+      "success": true,
+      "message": "All Phase 4 dependencies available",
+      "timestamp": "2025-05-31T21:08:50.555118"
+    },
+    {
+      "test": "Enhanced Document Upload",
+      "success": true,
+      "message": "Processed with metadata: False",
+      "timestamp": "2025-05-31T21:08:52.096159"
+    },
+    {
+      "test": "Legal Document Analysis",
+      "success": true,
+      "message": "Analysis quality: High",
+      "timestamp": "2025-05-31T21:08:53.730296"
+    }
+  ]
+}

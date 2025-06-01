@@ -17,3 +17,4 @@ numpy
 requests
 aiofiles
 httpx
+python-magic==0.4.27

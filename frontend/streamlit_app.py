@@ -14,21 +14,26 @@ import streamlit as st
 import requests
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
-from typing import Optional, Dict, Any
+import plotly.express as px
+import plotly.graph_objects as go
+from typing import Optional, Dict, Any, List
+import os
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Local Legal AI",
+    page_title="Local Legal AI - Phase 4",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Configuration
+# Global configuration
 API_BASE_URL = "http://localhost:8000"
+AUTH_TOKEN = st.session_state.get("access_token", "")
 ADMIN_CREDENTIALS = {"username": "admin", "password": "admin123"}
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 # Custom CSS for better styling
 st.markdown("""
@@ -235,6 +240,8 @@ def show_login_page():
         - 🤖 AI-powered document analysis
         - 💬 Interactive chat interface
         - 📊 Document management
+        
+        **Note:** Session expires on page refresh. Please avoid refreshing the page.
         """)
 
 def show_main_interface():
@@ -275,62 +282,25 @@ def show_main_interface():
         show_document_management()
 
 def show_dashboard():
-    """Display dashboard with system overview."""
+    """Display the main dashboard with quick actions and system info."""
     st.markdown("## 🏠 Dashboard")
-    
-    # System health check
-    health = api_client.check_health()
-    if health:
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>🟢 API Status</h3>
-                <p>{health['services']['api'].title()}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>🗄️ ChromaDB</h3>
-                <p>{health['services']['chromadb'].title()}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>🤖 Model</h3>
-                <p>{health['services']['model'].title()}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            # Get document stats
-            doc_stats = api_client.list_documents()
-            doc_count = doc_stats.get('total_documents', 0) if doc_stats else 0
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>📚 Documents</h3>
-                <p>{doc_count} Total</p>
-            </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("---")
+    st.markdown("Welcome to the Local Legal AI System! Choose an action below to get started.")
     
     # Quick actions
+    st.markdown("### ⚡ Quick Actions")
+    
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 🚀 Quick Actions")
-        if st.button("📄 Upload New Document", type="primary"):
-            st.session_state.page_selector = "📄 Document Upload"
+        st.markdown("### 📄 Document Operations")
+        
+        # Use different session state variables for button navigation
+        if st.button("📄 Upload New Document", type="primary", key="nav_upload"):
+            st.session_state.navigate_to = "📄 Upload Documents"
             st.rerun()
         
-        if st.button("💬 Start Chat Session"):
-            st.session_state.page_selector = "💬 Chat Interface"
+        if st.button("💬 Start Chat Session", key="nav_chat"):
+            st.session_state.navigate_to = "💬 Enhanced Chat"
             st.rerun()
     
     with col2:
@@ -612,13 +582,730 @@ def show_document_management():
             if st.button("🔄 Refresh Stats", type="secondary"):
                 st.rerun()
 
+def show_analytics_dashboard():
+    """Show the analytics dashboard (Phase 4 feature)."""
+    st.title("📊 Analytics Dashboard")
+    st.markdown("*Comprehensive system analytics and insights*")
+    
+    if not st.session_state.get("access_token"):
+        st.error("Please log in to access analytics")
+        return
+    
+    # Check admin access
+    user_info = st.session_state.get("user_info", {})
+    user_role = user_info.get("role", "user")
+    if user_role != "admin":
+        st.error("Admin access required for analytics dashboard")
+        return
+    
+    # Analytics navigation
+    analytics_tabs = st.tabs([
+        "📈 Usage Analytics", 
+        "⚡ Performance", 
+        "🔗 Similarity Analysis", 
+        "👥 User Activity",
+        "📋 Reports"
+    ])
+    
+    with analytics_tabs[0]:
+        show_usage_analytics()
+    
+    with analytics_tabs[1]:
+        show_performance_analytics()
+    
+    with analytics_tabs[2]:
+        show_similarity_analytics()
+    
+    with analytics_tabs[3]:
+        show_user_activity_analytics()
+    
+    with analytics_tabs[4]:
+        show_analytics_reports()
+
+def show_usage_analytics():
+    """Display usage analytics."""
+    st.subheader("📈 Usage Analytics")
+    
+    # Date range selector
+    col1, col2 = st.columns(2)
+    with col1:
+        days = st.selectbox(
+            "Analysis Period",
+            [7, 14, 30, 60, 90],
+            index=2,
+            help="Select the number of days to analyze"
+        )
+    
+    with col2:
+        if st.button("🔄 Refresh Analytics", key="refresh_usage"):
+            st.cache_data.clear()
+    
+    try:
+        # Fetch usage analytics
+        headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+        response = requests.get(
+            f"{BACKEND_URL}/analytics/usage?days={days}",
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            analytics_data = response.json()["data"]
+            
+            # Display metrics cards
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric(
+                    "Total Queries",
+                    analytics_data["query_analytics"]["total_queries"],
+                    help="Total number of queries in the selected period"
+                )
+            
+            with col2:
+                st.metric(
+                    "Unique Users",
+                    analytics_data["query_analytics"]["unique_users"],
+                    help="Number of unique users who made queries"
+                )
+            
+            with col3:
+                st.metric(
+                    "Documents Uploaded",
+                    analytics_data["document_analytics"]["total_documents"],
+                    help="Total documents uploaded in the period"
+                )
+            
+            with col4:
+                avg_similarity = analytics_data["query_analytics"]["avg_similarity_score"]
+                st.metric(
+                    "Avg Query Quality",
+                    f"{avg_similarity:.3f}",
+                    help="Average similarity score of query results"
+                )
+            
+            # Daily trends chart
+            if analytics_data["daily_trends"]:
+                st.subheader("📅 Daily Query Trends")
+                
+                df_trends = pd.DataFrame(analytics_data["daily_trends"])
+                df_trends['date'] = pd.to_datetime(df_trends['date'])
+                
+                fig = px.line(
+                    df_trends, 
+                    x='date', 
+                    y='queries',
+                    title="Daily Query Volume",
+                    markers=True
+                )
+                fig.update_layout(
+                    xaxis_title="Date",
+                    yaxis_title="Number of Queries",
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Document analytics
+            st.subheader("📄 Document Analytics")
+            doc_metrics = analytics_data["document_analytics"]
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.info(f"**Average File Size:** {doc_metrics['avg_file_size']:.0f} bytes")
+                st.info(f"**Average Chunks per Document:** {doc_metrics['avg_chunks_per_doc']:.1f}")
+            
+            with col2:
+                st.info(f"**Average Processing Time:** {doc_metrics['avg_processing_time']:.3f}s")
+                st.info(f"**Average Legal Complexity:** {doc_metrics['avg_legal_complexity']:.3f}")
+            
+            # Query types distribution
+            if analytics_data["top_query_types"]:
+                st.subheader("🔍 Query Types Distribution")
+                df_types = pd.DataFrame(analytics_data["top_query_types"])
+                
+                fig = px.pie(
+                    df_types,
+                    values='count',
+                    names='type',
+                    title="Distribution of Query Types"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+        
+        else:
+            st.error(f"Failed to fetch usage analytics: {response.status_code}")
+    
+    except Exception as e:
+        st.error(f"Error loading usage analytics: {e}")
+
+def show_performance_analytics():
+    """Display performance analytics."""
+    st.subheader("⚡ Performance Analytics")
+    
+    try:
+        headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+        response = requests.get(
+            f"{BACKEND_URL}/analytics/performance",
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            perf_data = response.json()["data"]
+            
+            # Performance distribution
+            if perf_data["performance_distribution"]:
+                st.subheader("🚀 Query Performance Distribution")
+                
+                df_perf = pd.DataFrame(perf_data["performance_distribution"])
+                
+                fig = px.bar(
+                    df_perf,
+                    x='category',
+                    y='count',
+                    color='avg_time',
+                    title="Query Performance Categories",
+                    color_continuous_scale='RdYlGn_r'
+                )
+                fig.update_layout(
+                    xaxis_title="Performance Category",
+                    yaxis_title="Number of Queries"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Quality distribution
+            if perf_data["quality_distribution"]:
+                st.subheader("🎯 Query Quality Distribution")
+                
+                df_quality = pd.DataFrame(perf_data["quality_distribution"])
+                
+                fig = px.pie(
+                    df_quality,
+                    values='count',
+                    names='category',
+                    title="Query Result Quality Distribution",
+                    color_discrete_map={
+                        'excellent': '#2E8B57',
+                        'good': '#32CD32',
+                        'fair': '#FFD700',
+                        'poor': '#FF6347',
+                        'very_poor': '#DC143C'
+                    }
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Slowest queries
+            if perf_data["slowest_queries"]:
+                st.subheader("🐌 Slowest Queries")
+                
+                df_slow = pd.DataFrame(perf_data["slowest_queries"])
+                
+                for idx, row in df_slow.head(5).iterrows():
+                    with st.expander(f"Query {idx + 1} - {row['processing_time']:.3f}s"):
+                        st.text(row['query'])
+                        st.caption(f"Similarity Score: {row['similarity_score']:.3f}")
+            
+            # Optimization suggestions
+            if perf_data["optimization_suggestions"]:
+                st.subheader("💡 Optimization Suggestions")
+                
+                for suggestion in perf_data["optimization_suggestions"]:
+                    st.info(f"💡 {suggestion}")
+        
+        else:
+            st.error(f"Failed to fetch performance analytics: {response.status_code}")
+    
+    except Exception as e:
+        st.error(f"Error loading performance analytics: {e}")
+
+def show_similarity_analytics():
+    """Display document similarity analytics."""
+    st.subheader("🔗 Document Similarity Analysis")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col2:
+        analysis_type = st.radio(
+            "Analysis Type",
+            ["Overall Statistics", "Specific Document"],
+            key="similarity_type"
+        )
+    
+    try:
+        headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+        
+        if analysis_type == "Specific Document":
+            # Get document list for selection
+            doc_response = requests.get(f"{BACKEND_URL}/documents/list", headers=headers)
+            if doc_response.status_code == 200:
+                documents = doc_response.json()["documents"]
+                if documents:
+                    doc_options = {f"{doc['source']} ({doc['document_id'][:8]}...)": doc['document_id'] 
+                                 for doc in documents}
+                    
+                    selected_doc = st.selectbox(
+                        "Select Document",
+                        options=list(doc_options.keys()),
+                        key="selected_doc_similarity"
+                    )
+                    
+                    if selected_doc:
+                        document_id = doc_options[selected_doc]
+                        
+                        response = requests.get(
+                            f"{BACKEND_URL}/analytics/similarity?document_id={document_id}",
+                            headers=headers
+                        )
+                        
+                        if response.status_code == 200:
+                            sim_data = response.json()["data"]
+                            
+                            st.subheader(f"📄 Similar Documents to: {selected_doc}")
+                            
+                            if sim_data["similar_documents"]:
+                                for similar_doc in sim_data["similar_documents"]:
+                                    similarity = similar_doc["similarity"]
+                                    doc_id = similar_doc["document_id"]
+                                    
+                                    # Color code by similarity
+                                    if similarity > 0.8:
+                                        st.success(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                                    elif similarity > 0.6:
+                                        st.info(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                                    else:
+                                        st.warning(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                            else:
+                                st.info("No similar documents found")
+                else:
+                    st.warning("No documents available for similarity analysis")
+        else:
+            # Overall statistics
+            response = requests.get(
+                f"{BACKEND_URL}/analytics/similarity",
+                headers=headers
+            )
+            
+            if response.status_code == 200:
+                sim_data = response.json()["data"]
+                
+                # Overall stats
+                if "overall_stats" in sim_data:
+                    stats = sim_data["overall_stats"]
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric(
+                            "Average Similarity",
+                            f"{stats['avg_similarity']:.3f}",
+                            help="Average similarity across all document pairs"
+                        )
+                    
+                    with col2:
+                        st.metric(
+                            "Maximum Similarity",
+                            f"{stats['max_similarity']:.3f}",
+                            help="Highest similarity score found"
+                        )
+                    
+                    with col3:
+                        st.metric(
+                            "Total Comparisons",
+                            stats['total_comparisons'],
+                            help="Total number of document pair comparisons"
+                        )
+                
+                # Similar document pairs
+                if sim_data.get("similar_document_pairs"):
+                    st.subheader("🔗 Most Similar Document Pairs")
+                    
+                    pairs_df = pd.DataFrame(sim_data["similar_document_pairs"])
+                    
+                    for idx, row in pairs_df.head(10).iterrows():
+                        similarity = row['similarity']
+                        
+                        # Color code by similarity level
+                        if similarity > 0.9:
+                            st.success(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+                        elif similarity > 0.8:
+                            st.info(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+                        else:
+                            st.warning(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+        
+    except Exception as e:
+        st.error(f"Error loading similarity analytics: {e}")
+
+def show_user_activity_analytics():
+    """Display user activity analytics."""
+    st.subheader("👥 User Activity Analytics")
+    
+    # Date range selector
+    col1, col2 = st.columns(2)
+    with col1:
+        days = st.selectbox(
+            "Analysis Period",
+            [7, 14, 30, 60, 90],
+            index=2,
+            key="activity_days"
+        )
+    
+    try:
+        headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+        response = requests.get(
+            f"{BACKEND_URL}/analytics/activity?days={days}",
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            activity_data = response.json()["data"]
+            
+            # Active users metric
+            st.metric(
+                "Active Users",
+                activity_data["active_users"],
+                help=f"Number of active users in the last {days} days"
+            )
+            
+            # Activity types distribution
+            if activity_data["activity_types"]:
+                st.subheader("📊 Activity Types Distribution")
+                
+                df_activities = pd.DataFrame(activity_data["activity_types"])
+                
+                fig = px.bar(
+                    df_activities,
+                    x='type',
+                    y='count',
+                    title="User Activity Types",
+                    color='count',
+                    color_continuous_scale='viridis'
+                )
+                fig.update_layout(
+                    xaxis_title="Activity Type",
+                    yaxis_title="Number of Activities"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Hourly activity patterns
+            if activity_data["hourly_patterns"]:
+                st.subheader("🕐 Hourly Activity Patterns")
+                
+                df_hourly = pd.DataFrame(activity_data["hourly_patterns"])
+                
+                fig = px.line(
+                    df_hourly,
+                    x='hour',
+                    y='activity_count',
+                    title="Activity Pattern by Hour of Day",
+                    markers=True
+                )
+                fig.update_layout(
+                    xaxis_title="Hour of Day",
+                    yaxis_title="Activity Count"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Top users
+            if activity_data["top_users"]:
+                st.subheader("🏆 Most Active Users")
+                
+                df_users = pd.DataFrame(activity_data["top_users"])
+                
+                for idx, row in df_users.head(5).iterrows():
+                    st.info(f"👤 **{row['user_id']}** - {row['activity_count']} activities")
+        
+        else:
+            st.error(f"Failed to fetch activity analytics: {response.status_code}")
+    
+    except Exception as e:
+        st.error(f"Error loading activity analytics: {e}")
+
+def show_analytics_reports():
+    """Display analytics reports section."""
+    st.subheader("📋 Analytics Reports")
+    
+    st.markdown("Generate and export comprehensive analytics reports.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        report_format = st.selectbox(
+            "Report Format",
+            ["json"],  # Could add CSV, PDF later
+            key="report_format"
+        )
+    
+    with col2:
+        if st.button("📥 Generate Report", key="generate_report"):
+            try:
+                headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+                response = requests.get(
+                    f"{BACKEND_URL}/analytics/report?format={report_format}",
+                    headers=headers
+                )
+                
+                if response.status_code == 200:
+                    report_data = response.json()
+                    
+                    # Display report summary
+                    st.success("✅ Report generated successfully!")
+                    
+                    with st.expander("📄 Report Summary"):
+                        st.json({
+                            "generated_at": report_data.get("generated_at"),
+                            "report_type": report_data.get("report_type"),
+                            "sections": list(report_data.keys())
+                        })
+                    
+                    # Download button
+                    report_json = json.dumps(report_data, indent=2)
+                    st.download_button(
+                        label="💾 Download Full Report",
+                        data=report_json,
+                        file_name=f"analytics_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        mime="application/json"
+                    )
+                    
+                    # Display key insights
+                    st.subheader("🔍 Key Insights")
+                    
+                    usage_data = report_data.get("usage_analytics", {})
+                    if usage_data:
+                        query_analytics = usage_data.get("query_analytics", {})
+                        doc_analytics = usage_data.get("document_analytics", {})
+                        
+                        insights = []
+                        
+                        if query_analytics.get("total_queries", 0) > 0:
+                            insights.append(f"📊 Total queries: {query_analytics['total_queries']}")
+                            insights.append(f"⚡ Average processing time: {query_analytics['avg_processing_time']:.3f}s")
+                            insights.append(f"🎯 Average similarity score: {query_analytics['avg_similarity_score']:.3f}")
+                        
+                        if doc_analytics.get("total_documents", 0) > 0:
+                            insights.append(f"📄 Total documents: {doc_analytics['total_documents']}")
+                            insights.append(f"🧩 Average chunks per document: {doc_analytics['avg_chunks_per_doc']:.1f}")
+                        
+                        for insight in insights:
+                            st.info(insight)
+                
+                else:
+                    st.error(f"Failed to generate report: {response.status_code}")
+            
+            except Exception as e:
+                st.error(f"Error generating report: {e}")
+
+# Enhanced chat interface with Phase 4 features
+def show_enhanced_chat():
+    """Enhanced chat interface with query suggestions and legal entity highlighting."""
+    st.title("💬 Enhanced Legal Chat")
+    st.markdown("*AI-powered legal document analysis with advanced features*")
+    
+    if not st.session_state.get("access_token"):
+        st.error("Please log in to use the chat interface")
+        return
+    
+    # Initialize chat history
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+    
+    # Query input with enhancements
+    col1, col2 = st.columns([4, 1])
+    
+    with col1:
+        user_query = st.text_area(
+            "Enter your legal question:",
+            placeholder="e.g., What are the termination conditions in employment agreements?",
+            key="enhanced_chat_input",
+            height=100
+        )
+    
+    with col2:
+        st.markdown("### Settings")
+        max_results = st.slider("Max Results", 1, 10, 5, key="enhanced_max_results")
+        similarity_threshold = st.slider("Similarity Threshold", 0.1, 0.9, 0.3, step=0.1, key="enhanced_similarity")
+        include_suggestions = st.checkbox("Show Query Suggestions", value=True, key="include_suggestions")
+        highlight_entities = st.checkbox("Highlight Legal Entities", value=True, key="highlight_entities")
+    
+    if st.button("🔍 Submit Query", key="enhanced_submit", type="primary"):
+        if user_query.strip():
+            with st.spinner("Processing your query..."):
+                try:
+                    headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+                    
+                    query_data = {
+                        "query": user_query,
+                        "max_results": max_results,
+                        "similarity_threshold": similarity_threshold,
+                        "include_metadata": True
+                    }
+                    
+                    response = requests.post(
+                        f"{BACKEND_URL}/documents/query",
+                        headers=headers,
+                        json=query_data
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        
+                        # Add to chat history
+                        chat_entry = {
+                            "timestamp": datetime.now(),
+                            "query": user_query,
+                            "result": result
+                        }
+                        st.session_state.chat_history.append(chat_entry)
+                        
+                        # Display result
+                        display_enhanced_query_result(result, include_suggestions, highlight_entities)
+                    
+                    else:
+                        st.error(f"Query failed: {response.status_code}")
+                        if response.text:
+                            st.error(response.text)
+                
+                except Exception as e:
+                    st.error(f"Error processing query: {e}")
+        else:
+            st.warning("Please enter a query")
+    
+    # Display chat history
+    if st.session_state.chat_history:
+        st.markdown("---")
+        st.subheader("💬 Chat History")
+        
+        for i, entry in enumerate(reversed(st.session_state.chat_history[-5:])):  # Show last 5
+            with st.expander(f"Query {len(st.session_state.chat_history) - i}: {entry['query'][:50]}...", expanded=(i == 0)):
+                st.caption(f"Asked at: {entry['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}")
+                display_enhanced_query_result(entry['result'], include_suggestions, highlight_entities)
+        
+        if st.button("🗑️ Clear Chat History", key="clear_enhanced_chat"):
+            st.session_state.chat_history = []
+            st.rerun()
+
+def display_enhanced_query_result(result: Dict, include_suggestions: bool = True, highlight_entities: bool = True):
+    """Display enhanced query result with Phase 4 features."""
+    
+    # Main answer
+    st.markdown("### 🤖 AI Response")
+    st.info(result["answer"])
+    
+    # Metadata
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Confidence", f"{result['confidence']:.3f}")
+    with col2:
+        st.metric("Sources Found", len(result["sources"]))
+    with col3:
+        st.metric("Processing Time", f"{result['processing_time']:.3f}s")
+    
+    # Legal entities (Phase 4 feature)
+    if highlight_entities and result.get("legal_entities"):
+        st.markdown("### 🏛️ Legal Entities Identified")
+        
+        entities = result["legal_entities"]
+        
+        for entity_type, entity_list in entities.items():
+            if entity_list:
+                st.markdown(f"**{entity_type.replace('_', ' ').title()}:**")
+                
+                # Display entities as tags
+                entity_tags = "  ".join([f"`{entity}`" for entity in entity_list[:10]])  # Limit to first 10
+                st.markdown(entity_tags)
+    
+    # Query suggestions (Phase 4 feature)
+    if include_suggestions and result.get("query_suggestions"):
+        st.markdown("### 💡 Related Query Suggestions")
+        
+        suggestions = result["query_suggestions"]
+        
+        # Display suggestions as clickable buttons
+        cols = st.columns(2)
+        for i, suggestion in enumerate(suggestions[:6]):  # Show up to 6 suggestions
+            with cols[i % 2]:
+                if st.button(f"💭 {suggestion}", key=f"suggestion_{i}_{len(st.session_state.get('chat_history', []))}"):
+                    st.session_state.enhanced_chat_input = suggestion
+                    st.rerun()
+    
+    # Sources with enhanced metadata
+    if result["sources"]:
+        st.markdown("### 📚 Source Documents")
+        
+        for i, source in enumerate(result["sources"]):
+            with st.expander(f"📄 Source {i+1} - {source['source']} (Similarity: {source['similarity']:.3f})"):
+                
+                # Enhanced source metadata
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown(f"**Category:** {source.get('category', 'N/A')}")
+                    st.markdown(f"**Chunk Index:** {source.get('chunk_index', 'N/A')}")
+                
+                with col2:
+                    if 'legal_score' in source:
+                        st.markdown(f"**Legal Relevance:** {source['legal_score']:.3f}")
+                    if 'complexity_score' in source:
+                        st.markdown(f"**Complexity:** {source['complexity_score']:.3f}")
+                    if 'section_type' in source:
+                        st.markdown(f"**Section Type:** {source['section_type']}")
+                
+                # Source text
+                st.markdown("**Content:**")
+                st.text(source["text"])
+
+# Update the main navigation to include analytics
 def main():
-    """Main application entry point."""
-    # Check if user is authenticated
+    """Main application function with Phase 4 enhancements."""
+    st.sidebar.title("⚖️ Local Legal AI")
+    st.sidebar.markdown("*Phase 4 - Enhanced Analytics & RAG*")
+    
+    # Authentication check - using the correct session state variables
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    
     if not st.session_state.authenticated:
         show_login_page()
-    else:
-        show_main_interface()
+        return
+    
+    # Handle navigation from button clicks BEFORE creating the widget
+    if "navigate_to" in st.session_state:
+        st.session_state.main_navigation = st.session_state.navigate_to
+        del st.session_state.navigate_to
+    
+    # Enhanced navigation with Phase 4 features
+    pages = {
+        "🏠 Dashboard": show_dashboard,
+        "📄 Upload Documents": show_document_upload,
+        "💬 Enhanced Chat": show_enhanced_chat,
+        "📊 Analytics Dashboard": show_analytics_dashboard,
+        "📁 Document Management": show_document_management
+    }
+    
+    # Navigation
+    # Initialize navigation if not set
+    if "main_navigation" not in st.session_state:
+        st.session_state.main_navigation = "🏠 Dashboard"
+    
+    selected_page = st.sidebar.selectbox(
+        "Navigate to:",
+        list(pages.keys()),
+        key="main_navigation"
+    )
+    
+    # User info in sidebar
+    st.sidebar.markdown("---")
+    user_info = st.session_state.get("user_info", {})
+    user_id = user_info.get("username", "Unknown")
+    user_role = user_info.get("role", "user")
+    
+    st.sidebar.markdown(f"**User:** {user_id}")
+    st.sidebar.markdown(f"**Role:** {user_role.title()}")
+    
+    if st.sidebar.button("🚪 Logout", key="logout_main"):
+        for key in ["authenticated", "access_token", "user_info"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
+    
+    # Show selected page
+    pages[selected_page]()
 
 if __name__ == "__main__":
     main()

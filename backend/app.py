@@ -22,9 +22,19 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'rag'))
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-from config import settings
-from auth import user_manager, create_access_token, User, get_current_user, get_current_active_user
+from backend.config import settings
+from backend.auth import user_manager, create_access_token, User, get_current_user, get_current_active_user
 from vector_store.chromadb_setup import chroma_manager
+
+# Try to import the enhanced document processor for Phase 4
+try:
+    from rag.enhanced_document_processor import EnhancedDocumentProcessor
+    enhanced_processor = EnhancedDocumentProcessor()
+    logger.info("Enhanced document processor loaded (Phase 4)")
+    USE_ENHANCED_PROCESSOR = True
+except Exception as e:
+    logger.warning(f"Enhanced document processor not available: {e}")
+    USE_ENHANCED_PROCESSOR = False
 
 # Try to import the sentence-transformers embedder, fallback to simple embedder
 try:
@@ -212,7 +222,7 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
         )
     
     try:
-        from auth import UserCreate
+        from backend.auth import UserCreate
         user_data = UserCreate(
             username=request.username,
             password=request.password,
@@ -315,53 +325,89 @@ async def upload_document(
     category: Optional[str] = Form("general"),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Upload and process a legal document."""
+    """Upload and process a legal document with enhanced Phase 4 capabilities."""
     start_time = datetime.now()
     
-    # Validate file type
-    allowed_types = ["text/plain", "application/pdf", "application/msword", 
-                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file type: {file.content_type}"
-        )
+    # Enhanced validation with Phase 4 processor
+    if USE_ENHANCED_PROCESSOR:
+        supported_formats = enhanced_processor.get_supported_formats()
+        if file.content_type not in supported_formats:
+            dependencies = enhanced_processor.check_dependencies()
+            missing_deps = [k for k, v in dependencies.items() if not v]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {file.content_type}. "
+                       f"Supported: {supported_formats}. "
+                       f"Missing dependencies: {missing_deps}"
+            )
+    else:
+        # Fallback validation
+        allowed_types = ["text/plain"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported file type: {file.content_type}. Enhanced processor not available."
+            )
     
     try:
         # Read file content
         content = await file.read()
         
-        # For now, handle text files directly
-        if file.content_type == "text/plain":
-            text_content = content.decode('utf-8')
+        # Process document with enhanced processor if available
+        if USE_ENHANCED_PROCESSOR:
+            # Use enhanced document processor
+            document_metadata = {
+                "source": title or file.filename,
+                "category": category,
+                "uploaded_by": current_user.username,
+                "upload_date": datetime.now().isoformat(),
+                "content_type": file.content_type,
+                "file_size": len(content)
+            }
+            
+            # Process document with enhanced capabilities
+            processed_result = enhanced_processor.process_document(
+                file_content=content,
+                filename=file.filename,
+                content_type=file.content_type,
+                metadata=document_metadata
+            )
+            
+            text_content = processed_result['text']
+            enhanced_metadata = {**document_metadata, **processed_result}
+            
+            # Remove the text content from metadata to avoid duplication
+            enhanced_metadata.pop('text', None)
+            
         else:
-            # For other formats, you'd implement proper parsing here
-            # For demo purposes, convert bytes to string (not ideal for PDFs/Word docs)
-            try:
-                text_content = content.decode('utf-8', errors='ignore')
-            except Exception:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Could not process file content. Please ensure it's a valid text file."
-                )
+            # Fallback to simple text processing
+            if file.content_type == "text/plain":
+                text_content = content.decode('utf-8')
+            else:
+                try:
+                    text_content = content.decode('utf-8', errors='ignore')
+                except Exception:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Could not process file content. Please ensure it's a valid text file."
+                    )
+            
+            enhanced_metadata = {
+                "source": title or file.filename,
+                "category": category,
+                "uploaded_by": current_user.username,
+                "upload_date": datetime.now().isoformat(),
+                "content_type": file.content_type,
+                "file_size": len(content)
+            }
         
         # Get embedder and process document
         embedder = get_embedder()
         
-        # Process document with metadata
-        document_metadata = {
-            "source": title or file.filename,
-            "category": category,
-            "uploaded_by": current_user.username,
-            "upload_date": datetime.now().isoformat(),
-            "content_type": file.content_type,
-            "file_size": len(content)
-        }
-        
         # Process document using the embedder
         chunks, embeddings = embedder.process_document(
             text=text_content,
-            metadata=document_metadata
+            metadata=enhanced_metadata
         )
         
         # Store chunks in ChromaDB
@@ -390,9 +436,13 @@ async def upload_document(
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
+        # Enhanced response with processing details
+        processor_info = "Enhanced Processor (Phase 4)" if USE_ENHANCED_PROCESSOR else "Basic Processor"
+        success_message = f"Document '{title or file.filename}' processed successfully using {processor_info}"
+        
         return DocumentUploadResponse(
             success=True,
-            message=f"Document '{title or file.filename}' processed successfully",
+            message=success_message,
             document_id=document_id,
             chunks_processed=chunks_processed,
             processing_time=processing_time

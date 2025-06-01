@@ -3,15 +3,19 @@
 import os
 import hashlib
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 import json
+import logging
 
-from config import settings
+# Configure logging
+logger = logging.getLogger(__name__)
+
+from backend.config import settings
 
 
 # Security

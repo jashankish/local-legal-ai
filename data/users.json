@@ -7,5 +7,32 @@
     "role": "admin",
     "is_active": true,
     "created_at": "2025-05-29T22:24:55.860637"
+  },
+  "test_user_1748569540": {
+    "id": "53be90fa",
+    "username": "test_user_1748569540",
+    "email": "test_1748569540@example.com",
+    "hashed_password": "$2b$12$4Dumw2kJNw6pJmRZF5dz/e44XCOT7v4KENnPpkhziF9gk7iYclC3.",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2025-05-30T01:45:41.263064"
+  },
+  "test_user_1748569821": {
+    "id": "02aa5420",
+    "username": "test_user_1748569821",
+    "email": "test_1748569821@example.com",
+    "hashed_password": "$2b$12$qPebNBRSe3eVi.HZ3Fvfi.QxzzYUcYrPOLmNf/kJDHMXwO4VRbrbu",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2025-05-30T01:50:21.855245"
+  },
+  "test_user_1748750924": {
+    "id": "e7809eea",
+    "username": "test_user_1748750924",
+    "email": "test_1748750924@example.com",
+    "hashed_password": "$2b$12$lkQHB2qF.7QFlRlLOKDHk.wxJnnlLYBftD7CyGHUAKSH8nDCbfuAq",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2025-06-01T04:08:45.278818"
   }
 }
