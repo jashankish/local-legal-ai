@@ -333,30 +333,47 @@ async def upload_document(
     """Upload and process a legal document with enhanced Phase 4 capabilities."""
     start_time = datetime.now()
     
+    # Fix content type detection - browser might send wrong MIME type
+    content_type = file.content_type
+    filename = file.filename or ""
+    
+    # Override content type based on file extension if needed
+    if filename.lower().endswith('.pdf'):
+        content_type = 'application/pdf'
+        logger.info(f"Corrected content type for {filename}: {content_type}")
+    elif filename.lower().endswith('.docx'):
+        content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        logger.info(f"Corrected content type for {filename}: {content_type}")
+    elif filename.lower().endswith('.txt'):
+        content_type = 'text/plain'
+    
+    logger.info(f"Processing file: {filename}, Content type: {content_type}")
+    
     # Enhanced validation with Phase 4 processor
     if USE_ENHANCED_PROCESSOR:
         supported_formats = enhanced_processor.get_supported_formats()
-        if file.content_type not in supported_formats:
+        if content_type not in supported_formats:
             dependencies = enhanced_processor.check_dependencies()
             missing_deps = [k for k, v in dependencies.items() if not v]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type: {file.content_type}. "
+                detail=f"Unsupported file type: {content_type}. "
                        f"Supported: {supported_formats}. "
                        f"Missing dependencies: {missing_deps}"
             )
     else:
         # Fallback validation
         allowed_types = ["text/plain"]
-        if file.content_type not in allowed_types:
+        if content_type not in allowed_types:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type: {file.content_type}. Enhanced processor not available."
+                detail=f"Unsupported file type: {content_type}. Enhanced processor not available."
             )
     
     try:
         # Read file content
         content = await file.read()
+        logger.info(f"Read {len(content)} bytes from {filename}")
         
         # Process document with enhanced processor if available
         if USE_ENHANCED_PROCESSOR:
@@ -366,15 +383,17 @@ async def upload_document(
                 "category": category,
                 "uploaded_by": current_user.username,
                 "upload_date": datetime.now().isoformat(),
-                "content_type": file.content_type,
+                "content_type": content_type,  # Use corrected content type
                 "file_size": len(content)
             }
+            
+            logger.info(f"Processing with enhanced processor: {content_type}")
             
             # Process document with enhanced capabilities
             processed_result = enhanced_processor.process_document(
                 file_content=content,
                 filename=file.filename,
-                content_type=file.content_type,
+                content_type=content_type,  # Use corrected content type
                 metadata=document_metadata
             )
             
@@ -384,9 +403,12 @@ async def upload_document(
             # Remove the text content from metadata to avoid duplication
             enhanced_metadata.pop('text', None)
             
+            logger.info(f"Enhanced processing complete. Text length: {len(text_content)}, "
+                       f"Extraction method: {enhanced_metadata.get('extraction_method', 'unknown')}")
+            
         else:
             # Fallback to simple text processing
-            if file.content_type == "text/plain":
+            if content_type == "text/plain":
                 text_content = content.decode('utf-8')
             else:
                 try:
@@ -402,9 +424,17 @@ async def upload_document(
                 "category": category,
                 "uploaded_by": current_user.username,
                 "upload_date": datetime.now().isoformat(),
-                "content_type": file.content_type,
+                "content_type": content_type,
                 "file_size": len(content)
             }
+        
+        # Validate that we have actual text content, not binary data
+        if text_content and text_content.startswith('%PDF'):
+            logger.error(f"ERROR: Text content appears to be raw PDF binary data for {filename}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="PDF text extraction failed - raw binary data detected"
+            )
         
         # Get embedder and process document
         embedder = get_embedder()
@@ -490,38 +520,40 @@ async def query_documents(
         
         # Extract search results
         sources = []
-        if search_results and 'documents' in search_results:
+        if search_results and 'documents' in search_results and search_results['documents']:
             documents = search_results['documents']
             metadatas = search_results.get('metadatas', [])
             distances = search_results.get('distances', [])
             ids = search_results.get('ids', [])
             
-            # Flatten nested lists if needed
+            # Flatten nested lists if needed and check for empty lists
             if documents and isinstance(documents[0], list):
-                documents = documents[0]
+                documents = documents[0] if documents[0] else []
             if metadatas and isinstance(metadatas[0], list):
-                metadatas = metadatas[0]
+                metadatas = metadatas[0] if metadatas[0] else []
             if distances and isinstance(distances[0], list):
-                distances = distances[0]
+                distances = distances[0] if distances[0] else []
             if ids and isinstance(ids[0], list):
-                ids = ids[0]
+                ids = ids[0] if ids[0] else []
             
-            for i, (doc, meta, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
-                # Safely calculate similarity score
-                similarity_score = 0.0
-                if distance is not None:
-                    try:
-                        similarity_score = 1.0 - float(distance)
-                    except (TypeError, ValueError):
-                        similarity_score = 0.0
-                
-                sources.append({
-                    "document_id": doc_id,
-                    "content": doc,
-                    "metadata": meta or {},
-                    "similarity_score": similarity_score,
-                    "chunk_index": i
-                })
+            # Only process if we have actual documents
+            if documents and metadatas and distances and ids:
+                for i, (doc, meta, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
+                    # Safely calculate similarity score
+                    similarity_score = 0.0
+                    if distance is not None:
+                        try:
+                            similarity_score = 1.0 - float(distance)
+                        except (TypeError, ValueError):
+                            similarity_score = 0.0
+                    
+                    sources.append({
+                        "document_id": doc_id,
+                        "content": doc,
+                        "metadata": meta or {},
+                        "similarity_score": similarity_score,
+                        "chunk_index": i
+                    })
         
         # Generate a simple answer based on retrieved documents
         if sources:

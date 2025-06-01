@@ -11,6 +11,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import hashlib
 import re
+import unicodedata
 
 # Document processing libraries
 try:
@@ -127,65 +128,94 @@ class EnhancedDocumentProcessor:
     
     def _process_pdf(self, file_content: bytes, filename: str, 
                     metadata: Dict[str, Any]) -> Dict[str, Any]:
-        """Process PDF files with enhanced extraction"""
+        """Process PDF files with enhanced extraction and encoding handling"""
         if not PDF_AVAILABLE:
             raise ValueError("PDF processing libraries not available")
         
         try:
-            # Try PyMuPDF first (better for complex PDFs)
             text_content = ""
             doc_metadata = {}
             page_count = 0
+            extraction_method = "unknown"
             
             try:
                 # Use PyMuPDF for better text extraction
                 doc = fitz.open(stream=file_content, filetype="pdf")
                 page_count = len(doc)
+                extraction_method = "pymupdf"
                 
                 # Extract metadata
-                doc_metadata = doc.metadata
+                doc_metadata = doc.metadata or {}
                 
-                # Extract text from all pages
+                # Extract text from all pages with encoding handling
                 full_text = []
                 for page_num in range(page_count):
                     page = doc[page_num]
                     page_text = page.get_text()
-                    if page_text.strip():
-                        full_text.append(f"[Page {page_num + 1}]\n{page_text}")
+                    
+                    # Clean the page text immediately
+                    if page_text and page_text.strip():
+                        cleaned_page_text = self._clean_text(page_text)
+                        if cleaned_page_text.strip():
+                            full_text.append(f"[Page {page_num + 1}]\n{cleaned_page_text}")
                 
                 text_content = "\n\n".join(full_text)
                 doc.close()
                 
+                # If PyMuPDF extraction resulted in mostly garbage, try alternative
+                if self._is_text_garbled(text_content):
+                    self.logger.warning("PyMuPDF extraction appears garbled, trying alternative method")
+                    raise Exception("Text appears garbled, trying fallback")
+                
             except Exception as e:
-                self.logger.warning(f"PyMuPDF failed, trying PyPDF2: {e}")
+                self.logger.warning(f"PyMuPDF failed or produced garbled text, trying PyPDF2: {e}")
                 
                 # Fallback to PyPDF2
                 import io
                 pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
                 page_count = len(pdf_reader.pages)
+                extraction_method = "pypdf2"
                 
                 full_text = []
                 for page_num, page in enumerate(pdf_reader.pages):
                     page_text = page.extract_text()
-                    if page_text.strip():
-                        full_text.append(f"[Page {page_num + 1}]\n{page_text}")
+                    
+                    # Clean the page text immediately
+                    if page_text and page_text.strip():
+                        cleaned_page_text = self._clean_text(page_text)
+                        if cleaned_page_text.strip():
+                            full_text.append(f"[Page {page_num + 1}]\n{cleaned_page_text}")
                 
                 text_content = "\n\n".join(full_text)
                 
                 # Extract metadata
                 if pdf_reader.metadata:
                     doc_metadata = {
-                        'title': pdf_reader.metadata.get('/Title', ''),
-                        'author': pdf_reader.metadata.get('/Author', ''),
-                        'subject': pdf_reader.metadata.get('/Subject', ''),
-                        'creator': pdf_reader.metadata.get('/Creator', ''),
-                        'producer': pdf_reader.metadata.get('/Producer', ''),
-                        'creation_date': pdf_reader.metadata.get('/CreationDate', ''),
-                        'modification_date': pdf_reader.metadata.get('/ModDate', '')
+                        'pdf_title': str(pdf_reader.metadata.get('/Title', '')),
+                        'pdf_author': str(pdf_reader.metadata.get('/Author', '')),
+                        'pdf_subject': str(pdf_reader.metadata.get('/Subject', '')),
+                        'pdf_creator': str(pdf_reader.metadata.get('/Creator', '')),
+                        'pdf_producer': str(pdf_reader.metadata.get('/Producer', '')),
+                        'pdf_creation_date': str(pdf_reader.metadata.get('/CreationDate', '')),
+                        'pdf_modification_date': str(pdf_reader.metadata.get('/ModDate', ''))
                     }
             
-            # Clean and process text
+            # Final cleaning and validation
             text_content = self._clean_text(text_content)
+            
+            # Check if extraction was successful
+            if not text_content or len(text_content.strip()) < 10:
+                self.logger.warning(f"PDF extraction resulted in minimal text for {filename}")
+                # Try one more time with different settings if possible
+                if extraction_method == "pypdf2":
+                    raise ValueError("PDF text extraction failed - document may be image-based or corrupted")
+            
+            # Check for still garbled text after cleaning
+            if self._is_text_garbled(text_content):
+                self.logger.warning(f"Text still appears garbled after cleaning for {filename}")
+                # Could implement OCR here as a last resort
+                # For now, we'll proceed with a warning
+                text_content = f"[WARNING: Text extraction may be incomplete or corrupted]\n\n{text_content}"
             
             # Extract legal sections
             sections = self._extract_legal_sections(text_content)
@@ -197,11 +227,49 @@ class EnhancedDocumentProcessor:
                 'word_count': len(text_content.split()),
                 'char_count': len(text_content),
                 'pdf_metadata': doc_metadata,
-                'extraction_method': 'pymupdf' if 'fitz' in str(type(doc)) else 'pypdf2'
+                'extraction_method': extraction_method,
+                'extraction_quality': 'good' if not self._is_text_garbled(text_content) else 'poor'
             }
             
         except Exception as e:
-            raise ValueError(f"Error processing PDF file: {e}")
+            raise ValueError(f"Error processing PDF file '{filename}': {e}")
+    
+    def _is_text_garbled(self, text: str) -> bool:
+        """Check if extracted text appears to be garbled or corrupted"""
+        if not text or len(text.strip()) < 10:
+            return True
+        
+        # Calculate ratios to detect garbled text
+        total_chars = len(text)
+        if total_chars == 0:
+            return True
+        
+        # Count different character types
+        ascii_chars = sum(1 for c in text if ord(c) < 128)
+        letter_chars = sum(1 for c in text if c.isalpha())
+        space_chars = sum(1 for c in text if c.isspace())
+        
+        ascii_ratio = ascii_chars / total_chars
+        letter_ratio = letter_chars / total_chars
+        space_ratio = space_chars / total_chars
+        
+        # Text is likely garbled if:
+        # - Very low ASCII ratio (< 0.3)
+        # - Very low letter ratio (< 0.2) 
+        # - Very high space ratio (> 0.8) indicating mostly spaces
+        # - Very low space ratio (< 0.05) indicating no word boundaries
+        
+        if (ascii_ratio < 0.3 or 
+            letter_ratio < 0.2 or 
+            space_ratio > 0.8 or 
+            space_ratio < 0.05):
+            return True
+        
+        # Check for excessive repeated characters (common in garbled text)
+        if len(set(text)) < max(5, len(text) * 0.1):
+            return True
+        
+        return False
     
     def _process_docx(self, file_content: bytes, filename: str, 
                      metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -276,18 +344,89 @@ class EnhancedDocumentProcessor:
         raise ValueError("Legacy DOC format not yet supported. Please convert to DOCX or PDF.")
     
     def _clean_text(self, text: str) -> str:
-        """Clean and normalize text content"""
+        """Clean and normalize text content with robust encoding handling"""
+        # Handle None or empty text
+        if not text:
+            return ""
+        
+        # Ensure we have a string
+        if isinstance(text, bytes):
+            # Try different encodings
+            for encoding in ['utf-8', 'latin-1', 'cp1252', 'ascii']:
+                try:
+                    text = text.decode(encoding)
+                    break
+                except (UnicodeDecodeError, AttributeError):
+                    continue
+            else:
+                # If all encodings fail, use utf-8 with error handling
+                text = text.decode('utf-8', errors='replace')
+        
+        # Normalize Unicode characters (fix encoding issues)
+        text = unicodedata.normalize('NFKD', text)
+        
+        # Remove or replace problematic characters
+        # Remove control characters except newlines and tabs
+        text = ''.join(char for char in text if ord(char) >= 32 or char in '\n\t')
+        
+        # Fix common PDF extraction issues
+        # Replace non-breaking spaces with regular spaces
+        text = text.replace('\u00a0', ' ')
+        text = text.replace('\xa0', ' ')
+        
+        # Fix ligatures and special characters
+        ligature_map = {
+            'ﬁ': 'fi', 'ﬂ': 'fl', 'ﬀ': 'ff', 'ﬃ': 'ffi', 'ﬄ': 'ffl',
+            'ﬆ': 'st', ''': "'", ''': "'", '"': '"', '"': '"',
+            '–': '-', '—': '-', '…': '...', '€': 'EUR', '£': 'GBP',
+            '°': ' degrees ', '§': 'section', '¶': 'paragraph'
+        }
+        
+        for ligature, replacement in ligature_map.items():
+            text = text.replace(ligature, replacement)
+        
         # Remove excessive whitespace
         text = re.sub(r'\s+', ' ', text)
         
         # Remove page breaks and form feeds
         text = re.sub(r'[\f\r]', '', text)
         
+        # Fix hyphenated words at line breaks
+        text = re.sub(r'-\s*\n\s*', '', text)
+        
         # Normalize line breaks
         text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
         
         # Strip leading/trailing whitespace
         text = text.strip()
+        
+        # Final check for readability
+        if text and len(text.split()) > 0:
+            # Calculate ratio of ASCII characters to total characters
+            ascii_chars = sum(1 for c in text if ord(c) < 128)
+            ascii_ratio = ascii_chars / len(text) if text else 0
+            
+            # If less than 50% ASCII, try additional cleaning
+            if ascii_ratio < 0.5:
+                # Remove characters that are likely encoding artifacts
+                cleaned_chars = []
+                for char in text:
+                    if (char.isalnum() or 
+                        char.isspace() or 
+                        char in '.,!?;:()[]{}"\'-/\\@#$%^&*+=<>|`~'):
+                        cleaned_chars.append(char)
+                    elif ord(char) > 127:
+                        # Try to transliterate non-ASCII characters
+                        try:
+                            ascii_char = unicodedata.normalize('NFKD', char).encode('ascii', 'ignore').decode('ascii')
+                            if ascii_char:
+                                cleaned_chars.append(ascii_char)
+                        except:
+                            cleaned_chars.append(' ')  # Replace with space if all else fails
+                
+                text = ''.join(cleaned_chars)
+                # Clean up extra spaces again
+                text = re.sub(r'\s+', ' ', text).strip()
         
         return text
     
@@ -347,8 +486,8 @@ class EnhancedDocumentProcessor:
         # Extract key legal terms
         legal_terms = self._extract_legal_terms(result['text'])
         
-        # Add enhanced metadata - convert complex types to strings for ChromaDB compatibility
-        result.update({
+        # Start with enhanced metadata - all simple types for ChromaDB compatibility
+        enhanced_metadata = {
             'document_hash': text_hash,
             'filename': filename,
             'content_type': content_type,
@@ -359,7 +498,34 @@ class EnhancedDocumentProcessor:
             # Convert sections to string representation
             'sections_count': len(result.get('sections', [])),
             'sections_titles': ', '.join([s.get('title', '') for s in result.get('sections', [])]) if result.get('sections') else ''
-        })
+        }
+        
+        # Handle PDF metadata specifically - flatten nested dictionaries
+        if 'pdf_metadata' in result and isinstance(result['pdf_metadata'], dict):
+            pdf_meta = result['pdf_metadata']
+            for key, value in pdf_meta.items():
+                # Ensure all values are simple types
+                enhanced_metadata[f'pdf_{key}'] = str(value) if value else ''
+            # Remove the nested pdf_metadata
+            result.pop('pdf_metadata', None)
+        
+        # Handle DOCX metadata specifically - flatten nested dictionaries  
+        if 'docx_metadata' in result and isinstance(result['docx_metadata'], dict):
+            docx_meta = result['docx_metadata']
+            for key, value in docx_meta.items():
+                # Ensure all values are simple types
+                enhanced_metadata[f'docx_{key}'] = str(value) if value else ''
+            # Remove the nested docx_metadata
+            result.pop('docx_metadata', None)
+        
+        # Add other simple metadata fields from result
+        simple_fields = ['extraction_method', 'extraction_quality', 'page_count', 'word_count', 'char_count', 'encoding_used']
+        for field in simple_fields:
+            if field in result:
+                enhanced_metadata[field] = result[field]
+        
+        # Update result with flattened metadata
+        result.update(enhanced_metadata)
         
         # Remove the original sections list to avoid ChromaDB issues
         result.pop('sections', None)

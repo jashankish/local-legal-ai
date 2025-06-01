@@ -582,6 +582,238 @@ def show_document_management():
             if st.button("🔄 Refresh Stats", type="secondary"):
                 st.rerun()
 
+def show_files_management():
+    """Display Google Drive-style file management interface."""
+    st.header("📁 Files Management")
+    
+    if 'access_token' not in st.session_state:
+        st.error("Please login first")
+        return
+    
+    # Top action bar with upload and search
+    col1, col2, col3 = st.columns([2, 3, 1])
+    
+    with col1:
+        st.subheader("📂 Document Library")
+    
+    with col2:
+        search_query = st.text_input("🔍 Search files...", placeholder="Search by filename, content, or category")
+    
+    with col3:
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.rerun()
+    
+    # Upload section
+    with st.expander("📤 Upload New Document", expanded=False):
+        uploaded_file = st.file_uploader(
+            "Choose a file", 
+            type=['txt', 'pdf', 'docx'],
+            help="Supported formats: PDF, DOCX, TXT"
+        )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            upload_title = st.text_input("Document Title (optional)")
+        with col2:
+            upload_category = st.selectbox(
+                "Category", 
+                ["general", "contract", "employment", "legal", "policy", "agreement"]
+            )
+        
+        if uploaded_file and st.button("📤 Upload Document", type="primary"):
+            try:
+                with st.spinner("Uploading and processing document..."):
+                    # Prepare the upload
+                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type)}
+                    data = {
+                        "title": upload_title or uploaded_file.name,
+                        "category": upload_category
+                    }
+                    headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+                    
+                    # Upload the file
+                    response = requests.post(
+                        f"{api_client.base_url}/documents/upload",
+                        files=files,
+                        data=data,
+                        headers=headers
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get('success'):
+                            st.success(f"✅ Document uploaded successfully!")
+                            st.info(f"Document ID: {result.get('document_id')}")
+                            st.info(f"Chunks processed: {result.get('chunks_processed')}")
+                            st.info(f"Processing time: {result.get('processing_time'):.2f}s")
+                            st.rerun()
+                        else:
+                            st.error(f"Upload failed: {result.get('message')}")
+                    else:
+                        st.error(f"Upload failed: {response.status_code}")
+            except Exception as e:
+                st.error(f"Upload error: {e}")
+    
+    # Get document stats
+    try:
+        stats_response = api_client.get_document_stats()
+        if stats_response:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("📄 Total Documents", stats_response.get('document_count', 0))
+            with col2:
+                st.metric("💾 Database", "ChromaDB")
+            with col3:
+                st.metric("⚡ Status", stats_response.get('status', 'Unknown').title())
+            with col4:
+                # Calculate total size if possible
+                st.metric("🔄 Last Updated", "Just now")
+    except Exception as e:
+        st.warning(f"Could not load stats: {e}")
+    
+    st.markdown("---")
+    
+    # File listing section
+    try:
+        docs_response = api_client.list_documents()
+        if docs_response and docs_response.get('documents'):
+            documents = docs_response['documents']
+            
+            # Filter documents based on search
+            if search_query:
+                filtered_docs = []
+                for doc in documents:
+                    filename = doc.get('filename', '').lower()
+                    category = doc.get('category', '').lower()
+                    source = doc.get('source', '').lower()
+                    
+                    if (search_query.lower() in filename or 
+                        search_query.lower() in category or 
+                        search_query.lower() in source):
+                        filtered_docs.append(doc)
+                documents = filtered_docs
+            
+            if documents:
+                # Sort documents by upload date (newest first)
+                documents.sort(key=lambda x: x.get('upload_date', ''), reverse=True)
+                
+                # Group by category
+                categories = {}
+                for doc in documents:
+                    category = doc.get('category', 'general')
+                    if category not in categories:
+                        categories[category] = []
+                    categories[category].append(doc)
+                
+                # Display documents by category
+                for category, category_docs in categories.items():
+                    with st.expander(f"📁 {category.title()} ({len(category_docs)} files)", expanded=True):
+                        
+                        # Create grid layout for files
+                        cols_per_row = 3
+                        for i in range(0, len(category_docs), cols_per_row):
+                            cols = st.columns(cols_per_row)
+                            
+                            for j, col in enumerate(cols):
+                                if i + j < len(category_docs):
+                                    doc = category_docs[i + j]
+                                    
+                                    with col:
+                                        # File icon based on type
+                                        filename = doc.get('filename', 'Unknown')
+                                        if filename.lower().endswith('.pdf'):
+                                            icon = "📄"
+                                        elif filename.lower().endswith('.docx'):
+                                            icon = "📝"
+                                        elif filename.lower().endswith('.txt'):
+                                            icon = "📃"
+                                        else:
+                                            icon = "📄"
+                                        
+                                        # File card
+                                        with st.container():
+                                            st.markdown(f"""
+                                            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 8px 0; background: #f9f9f9;">
+                                                <div style="font-size: 24px; text-align: center; margin-bottom: 8px;">{icon}</div>
+                                                <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; word-wrap: break-word;">{filename[:25]}</div>
+                                                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                                                    {doc.get('upload_date', 'Unknown')[:10]}<br>
+                                                    ID: {doc.get('id', 'Unknown')[:8]}...
+                                                </div>
+                                            </div>
+                                            """, unsafe_allow_html=True)
+                                            
+                                            # Action buttons
+                                            col_btn1, col_btn2 = st.columns(2)
+                                            with col_btn1:
+                                                if st.button("ℹ️", key=f"info_{doc.get('id')}", help="View Info"):
+                                                    st.info(f"""
+                                                    **File:** {doc.get('filename', 'Unknown')}
+                                                    **Category:** {doc.get('category', 'Unknown')}
+                                                    **Uploaded:** {doc.get('upload_date', 'Unknown')}
+                                                    **Source:** {doc.get('source', 'Unknown')}
+                                                    **ID:** {doc.get('id', 'Unknown')}
+                                                    """)
+                                            
+                                            with col_btn2:
+                                                if st.button("🗑️", key=f"delete_{doc.get('id')}", help="Delete File"):
+                                                    if st.session_state.get(f"confirm_delete_{doc.get('id')}", False):
+                                                        try:
+                                                            headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+                                                            response = requests.delete(
+                                                                f"{api_client.base_url}/documents/{doc.get('id')}",
+                                                                headers=headers
+                                                            )
+                                                            if response.status_code == 200:
+                                                                st.success("File deleted!")
+                                                                st.rerun()
+                                                            else:
+                                                                st.error("Delete failed")
+                                                        except Exception as e:
+                                                            st.error(f"Error: {e}")
+                                                    else:
+                                                        st.session_state[f"confirm_delete_{doc.get('id')}"] = True
+                                                        st.warning("Click again to confirm deletion")
+                
+            else:
+                if search_query:
+                    st.info(f"No files found matching '{search_query}'")
+                else:
+                    st.info("No documents found. Upload some documents to get started!")
+        
+        else:
+            st.info("No documents found. Upload some documents to get started!")
+    
+    except Exception as e:
+        st.error(f"Failed to load documents: {e}")
+    
+    # Bulk operations section
+    st.markdown("---")
+    with st.expander("🔧 Advanced Operations", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🗑️ Bulk Delete")
+            if st.button("Clear All Documents", type="secondary"):
+                st.warning("⚠️ This will delete ALL documents!")
+                
+        with col2:
+            st.subheader("📊 Export Data")
+            if st.button("📥 Export Document List", type="secondary"):
+                try:
+                    docs_response = api_client.list_documents()
+                    if docs_response:
+                        import json
+                        data = json.dumps(docs_response, indent=2)
+                        st.download_button(
+                            "💾 Download JSON",
+                            data,
+                            "documents_export.json",
+                            "application/json"
+                        )
+                except Exception as e:
+                    st.error(f"Export error: {e}")
+
 def show_analytics_dashboard():
     """Show the analytics dashboard (Phase 4 feature)."""
     st.title("📊 Analytics Dashboard")
@@ -1324,7 +1556,8 @@ def main():
         "📄 Upload Documents": show_document_upload,
         "💬 Enhanced Chat": show_enhanced_chat,
         "📊 Analytics Dashboard": show_analytics_dashboard,
-        "📁 Document Management": show_document_management
+        "📁 Document Management": show_document_management,
+        "📁 Files Management": show_files_management
     }
     
     # Navigation
