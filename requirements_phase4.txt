@@ -1,0 +1,38 @@
+# Phase 4 Enhanced Document Processing Requirements
+
+# PDF Processing
+PyPDF2>=3.0.1
+PyMuPDF>=1.23.0  # fitz
+
+# Word Document Processing  
+python-docx>=0.8.11
+docx2txt>=0.8
+
+# Analytics and Monitoring
+plotly>=5.17.0
+dash>=2.14.0
+dash-bootstrap-components>=1.5.0
+
+# Performance Optimization
+redis>=5.0.0
+celery>=5.3.0
+
+# Enhanced Security
+cryptography>=41.0.0
+passlib>=1.7.4
+
+# Data Analysis
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Existing dependencies (ensure compatibility)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+chromadb>=0.4.15
+requests>=2.31.0
+streamlit>=1.28.0
+python-dotenv>=1.0.0 
