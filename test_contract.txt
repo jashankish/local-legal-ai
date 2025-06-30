@@ -1,0 +1,28 @@
+EMPLOYMENT AGREEMENT
+
+This Employment Agreement ("Agreement") is made effective as of January 1, 2024, between TechCorp Inc., a Delaware corporation ("Company"), and John Smith ("Employee").
+
+1. POSITION AND DUTIES
+Employee shall serve as Senior Software Engineer. Employee agrees to perform the duties and responsibilities typically associated with such position, and such other duties as may be assigned by the Company.
+
+2. COMPENSATION
+Company agrees to pay Employee a base salary of $120,000 per year, payable in accordance with Company's regular payroll practices.
+
+3. BENEFITS
+Employee shall be entitled to participate in all employee benefit plans maintained by the Company, subject to the terms and conditions of such plans.
+
+4. CONFIDENTIALITY
+Employee acknowledges that they may have access to confidential information. Employee agrees to maintain the confidentiality of such information during and after employment.
+
+5. TERMINATION
+This Agreement may be terminated by either party with thirty (30) days written notice.
+
+6. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of Delaware.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+Company: TechCorp Inc.
+By: Jane Doe, CEO
+
+Employee: John Smith 
