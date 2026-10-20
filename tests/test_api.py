@@ -63,6 +63,9 @@ def test_document_lifecycle_and_extractive_query(client, admin_headers):
     assert answer["citations"], "extractive answers should cite their sources"
     assert answer["sources"][0]["document_id"] == document_id
     assert 0.0 <= answer["confidence_score"] <= 1.0
+    assert "sixty (60) days" in answer["legal_entities"].get("durations", [])
+    assert answer["query_suggestions"], "follow-up questions should be proposed"
+    assert all("terminate" not in s.lower() for s in answer["query_suggestions"])
 
     deleted = client.delete(f"/documents/{document_id}", headers=admin_headers)
     assert deleted.status_code == 200

@@ -1,0 +1,19 @@
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+This Mutual Non-Disclosure Agreement (the "Agreement") is made as of June 10, 2025 between Cobalt Ridge Biotech Inc., a California corporation, and Lindenfield Capital Advisors LLC, a Delaware limited liability company (each a "Party" and together the "Parties").
+
+Section 1. Purpose. The Parties wish to evaluate a potential investment transaction (the "Purpose") and, in connection with the Purpose, may disclose Confidential Information to one another.
+
+Section 2. Confidential Information. "Confidential Information" means all non-public business, technical, financial and scientific information disclosed by a Party, including trade secrets, clinical data, formulas, investor lists and financial projections, whether disclosed orally, in writing or electronically.
+
+Section 3. Exclusions. Confidential Information does not include information that (a) is or becomes publicly available through no fault of the receiving Party; (b) was lawfully known to the receiving Party before disclosure; (c) is independently developed without use of the disclosing Party's information; or (d) is received from a third party without a duty of confidentiality.
+
+Section 4. Obligations. The receiving Party shall use Confidential Information solely for the Purpose, shall protect it with at least the degree of care it uses for its own confidential information and in no event less than reasonable care, and shall not disclose it except to its directors, employees and professional advisers who need to know it for the Purpose.
+
+Section 5. Term. This Agreement remains in effect for two (2) years from the date above. The obligations of confidentiality survive for three (3) years after expiration, and for trade secrets for so long as the information remains a trade secret under applicable law.
+
+Section 6. Return of Materials. Within ten (10) business days of a written request, the receiving Party shall return or destroy all Confidential Information and certify the destruction in writing.
+
+Section 7. Remedies. Each Party acknowledges that unauthorized disclosure may cause irreparable harm for which monetary damages would be inadequate, and that the disclosing Party is entitled to seek injunctive relief without posting a bond.
+
+Section 8. Governing Law. This Agreement is governed by the laws of the State of California. The state and federal courts located in San Francisco County have exclusive jurisdiction over any dispute arising from this Agreement.

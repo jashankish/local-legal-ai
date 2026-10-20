@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Browser automation for scripts/capture_screenshots.py
+# (then run: python -m playwright install chromium)
+playwright

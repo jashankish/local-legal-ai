@@ -1,0 +1,30 @@
+MASTER SERVICES AGREEMENT
+
+This Master Services Agreement (the "Agreement") is entered into as of March 1, 2025 (the "Effective Date") by and between Harborview Analytics LLC, a Delaware limited liability company ("Client"), and Meridian Data Partners Inc., a New York corporation ("Provider").
+
+WHEREAS, Client wishes to engage Provider to perform contract review and data analytics services; and
+
+WHEREAS, Provider is willing to perform such services on the terms set forth below.
+
+NOW THEREFORE, in consideration of the mutual covenants contained herein, the parties agree as follows:
+
+Section 1. Services. Provider shall perform the services described in each Statement of Work executed by the parties (each, an "SOW"). Each SOW shall describe the deliverables, milestones and acceptance criteria. In the event of a conflict between this Agreement and an SOW, this Agreement controls unless the SOW expressly states otherwise.
+
+Section 2. Fees and Payment. Client shall pay Provider a monthly retainer of $15,000, invoiced on the first business day of each month. Additional services shall be billed at $275 per hour. All invoices are due within thirty (30) days of receipt. Late payments accrue interest at 1.5% per month or the maximum rate permitted by law, whichever is lower.
+
+Section 3. Term. This Agreement commences on the Effective Date and continues for an initial term of two (2) years. Thereafter it renews automatically for successive one (1) year terms unless either party gives notice of non-renewal at least ninety (90) days before the end of the then-current term.
+
+Section 4. Termination. Either party may terminate this Agreement for convenience upon sixty (60) days written notice to the other party. Either party may terminate immediately upon written notice if the other party commits a material breach that remains uncured thirty (30) days after written notice describing the breach. Upon termination, Client shall pay all fees accrued through the effective date of termination.
+
+Section 5. Confidentiality. Each party shall hold the other party's Confidential Information in strict confidence and shall not disclose it to any third party except to employees and contractors who need to know it and are bound by written obligations at least as protective as this Section. These obligations survive for five (5) years following termination of this Agreement.
+
+Section 6. Limitation of Liability. Except for breaches of Section 5 or a party's indemnification obligations, neither party's aggregate liability under this Agreement shall exceed the fees paid by Client in the twelve (12) months preceding the claim. In no event shall either party be liable for indirect, incidental, consequential or punitive damages.
+
+Section 7. Indemnification. Provider shall defend, indemnify and hold harmless Client from any third-party claim alleging that the deliverables infringe any intellectual property right, provided Client promptly notifies Provider of the claim and gives Provider sole control of its defense.
+
+Section 8. Governing Law and Disputes. This Agreement is governed by the laws of the State of New York, without regard to its conflict-of-laws principles. Any dispute shall be resolved by binding arbitration in New York County under the Commercial Rules of the American Arbitration Association.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+HARBORVIEW ANALYTICS LLC                MERIDIAN DATA PARTNERS INC.
+By: Dana Whitfield, General Counsel     By: Samuel Ortega, Chief Executive Officer

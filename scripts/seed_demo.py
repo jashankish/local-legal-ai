@@ -1,0 +1,93 @@
+"""Load the sample library into a running instance and generate realistic activity.
+
+Usage: .venv/bin/python scripts/seed_demo.py [--backend http://127.0.0.1:8000]
+
+Uploads every file in samples/, creates a demo lawyer account and asks a set of
+typical questions so the analytics dashboard and audit log have data to show.
+Run it against a fresh instance; it does not delete anything.
+"""
+
+import argparse
+import os
+import sys
+import time
+
+import requests
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SAMPLES = [
+    ("master_services_agreement.txt", "Master Services Agreement — Harborview / Meridian", "contracts"),
+    ("mutual_nda.docx", "Mutual NDA — Cobalt Ridge / Lindenfield", "nda"),
+    ("commercial_lease.pdf", "Commercial Lease — 410 Market Street", "real_estate"),
+    ("employment_agreement.txt", "Employment Agreement — Senior Corporate Counsel", "employment"),
+]
+QUESTIONS = {
+    "admin": [
+        "What notice period is required to terminate the services agreement for convenience?",
+        "What is the monthly retainer and when is it invoiced?",
+        "How long do the NDA confidentiality obligations survive?",
+    ],
+    "associate": [
+        "What is the base rent for the Market Street lease and how does it escalate?",
+        "Can the tenant terminate the lease early?",
+        "What severance is owed if the employee is terminated without cause?",
+        "Which state's law governs the services agreement and how are disputes resolved?",
+        "Summarize the limitation of liability clause.",
+    ],
+}
+MIME = {".txt": "text/plain", ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+
+
+def login(base, username, password):
+    response = requests.post(f"{base}/auth/login", json={"username": username, "password": password}, timeout=30)
+    response.raise_for_status()
+    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--backend", default=os.getenv("BACKEND_URL", "http://127.0.0.1:8000"))
+    args = parser.parse_args()
+    base = args.backend.rstrip("/")
+
+    for _ in range(60):
+        try:
+            if requests.get(f"{base}/health", timeout=2).ok:
+                break
+        except requests.RequestException:
+            pass
+        time.sleep(1)
+    else:
+        sys.exit(f"Backend not reachable at {base}")
+
+    admin = login(base, "admin", "admin123")
+    for filename, title, category in SAMPLES:
+        path = os.path.join(ROOT, "samples", filename)
+        with open(path, "rb") as f:
+            response = requests.post(
+                f"{base}/documents/upload", headers=admin, timeout=300,
+                files={"file": (filename, f, MIME[os.path.splitext(filename)[1]])},
+                data={"title": title, "category": category},
+            ).json()
+        print(f"uploaded {filename}: {response.get('chunks_processed')} passages ({response.get('message')})")
+
+    requests.post(f"{base}/auth/register", headers=admin, timeout=30, json={
+        "username": "associate", "password": "associate-demo-1",
+        "email": "associate@firm.local", "role": "lawyer",
+    })
+    users = {"admin": admin, "associate": login(base, "associate", "associate-demo-1")}
+
+    # One failed sign-in so the audit log shows a denied event.
+    requests.post(f"{base}/auth/login", json={"username": "associate", "password": "wrong-password"}, timeout=30)
+
+    for username, questions in QUESTIONS.items():
+        for question in questions:
+            answer = requests.post(f"{base}/query", headers=users[username], timeout=300,
+                                   json={"question": question, "num_documents": 4}).json()
+            print(f"[{username}] {question} -> {answer.get('mode')} ({answer.get('confidence_score')})")
+    print("Demo data loaded.")
+
+
+if __name__ == "__main__":
+    main()

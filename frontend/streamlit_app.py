@@ -24,7 +24,7 @@ import os
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title="Local Legal AI - Phase 4",
+    page_title="Local Legal AI",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -77,6 +77,21 @@ st.markdown("""
     }
     .sidebar .block-container {
         padding-top: 1rem;
+    }
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        font-size: 0.9rem;
+    }
+    .feature-grid > div {
+        border: 1px solid rgba(128, 128, 128, 0.25);
+        border-radius: 8px;
+        padding: 0.75rem;
+    }
+    .feature-grid span {
+        opacity: 0.75;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -198,18 +213,18 @@ api_client = APIClient(API_BASE_URL)
 
 def show_login_page():
     """Display login page."""
-    st.markdown('<div class="main-header"><h1>⚖️ Local Legal AI</h1><p>AI-Powered Legal Document Analysis</p></div>', 
+    st.markdown('<div class="main-header"><h1>⚖️ Local Legal AI</h1>'
+                '<p>Private, on-premise document intelligence for legal teams</p></div>',
                 unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    
+
+    col1, col2, col3 = st.columns([1, 1.4, 1])
+
     with col2:
-        st.markdown("### 🔐 Authentication")
-        
         with st.form("login_form"):
-            username = st.text_input("Username", value="admin")
-            password = st.text_input("Password", type="password", value="admin123")
-            submit_button = st.form_submit_button("Login", type="primary")
+            st.markdown("#### 🔐 Sign in")
+            username = st.text_input("Username", placeholder="e.g. admin")
+            password = st.text_input("Password", type="password")
+            submit_button = st.form_submit_button("Sign in", type="primary", width="stretch")
             
             if submit_button:
                 if username and password:
@@ -228,21 +243,18 @@ def show_login_page():
                 else:
                     st.error("Please enter both username and password")
         
-        # Quick login help
+        st.caption("First run? Sign in with the default administrator account "
+                   "`admin` / `admin123`, then change its password.")
+
+    _, features_col, _ = st.columns([1, 3, 1])
+    with features_col:
         st.markdown("""
-        ---
-        **Demo Credentials:**
-        - Username: `admin`
-        - Password: `admin123`
-        
-        **System Features:**
-        - 📄 Upload legal documents
-        - 🤖 AI-powered document analysis
-        - 💬 Interactive chat interface
-        - 📊 Document management
-        
-        **Note:** Session expires on page refresh. Please avoid refreshing the page.
-        """)
+        <div class="feature-grid">
+          <div>🔒 <b>Stays on this machine</b><br><span>Documents, vectors and the model never leave your network.</span></div>
+          <div>🧾 <b>Cited answers</b><br><span>Every answer points to the exact passages it came from.</span></div>
+          <div>🛡️ <b>Audit trail</b><br><span>Tamper-evident log of every sign-in, upload and question.</span></div>
+        </div>
+        """, unsafe_allow_html=True)
 
 def show_main_interface():
     """Display main application interface."""
@@ -281,18 +293,64 @@ def show_main_interface():
     elif page == "📊 Document Management":
         show_document_management()
 
+ACRONYMS = {"nda": "NDA", "msa": "MSA", "sow": "SOW", "llc": "LLC"}
+ACTIVITY_LABELS = {
+    "query.ask": "Questions asked", "auth.login": "Sign-ins", "document.upload": "Uploads",
+    "document.delete": "Deletions", "user.create": "Users created", "analytics.export": "Report exports",
+    "audit.verify": "Audit checks", "audit.export": "Audit exports",
+}
+
+
+def pretty_label(value: Any) -> str:
+    """Turn stored keys like 'real_estate' or 'nda' into display labels."""
+    words = str(value or "").replace("_", " ").split()
+    return " ".join(ACRONYMS.get(w.lower(), w.capitalize()) for w in words)
+
+
 def show_dashboard():
     """Display the main dashboard with quick actions and system info."""
     st.markdown("## 🏠 Dashboard")
-    st.markdown("Welcome to the Local Legal AI System! Choose an action below to get started.")
-    
+    username = st.session_state.get("user_info", {}).get("username", "")
+    st.markdown(f"Welcome back{', **' + username + '**' if username else ''}. "
+                "Here's the state of your private document library.")
+
+    headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+    try:
+        library = requests.get(f"{BACKEND_URL}/documents", headers=headers, timeout=10).json()
+    except Exception:
+        library = {"documents": [], "total": 0, "total_chunks": 0}
+    try:
+        health = requests.get(f"{BACKEND_URL}/health", timeout=5).json().get("services", {})
+    except Exception:
+        health = {}
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("📚 Documents", library.get("total", 0))
+    col2.metric("🧩 Indexed passages", library.get("total_chunks", 0))
+    model_state = health.get("model", "unknown")
+    col3.metric("🤖 Answer engine", "Local LLM" if model_state == "healthy" else "Extractive",
+                help="Generated answers need a local model server; otherwise answers are cited excerpts.")
+    col4.metric("🗄️ Vector store", "Online" if health.get("chromadb") == "healthy" else "Offline")
+
+    documents = library.get("documents", [])
+    if documents:
+        st.markdown("### 🗂️ Recently added")
+        st.dataframe(pd.DataFrame([{
+            "Document": d.get("filename"),
+            "Category": pretty_label(d.get("category")),
+            "Type": pretty_label(d.get("document_type")),
+            "Passages": d.get("chunk_count"),
+            "Uploaded by": d.get("uploaded_by"),
+            "Uploaded": str(d.get("upload_date", ""))[:10],
+        } for d in documents[:6]]), width="stretch", hide_index=True)
+
     # Quick actions
     st.markdown("### ⚡ Quick Actions")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 📄 Document Operations")
+        st.markdown("##### 📄 Documents")
         
         # Use different session state variables for button navigation
         if st.button("📄 Upload New Document", type="primary", key="nav_upload"):
@@ -304,36 +362,36 @@ def show_dashboard():
             st.rerun()
     
     with col2:
-        st.markdown("### 📈 Recent Activity")
+        st.markdown("##### 📈 Your recent questions")
         if len(st.session_state.chat_history) > 0:
             st.write("Recent queries:")
             for i, msg in enumerate(st.session_state.chat_history[-3:]):
                 if msg.get('role') == 'user':
                     st.write(f"• {msg['content'][:50]}...")
         else:
-            st.write("No recent activity")
+            st.caption("No questions yet this session.")
     
     # System information
     st.markdown("---")
-    st.markdown("### ℹ️ System Information")
-    
+    st.markdown("### ℹ️ How it works")
+
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
-        **Backend Features:**
-        - TF-IDF embedder for document analysis
-        - ChromaDB vector storage
-        - JWT authentication
-        - FastAPI REST endpoints
+        **Under the hood**
+        - PDF, DOCX and TXT parsing with legal document-type detection
+        - Clause-aware chunking, MiniLM embeddings in an embedded ChromaDB
+        - Answers from a local OpenAI-compatible model (vLLM / Ollama)
+        - JWT sign-in, hash-chained audit log, IP allow-listing
         """)
-    
+
     with col2:
         st.markdown("""
-        **Supported Operations:**
-        - Legal document upload and processing
-        - Intelligent document chunking
-        - Semantic similarity search
-        - Context-aware Q&A
+        **Try asking**
+        - *What notice period is required to terminate the agreement?*
+        - *What is the monthly retainer and when is it invoiced?*
+        - *How long do confidentiality obligations last?*
+        - *Which state's law governs the lease?*
         """)
 
 def show_document_upload():
@@ -391,22 +449,21 @@ def show_document_upload():
     with col2:
         st.markdown("### ℹ️ Upload Guidelines")
         st.markdown("""
-        **Supported Formats:**
-        - ✅ Text files (.txt)
-        - ⚠️ PDF files (basic support)
-        - ⚠️ Word documents (basic support)
-        
-        **Best Practices:**
-        - Use descriptive titles
-        - Select appropriate categories
-        - Ensure documents are text-readable
-        - Legal documents work best
-        
-        **Processing Info:**
-        - Documents are chunked intelligently
-        - Legal sections are detected
-        - TF-IDF embeddings are generated
-        - Stored in ChromaDB for search
+        **Supported formats**
+        - ✅ PDF (text-based; scanned images need OCR first)
+        - ✅ Word (.docx)
+        - ✅ Plain text (.txt)
+
+        **Best practices**
+        - Use a descriptive title — it is shown in every citation
+        - Pick a category so the library stays organised
+        - Upload final, executed versions where possible
+
+        **What happens on upload**
+        - Text is extracted and the document type is detected
+        - The document is split clause by clause ("Section 1", "Section 2", …)
+        - Each passage is embedded locally and indexed in ChromaDB
+        - The upload is recorded in the audit log
         """)
 
 def show_chat_interface():
@@ -661,14 +718,13 @@ def show_files_management():
         if stats_response:
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("📄 Total Documents", stats_response.get('document_count', 0))
+                st.metric("📄 Documents", stats_response.get('document_count', 0))
             with col2:
-                st.metric("💾 Database", "ChromaDB")
+                st.metric("🧩 Indexed passages", stats_response.get('chunk_count', 0))
             with col3:
-                st.metric("⚡ Status", stats_response.get('status', 'Unknown').title())
+                st.metric("💾 Vector store", "ChromaDB")
             with col4:
-                # Calculate total size if possible
-                st.metric("🔄 Last Updated", "Just now")
+                st.metric("⚡ Status", stats_response.get('status', 'Unknown').title())
     except Exception as e:
         st.warning(f"Could not load stats: {e}")
     
@@ -708,7 +764,8 @@ def show_files_management():
                 
                 # Display documents by category
                 for category, category_docs in categories.items():
-                    with st.expander(f"📁 {category.title()} ({len(category_docs)} files)", expanded=True):
+                    file_word = "file" if len(category_docs) == 1 else "files"
+                    with st.expander(f"📁 {pretty_label(category)} ({len(category_docs)} {file_word})", expanded=True):
                         
                         # Create grid layout for files
                         cols_per_row = 3
@@ -921,19 +978,22 @@ def show_usage_analytics():
                 st.subheader("📅 Daily Query Trends")
                 
                 df_trends = pd.DataFrame(analytics_data["daily_trends"])
-                df_trends['date'] = pd.to_datetime(df_trends['date'])
-                
-                fig = px.line(
-                    df_trends, 
-                    x='date', 
+                # Category axis keeps a sensible layout even with a single day of data.
+                df_trends['date'] = pd.to_datetime(df_trends['date']).dt.strftime('%b %d')
+
+                fig = px.bar(
+                    df_trends,
+                    x='date',
                     y='queries',
                     title="Daily Query Volume",
-                    markers=True
+                    text='queries'
                 )
+                fig.update_traces(marker_color="#1e3a8a", textposition="outside")
                 fig.update_layout(
                     xaxis_title="Date",
                     yaxis_title="Number of Queries",
-                    hovermode='x unified'
+                    xaxis_type="category",
+                    bargap=0.6 if len(df_trends) < 4 else 0.2,
                 )
                 st.plotly_chart(fig, width="stretch")
             
@@ -946,14 +1006,15 @@ def show_usage_analytics():
                 # Use safe access for potentially missing keys
                 avg_file_size = doc_metrics.get('avg_file_size', 'N/A')
                 if isinstance(avg_file_size, (int, float)):
-                    st.info(f"**Average File Size:** {avg_file_size:.0f} bytes")
+                    st.info(f"**Average File Size:** {avg_file_size / 1024:.1f} KB")
                 else:
                     st.info(f"**Average File Size:** {avg_file_size}")
-                st.info(f"**Average Chunks per Document:** {doc_metrics.get('avg_chunks_per_doc', 0):.1f}")
-            
+                st.info(f"**Average Passages per Document:** {doc_metrics.get('avg_chunks_per_doc', 0):.1f}")
+
             with col2:
-                st.info(f"**Average Processing Time:** {doc_metrics.get('avg_processing_time', 0):.3f}s")
-                st.info(f"**Average Legal Complexity:** {doc_metrics.get('avg_legal_complexity', 0):.3f}")
+                st.info(f"**Average Ingestion Time:** {doc_metrics.get('avg_processing_time', 0):.2f}s")
+                st.info(f"**Documents in Library:** {doc_metrics.get('library_documents', 0)} "
+                        f"({doc_metrics.get('library_chunks', 0)} passages)")
             
             # Query types distribution
             if analytics_data["top_query_types"]:
@@ -992,18 +1053,17 @@ def show_performance_analytics():
             if perf_data.get("performance_distribution"):
                 st.subheader("🚀 Query Performance Distribution")
                 
-                df_perf = pd.DataFrame(perf_data["performance_distribution"])
-                
-                fig = px.bar(
-                    df_perf,
-                    x='category',
-                    y='count',
-                    color='avg_time',
-                    title="Query Performance Categories",
-                    color_continuous_scale='RdYlGn_r'
-                )
+                # Show every latency band, including empty ones, in a fixed order.
+                bands = {"very_fast": "< 0.1 s", "fast": "0.1–0.5 s", "moderate": "0.5–1 s",
+                         "slow": "1–2 s", "very_slow": "> 2 s"}
+                counts = {row["category"]: row["count"] for row in perf_data["performance_distribution"]}
+                df_perf = pd.DataFrame({"band": list(bands.values()),
+                                        "count": [counts.get(key, 0) for key in bands]})
+
+                fig = px.bar(df_perf, x='band', y='count', title="Response Time Distribution", text='count')
+                fig.update_traces(marker_color="#1e3a8a", textposition="outside")
                 fig.update_layout(
-                    xaxis_title="Performance Category",
+                    xaxis_title="Response time",
                     yaxis_title="Number of Queries"
                 )
                 st.plotly_chart(fig, width="stretch")
@@ -1014,21 +1074,17 @@ def show_performance_analytics():
             if perf_data.get("quality_distribution"):
                 st.subheader("🎯 Query Quality Distribution")
                 
-                df_quality = pd.DataFrame(perf_data["quality_distribution"])
-                
-                fig = px.pie(
-                    df_quality,
-                    values='count',
-                    names='category',
-                    title="Query Result Quality Distribution",
-                    color_discrete_map={
-                        'excellent': '#2E8B57',
-                        'good': '#32CD32',
-                        'fair': '#FFD700',
-                        'poor': '#FF6347',
-                        'very_poor': '#DC143C'
-                    }
-                )
+                quality_order = ["excellent", "good", "fair", "poor", "very_poor"]
+                quality_colors = ["#15803d", "#4ade80", "#facc15", "#f97316", "#dc2626"]
+                counts = {row["category"]: row["count"] for row in perf_data["quality_distribution"]}
+                df_quality = pd.DataFrame({"quality": [pretty_label(q) for q in quality_order],
+                                           "count": [counts.get(q, 0) for q in quality_order]})
+
+                fig = px.bar(df_quality, x='quality', y='count', text='count',
+                             title="Retrieval Quality (average similarity of retrieved passages)",
+                             color='quality', color_discrete_sequence=quality_colors)
+                fig.update_traces(textposition="outside")
+                fig.update_layout(showlegend=False, xaxis_title="Quality band", yaxis_title="Number of Queries")
                 st.plotly_chart(fig, width="stretch")
             else:
                 st.info("Quality distribution data not available")
@@ -1164,17 +1220,18 @@ def show_similarity_analytics():
                     
                     pairs_df = pd.DataFrame(sim_data["similar_document_pairs"])
                     
-                    for idx, row in pairs_df.head(10).iterrows():
-                        similarity = row['similarity']
-                        
-                        # Color code by similarity level
-                        pair_label = f"🔗 **{row['doc1']}** ↔ **{row['doc2']}** - Similarity: {similarity:.3f}"
-                        if similarity > 0.9:
-                            st.success(pair_label)
-                        elif similarity > 0.8:
-                            st.info(pair_label)
-                        else:
-                            st.warning(pair_label)
+                    pairs_df = pairs_df.head(10).copy()
+                    pairs_df["pair"] = pairs_df["doc1"] + "  ↔  " + pairs_df["doc2"]
+                    fig = px.bar(
+                        pairs_df.iloc[::-1], x="similarity", y="pair", orientation="h",
+                        text=pairs_df.iloc[::-1]["similarity"].map(lambda v: f"{v:.2f}"),
+                        range_x=[0, 1],
+                    )
+                    fig.update_traces(marker_color="#1e3a8a", textposition="outside")
+                    fig.update_layout(xaxis_title="Cosine similarity of document embeddings",
+                                      yaxis_title=None, height=120 + 45 * len(pairs_df))
+                    st.plotly_chart(fig, width="stretch")
+                    st.caption("Highly similar documents may be duplicates, amendments or templates of each other.")
         
     except Exception as e:
         st.error(f"Error loading similarity analytics: {e}")
@@ -1215,17 +1272,12 @@ def show_user_activity_analytics():
                 st.subheader("📊 Activity Types Distribution")
                 
                 df_activities = pd.DataFrame(activity_data["activity_types"])
-                
-                fig = px.bar(
-                    df_activities,
-                    x='type',
-                    y='count',
-                    title="User Activity Types",
-                    color='count',
-                    color_continuous_scale='viridis'
-                )
+                df_activities["type"] = df_activities["type"].map(lambda t: ACTIVITY_LABELS.get(t, t))
+
+                fig = px.bar(df_activities, x='type', y='count', title="What people are doing", text='count')
+                fig.update_traces(marker_color="#1e3a8a", textposition="outside")
                 fig.update_layout(
-                    xaxis_title="Activity Type",
+                    xaxis_title="Activity",
                     yaxis_title="Number of Activities"
                 )
                 st.plotly_chart(fig, width="stretch")
@@ -1236,18 +1288,17 @@ def show_user_activity_analytics():
             if activity_data.get("hourly_patterns"):
                 st.subheader("🕐 Hourly Activity Patterns")
                 
-                df_hourly = pd.DataFrame(activity_data["hourly_patterns"])
-                
-                fig = px.line(
-                    df_hourly,
-                    x='hour',
-                    y='activity_count',
-                    title="Activity Pattern by Hour of Day",
-                    markers=True
-                )
+                # Fill all 24 hours so the shape of the working day is visible.
+                counts = {row["hour"]: row["activity_count"] for row in activity_data["hourly_patterns"]}
+                hours = [f"{h:02d}:00" for h in range(24)]
+                df_hourly = pd.DataFrame({"hour": hours, "activity_count": [counts.get(h, 0) for h in hours]})
+
+                fig = px.bar(df_hourly, x='hour', y='activity_count', title="Activity by Hour of Day (server time)")
+                fig.update_traces(marker_color="#3b82f6")
                 fig.update_layout(
                     xaxis_title="Hour of Day",
-                    yaxis_title="Activity Count"
+                    yaxis_title="Activity Count",
+                    xaxis_type="category",
                 )
                 st.plotly_chart(fig, width="stretch")
             else:
@@ -1433,34 +1484,35 @@ def show_audit_log():
 # Enhanced chat interface with Phase 4 features
 def show_enhanced_chat():
     """Enhanced chat interface with query suggestions and legal entity highlighting."""
-    st.title("💬 Enhanced Legal Chat")
-    st.markdown("*AI-powered legal document analysis with advanced features*")
-    
+    st.title("💬 Ask Your Documents")
+    st.markdown("*Answers cite the exact passages they come from, with the parties, amounts and deadlines pulled out.*")
+
     if not st.session_state.get("access_token"):
         st.error("Please log in to use the chat interface")
         return
-    
+
     # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
+    # A clicked suggestion is applied before the text area is created.
+    if "pending_enhanced_query" in st.session_state:
+        st.session_state.enhanced_chat_input = st.session_state.pop("pending_enhanced_query")
     
     # Query input with enhancements
     col1, col2 = st.columns([4, 1])
     
     with col1:
         user_query = st.text_area(
-            "Enter your legal question:",
-            placeholder="e.g., What are the termination conditions in employment agreements?",
+            "Your question",
+            placeholder="e.g., What notice period is required to terminate the services agreement?",
             key="enhanced_chat_input",
-            height=100
+            height=110
         )
-    
+
     with col2:
-        st.markdown("### Settings")
-        max_results = st.slider("Max Results", 1, 10, 5, key="enhanced_max_results")
-        similarity_threshold = st.slider("Similarity Threshold", 0.1, 0.9, 0.3, step=0.1, key="enhanced_similarity")
-        include_suggestions = st.checkbox("Show Query Suggestions", value=True, key="include_suggestions")
-        highlight_entities = st.checkbox("Highlight Legal Entities", value=True, key="highlight_entities")
+        max_results = st.slider("Passages to retrieve", 1, 10, 5, key="enhanced_max_results")
+        include_suggestions = st.checkbox("Suggest follow-ups", value=True, key="include_suggestions")
+        highlight_entities = st.checkbox("Extract key terms", value=True, key="highlight_entities")
     
     if st.button("🔍 Submit Query", key="enhanced_submit", type="primary"):
         if user_query.strip():
@@ -1471,8 +1523,6 @@ def show_enhanced_chat():
                     query_data = {
                         "query": user_query,
                         "max_results": max_results,
-                        "similarity_threshold": similarity_threshold,
-                        "include_metadata": True
                     }
                     
                     response = requests.post(
@@ -1491,9 +1541,8 @@ def show_enhanced_chat():
                             "result": result
                         }
                         st.session_state.chat_history.append(chat_entry)
-                        
-                        # Display result
-                        display_enhanced_query_result(result, include_suggestions, highlight_entities)
+                        # The newest entry renders expanded in the history below.
+                        st.rerun()
                     
                     else:
                         st.error(f"Query failed: {response.status_code}")
@@ -1508,10 +1557,10 @@ def show_enhanced_chat():
     # Display chat history
     if st.session_state.chat_history:
         st.markdown("---")
-        st.subheader("💬 Chat History")
-        
+
         for i, entry in enumerate(reversed(st.session_state.chat_history[-5:])):  # Show last 5
-            with st.expander(f"Query {len(st.session_state.chat_history) - i}: {entry['query'][:50]}...", expanded=(i == 0)):
+            title = entry['query'] if len(entry['query']) <= 90 else entry['query'][:90] + "…"
+            with st.expander(f"Q{len(st.session_state.chat_history) - i}: {title}", expanded=(i == 0)):
                 st.caption(f"Asked at: {entry['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}")
                 display_enhanced_query_result(entry['result'], include_suggestions, highlight_entities, entry_id=f"entry_{entry.get('timestamp', datetime.now()).strftime('%Y%m%d_%H%M%S_%f')}")
         
@@ -1543,29 +1592,29 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
     # Metadata
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Confidence", f"{result.get('confidence_score', result.get('confidence', 0)):.3f}")
+        st.metric("Confidence", f"{result.get('confidence_score', result.get('confidence', 0)):.0%}")
     with col2:
-        st.metric("Sources Found", len(result["sources"]))
+        st.metric("Passages consulted", len(result["sources"]))
     with col3:
-        st.metric("Processing Time", f"{result.get('processing_time', 0):.3f}s")
+        st.metric("Response time", f"{result.get('processing_time', 0):.2f}s")
     
-    # Legal entities (Phase 4 feature)
+    # Key terms extracted from the cited passages
     if highlight_entities and result.get("legal_entities"):
-        st.markdown("### 🏛️ Legal Entities Identified")
-        
-        entities = result["legal_entities"]
-        
-        for entity_type, entity_list in entities.items():
+        st.markdown("### 🏛️ Key Terms in the Cited Passages")
+        labels = {
+            "organizations": "🏢 Parties", "defined_terms": "📖 Defined terms",
+            "monetary_amounts": "💵 Amounts", "durations": "⏱️ Periods",
+            "percentages": "📈 Rates", "dates": "📅 Dates",
+            "governing_law": "⚖️ Governing law", "citations": "📚 Citations",
+        }
+        for entity_type, entity_list in result["legal_entities"].items():
             if entity_list:
-                st.markdown(f"**{entity_type.replace('_', ' ').title()}:**")
-                
-                # Display entities as tags
-                entity_tags = "  ".join([f"`{entity}`" for entity in entity_list[:10]])  # Limit to first 10
-                st.markdown(entity_tags)
-    
-    # Query suggestions (Phase 4 feature)
+                tags = "  ".join(f"`{entity}`" for entity in entity_list[:10])
+                st.markdown(f"**{labels.get(entity_type, entity_type.replace('_', ' ').title())}:** {tags}")
+
+    # Follow-up suggestions
     if include_suggestions and result.get("query_suggestions"):
-        st.markdown("### 💡 Related Query Suggestions")
+        st.markdown("### 💡 Suggested Follow-ups")
         
         suggestions = result["query_suggestions"]
         
@@ -1574,47 +1623,29 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
         for i, suggestion in enumerate(suggestions[:6]):  # Show up to 6 suggestions
             with cols[i % 2]:
                 if st.button(f"💭 {suggestion}", key=f"suggestion_{i}_{entry_id}"):
-                    st.session_state.enhanced_chat_input = suggestion
+                    st.session_state.pending_enhanced_query = suggestion
                     st.rerun()
     
     # Sources with enhanced metadata
     if result["sources"]:
-        st.markdown("### 📚 Source Documents")
-        
-        for i, source in enumerate(result["sources"]):
-            # Use container instead of nested expander
+        st.markdown("### 📚 Sources")
+        cited = set(result.get("citations") or [])
+
+        for i, source in enumerate(result["sources"], 1):
             source_name = source.get('source', source.get('document_id', 'Unknown'))
             similarity = source.get('similarity', source.get('similarity_score', 0))
-            st.markdown(f"**📄 Source {i+1} - {source_name} (Similarity: {similarity:.3f})**")
-            
-            with st.container():
-                # Enhanced source metadata
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown(f"**Category:** {source.get('category', 'N/A')}")
-                    st.markdown(f"**Chunk Index:** {source.get('chunk_index', 'N/A')}")
-                
-                with col2:
-                    if source.get('legal_score'):
-                        st.markdown(f"**Legal Relevance:** {source['legal_score']:.3f}")
-                    if source.get('complexity_score'):
-                        st.markdown(f"**Complexity:** {source['complexity_score']:.3f}")
-                    if source.get('section_type'):
-                        st.markdown(f"**Section Type:** {source['section_type']}")
-                
-                # Source text
-                st.markdown("**Content:**")
-                # Use safe access for content - check multiple possible key names
-                content = source.get("content") or source.get("text") or source.get("document_content") or "Content not available"
-                st.text_area(f"Source {i+1} Content", content, height=100, key=f"source_content_{i}_{entry_id}")
-                st.divider()
+            category = pretty_label(source.get('category'))
+            marker = "✅ cited" if i in cited else "retrieved"
+            content = source.get("content") or source.get("text") or "Content not available"
+            with st.container(border=True):
+                st.markdown(f"**[{i}] {source_name}** · {category} · relevance {similarity:.2f} · _{marker}_")
+                st.caption(content if len(content) <= 600 else content[:600].rsplit(" ", 1)[0] + "…")
 
 # Update the main navigation to include analytics
 def main():
     """Main application function with Phase 4 enhancements."""
     st.sidebar.title("⚖️ Local Legal AI")
-    st.sidebar.markdown("*Phase 4 - Enhanced Analytics & RAG*")
+    st.sidebar.caption("Private document intelligence for legal teams")
     
     # Initialize session state variables
     if "authenticated" not in st.session_state:

@@ -61,8 +61,10 @@ class SimpleLegalDocumentEmbedder:
     
     def preprocess_legal_text(self, text: str) -> str:
         """Preprocess legal text for better embedding quality."""
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
+        # Collapse runs of spaces but keep line breaks: the section patterns
+        # used for clause-aware chunking anchor on newlines.
+        text = re.sub(r'[ \t\r\f\v]+', ' ', text)
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
         
         # Normalize legal citations
         text = re.sub(r'\b(\d+)\s+U\.?S\.?\s+(\d+)', r'\1 U.S. \2', text)

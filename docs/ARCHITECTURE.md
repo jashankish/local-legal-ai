@@ -93,10 +93,26 @@ classifies the legal document type by keyword scoring (contract, NDA, lease,
 employment, will, …) and extracts legal terms and section headings. Metadata is
 flattened to scalars because ChromaDB rejects nested values.
 
+Text cleaning collapses spaces but **preserves line breaks**, which the chunker
+relies on. The garbled-text heuristic flags extractions dominated by a single
+character or lacking word boundaries; when PyMuPDF output looks garbled the
+PyPDF2 extraction is tried instead.
+
 ### Chunking — `rag/embedder.py` (fallback `rag/simple_embedder.py`)
 Splits on legal structure first (`Section N`, numbered clauses, `WHEREAS`, …),
-then windows by `CHUNK_SIZE` words with `CHUNK_OVERLAP`. Upload uses it for
-chunking only; vectors are computed by the ChromaDB collection.
+so each clause normally becomes its own passage, then windows any long section
+by `CHUNK_SIZE` words (default 220, which fits MiniLM's 256-token input) with
+`CHUNK_OVERLAP` (default 40). Upload uses it for chunking only; vectors are
+computed by the ChromaDB collection.
+
+### Key terms and follow-ups — `rag/legal_insights.py`
+Pattern-based (no model download) extraction over the passages an answer cites:
+organisations with corporate suffixes, defined terms (`("Tenant")`), monetary
+amounts, periods (`sixty (60) days`), percentages, dates, governing law and
+statute/case citations. `suggest_follow_ups()` proposes next questions for the
+document types behind the answer, skipping ones that repeat the question.
+`/query` and `/documents/query` return them as `legal_entities` and
+`query_suggestions`.
 
 ### Vector store — `vector_store/chromadb_setup.py`
 Embedded `chromadb.PersistentClient` at `data/chroma_db`, collection
@@ -147,3 +163,12 @@ including a mocked LLM to cover generative mode, audit tamper detection, IP
 whitelisting and analytics fed by real requests. `scripts/ui_smoke.py` renders
 every Streamlit page as admin against a running backend and fails on any
 exception. The legacy `test_phase*.py` scripts require a running server.
+
+## Demo tooling
+- `samples/` — four fictional agreements (TXT, DOCX, PDF); `scripts/build_samples.py`
+  regenerates the DOCX/PDF from `samples/sources/`.
+- `scripts/seed_demo.py` — uploads the samples, creates an `associate` user and
+  asks typical questions against a running backend.
+- `scripts/capture_screenshots.py` — Playwright tour that signs in through the UI
+  and writes `docs/screenshots/*.png` (dev dependency: `requirements-dev.txt`).
+- `.streamlit/config.toml` — UI theme and minimal toolbar.

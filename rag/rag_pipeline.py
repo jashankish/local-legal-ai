@@ -239,13 +239,12 @@ Answer using only the excerpts above, citing them by number."""
             return ("The retrieved documents do not appear to address this question directly. "
                     "Try rephrasing, or upload the relevant agreement."), []
 
+        # The response's `mode` field tells clients this is an extractive answer.
         lines = ["**Most relevant passages from your documents:**", ""]
         for source_num, sentence in picked:
             if len(sentence) > 400:
                 sentence = sentence[:400].rsplit(" ", 1)[0] + "…"
             lines.append(f"- {sentence} [{source_num}]")
-        lines += ["", "_Extractive mode: no local language model is connected, so these are verbatim "
-                      "excerpts ranked by relevance rather than a generated answer._"]
         citations = sorted({num for num, _ in picked})
         return "\n".join(lines), citations
 

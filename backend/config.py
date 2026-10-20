@@ -44,8 +44,9 @@ class Settings(BaseSettings):
     # Document Processing
     max_file_size_mb: int = Field(default=50, env="MAX_FILE_SIZE_MB")
     supported_file_types: list = Field(default=[".pdf", ".txt", ".docx"], env="SUPPORTED_FILE_TYPES")
-    chunk_size: int = Field(default=1000, env="CHUNK_SIZE")
-    chunk_overlap: int = Field(default=200, env="CHUNK_OVERLAP")
+    # Chunk sizes are in words; ~220 words fits the 256-token window of MiniLM.
+    chunk_size: int = Field(default=220, env="CHUNK_SIZE")
+    chunk_overlap: int = Field(default=40, env="CHUNK_OVERLAP")
     
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")

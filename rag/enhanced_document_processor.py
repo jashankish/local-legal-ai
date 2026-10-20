@@ -12,6 +12,7 @@ from datetime import datetime
 import hashlib
 import re
 import unicodedata
+from collections import Counter
 
 # Document processing libraries
 try:
@@ -265,9 +266,16 @@ class EnhancedDocumentProcessor:
             space_ratio < 0.05):
             return True
         
-        # Check for excessive repeated characters (common in garbled text)
-        if len(set(text)) < max(5, len(text) * 0.1):
+        # Check for one character dominating the text (common in garbled
+        # extraction). Distinct-character counts don't scale with length, so
+        # compare the most frequent non-space character instead.
+        non_space = [c for c in text if not c.isspace()]
+        if len(set(non_space)) < 5:
             return True
+        if len(non_space) > 50:
+            most_common = Counter(non_space).most_common(1)[0][1]
+            if most_common / len(non_space) > 0.3:
+                return True
         
         return False
     
@@ -385,14 +393,16 @@ class EnhancedDocumentProcessor:
         for ligature, replacement in ligature_map.items():
             text = text.replace(ligature, replacement)
         
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
-        
         # Remove page breaks and form feeds
         text = re.sub(r'[\f\r]', '', text)
-        
+
         # Fix hyphenated words at line breaks
-        text = re.sub(r'-\s*\n\s*', '', text)
+        text = re.sub(r'(\w)-\n\s*(\w)', r'\1\2', text)
+
+        # Collapse runs of spaces/tabs but keep line breaks, which the
+        # clause-aware chunker uses to find "Section N" headings.
+        text = re.sub(r'[ \t]+', ' ', text)
+        text = re.sub(r' *\n *', '\n', text)
         
         # Normalize line breaks
         text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)
@@ -426,7 +436,7 @@ class EnhancedDocumentProcessor:
                 
                 text = ''.join(cleaned_chars)
                 # Clean up extra spaces again
-                text = re.sub(r'\s+', ' ', text).strip()
+                text = re.sub(r'[ \t]+', ' ', text).strip()
         
         return text
     

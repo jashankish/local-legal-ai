@@ -114,9 +114,21 @@
 - [✅] Streamlit `use_container_width` deprecation removed; `scripts/ui_smoke.py` renders every page in CI-style
 - [✅] Test suite expanded to 15 tests
 
+## Phase 11: Retrieval Quality, Key Terms, Demo Polish & README Tour ✅ **COMPLETE** (2026-10-20)
+- [✅] Fixed clause-aware chunking: text cleaning collapsed newlines, so "Section N" splitting never ran
+- [✅] Default chunk size 220 words / 40 overlap (was 1000 words, beyond MiniLM's 256-token window, so most of each chunk was never embedded)
+- [✅] Fixed garbled-text heuristic that flagged every PDF over ~700 characters, forcing the PyPDF2 fallback and prepending a corruption warning to stored text
+- [✅] `rag/legal_insights.py`: parties, defined terms, amounts, periods, rates, dates, governing law and citations from cited passages; follow-up suggestions by document type
+- [✅] Ask page: single rendering per answer (was shown twice), cited-vs-retrieved source cards, key-term rows, working suggestion buttons, removed no-op threshold slider
+- [✅] Dashboard with live library metrics and recent documents; redesigned sign-in page without a pre-filled password
+- [✅] `/documents/stats` reports documents and passages separately (Files page showed passages as "documents")
+- [✅] Analytics charts readable with sparse data: fixed latency bands, quality bands, similarity bar chart, 24-hour activity axis, human-readable activity labels
+- [✅] Upload guidelines updated; consistent labels (NDA, Real Estate); `.streamlit/config.toml` theme
+- [✅] `samples/` fictional agreements in TXT/DOCX/PDF, `scripts/seed_demo.py`, `scripts/capture_screenshots.py`
+- [✅] README tour with 11 screenshots covering sign-in, dashboard, upload, Q&A, library, analytics, audit log and API
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Legal entity extraction and query suggestions in Enhanced Chat (`rag/enhanced_embedder.py` is unused)
 - [ ] Admin user-management UI (create, deactivate, reset password) and forced default-password change
 - [ ] n8n workflows: watched-folder ingestion and Slack notifications via `N8N_WEBHOOK_URL`
 - [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service)

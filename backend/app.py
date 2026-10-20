@@ -30,6 +30,7 @@ from backend.auth import (
     require_admin, ip_whitelist,
 )
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
+from rag.legal_insights import extract_legal_entities, suggest_follow_ups
 from security.audit_log import get_audit_logger, request_context
 from vector_store.chromadb_setup import chroma_manager
 
@@ -172,6 +173,8 @@ class RAGQueryResponse(BaseModel):
     mode: str = "extractive"
     model: Optional[str] = None
     citations: List[int] = []
+    legal_entities: Dict[str, List[str]] = {}
+    query_suggestions: List[str] = []
 
 # Root endpoint
 @app.get("/")
@@ -364,6 +367,10 @@ async def get_document_stats(current_user: User = Depends(get_current_active_use
     """Get detailed document statistics."""
     try:
         stats = chroma_manager.get_collection_stats()
+        # The collection counts chunks; report documents and passages separately.
+        grouped = _group_chunks_by_document()
+        stats["chunk_count"] = stats.get("document_count", 0)
+        stats["document_count"] = len(grouped)
         return stats
     except Exception as e:
         logger.error(f"Error getting document stats: {e}")
@@ -643,6 +650,15 @@ async def query_documents(
             for src in result.sources
         ]
 
+        # Entities come from the passages the answer cites (all sources if none are cited).
+        cited = [sources[n - 1] for n in result.citations if 0 < n <= len(sources)] or sources
+        legal_entities = extract_legal_entities("\n".join(s["content"] for s in cited))
+        query_suggestions = suggest_follow_ups(
+            request.question,
+            dict.fromkeys(s["metadata"].get("legal_document_type") or s["metadata"].get("category", "")
+                          for s in sources),
+        )
+
         query_type = classify_query(request.question)
         analytics_manager.log_query(QueryMetrics(
             query_id=uuid.uuid4().hex,
@@ -672,6 +688,8 @@ async def query_documents(
             mode=result.mode,
             model=result.model,
             citations=result.citations,
+            legal_entities=legal_entities,
+            query_suggestions=query_suggestions,
         )
     except HTTPException:
         raise
@@ -719,8 +737,8 @@ async def query_documents_alt(
             "mode": response.mode,
             "model": response.model,
             "citations": response.citations,
-            "legal_entities": {},  # Placeholder for enhanced features
-            "query_suggestions": []  # Placeholder for enhanced features
+            "legal_entities": response.legal_entities,
+            "query_suggestions": response.query_suggestions,
         }
         
     except Exception as e:
