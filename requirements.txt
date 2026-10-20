@@ -1,20 +1,33 @@
+# API
 fastapi
 uvicorn[standard]
-llama-index
-chromadb
-streamlit
-sentence-transformers
+python-multipart
 pydantic
 pydantic-settings
-python-jose[cryptography]
 python-dotenv
-passlib[bcrypt]
-python-multipart
+httpx
+aiofiles
+
+# Auth
+python-jose[cryptography]
+bcrypt>=4.0
+
+# Retrieval
+chromadb
+sentence-transformers
+scikit-learn
+numpy
+
+# Document parsing
+PyMuPDF
 PyPDF2
 python-docx
-pandas
-numpy
+
+# Frontend
+streamlit
 requests
-aiofiles
-httpx
-python-magic==0.4.27
+pandas
+plotly
+
+# Tests
+pytest

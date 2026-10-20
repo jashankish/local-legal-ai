@@ -82,7 +82,35 @@
 ### NEW FEATURES
 - [✅] A Files Tab - Document management interface with stats, listing, and delete functionality
 
-## 🎯 **FINAL SYSTEM STATUS: 100% OPERATIONAL**
+## Phase 9: Generative RAG, Data Integrity & Hardening ✅ **COMPLETE** (2026-10-20)
+- [✅] `/query` now runs through `LegalRAGPipeline` instead of concatenating chunks
+- [✅] Local LLM support for any OpenAI-compatible server (vLLM launcher or Ollama), with model status in `/health`
+- [✅] Citation-enforcing legal prompt; answers return `mode`, `model` and `citations`
+- [✅] Extractive fallback that ranks sentences by question-term overlap and cites each passage
+- [✅] Stable `document_id` per upload; chunk ids derived from it; listing grouped per document
+- [✅] Delete removes every chunk of a document (uploader or admin only); unknown ids return 404
+- [✅] Upload size limit and empty-file rejection; storage failures are reported instead of silently succeeding
+- [✅] Bad credentials return 401 (previously surfaced as 500)
+- [✅] Replaced passlib with direct bcrypt (passlib breaks on bcrypt ≥ 4.1); existing hashes remain valid
+- [✅] Secrets and runtime data removed from git (`.env`, tokens, users, ChromaDB files, logs, bytecode)
+- [✅] `start_system.sh` builds `.venv`, generates `.env` with a random `SECRET_KEY`, binds to 127.0.0.1
+- [✅] Chat renders markdown answers with source passages and a generation-mode caption; user text is HTML-escaped
+- [✅] `pytest tests/` end-to-end API suite (7 tests, mocked LLM for generative mode)
+- [✅] `docs/ARCHITECTURE.md` describing the system as implemented
+
+## Remaining Work (toward the advertised feature set)
+Tracked honestly here; items move into a numbered phase when completed.
+- [ ] Audit logging (`security/audit_log.py`): persistent log of logins, uploads, queries, deletions; admin viewer
+- [ ] IP whitelist enforcement (`ALLOWED_IPS`) as real middleware
+- [ ] Analytics endpoints backed by `backend/analytics.py` (currently sample data)
+- [ ] Legal entity extraction and query suggestions in Enhanced Chat (`rag/enhanced_embedder.py` is unused)
+- [ ] Admin user-management UI (create, deactivate, reset password) and forced default-password change
+- [ ] n8n workflows: watched-folder ingestion and Slack notifications via `N8N_WEBHOOK_URL`
+- [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service)
+- [ ] UI polish pass for demo: consistent styling, login page branding, empty states
+- [ ] Streaming answers in chat
+
+## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 
 ### 📊 Latest Comprehensive Test Results (2025-05-31 23:59:00)
 - **Configuration Test:** ✅ Passed - Config loaded successfully 

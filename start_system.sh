@@ -49,36 +49,54 @@ wait_for_service() {
     return 1
 }
 
-# Check Python version
-echo -e "${YELLOW}Checking Python version...${NC}"
-if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}Error: python3 is required but not installed${NC}"
-    exit 1
-fi
-python3 --version
-
-# Check if we're in the right directory
-if [ ! -f ".env" ] || [ ! -d "backend" ] || [ ! -d "frontend" ]; then
+# Check we're in the project root
+if [ ! -d "backend" ] || [ ! -d "frontend" ]; then
     echo -e "${RED}Error: Please run this script from the project root directory${NC}"
     exit 1
 fi
 
-# Set essential environment variables manually
-echo -e "${YELLOW}Setting environment variables...${NC}"
-export SECRET_KEY="fo0sfu4vsmqjuVn4Q4jxIWE8Pp3PB37_bpXJ4JevI1s"
-export DEBUG="false"
-export HOST="0.0.0.0"
-export PORT="8000"
-export JWT_ALGORITHM="HS256"
-export ACCESS_TOKEN_EXPIRE_MINUTES="1440"
-echo -e "${GREEN}✓ Environment variables set${NC}"
-
-# Check if virtual environment exists and dependencies are installed
-echo -e "${YELLOW}Checking dependencies...${NC}"
-if ! python3 -c "import streamlit" 2>/dev/null; then
-    echo -e "${YELLOW}Installing dependencies...${NC}"
-    pip3 install -r requirements_phase4.txt
+# Pick a Python interpreter (3.10-3.12 have wheels for every dependency)
+PYTHON_BIN=""
+for candidate in python3.12 python3.11 python3.10 python3; do
+    if command -v "$candidate" &> /dev/null; then
+        PYTHON_BIN="$candidate"
+        break
+    fi
+done
+if [ -z "$PYTHON_BIN" ]; then
+    echo -e "${RED}Error: Python 3.10+ is required but not installed${NC}"
+    exit 1
 fi
+
+# Create the project virtual environment on first run
+if [ ! -x ".venv/bin/python" ]; then
+    echo -e "${YELLOW}Creating virtual environment with $PYTHON_BIN...${NC}"
+    "$PYTHON_BIN" -m venv .venv
+fi
+PY=".venv/bin/python"
+$PY --version
+
+echo -e "${YELLOW}Checking dependencies...${NC}"
+if ! $PY -c "import fastapi, streamlit, chromadb, fitz, bcrypt" 2>/dev/null; then
+    echo -e "${YELLOW}Installing dependencies (first run can take a few minutes)...${NC}"
+    $PY -m pip install --quiet --upgrade pip
+    $PY -m pip install --quiet -r requirements.txt
+fi
+echo -e "${GREEN}✓ Dependencies ready${NC}"
+
+# Create .env with a freshly generated JWT secret on first run.
+# Secrets are never stored in this script or in git.
+if [ ! -f ".env" ]; then
+    echo -e "${YELLOW}Creating .env from .env.example with a new SECRET_KEY...${NC}"
+    NEW_SECRET=$($PY -c "import secrets; print(secrets.token_urlsafe(48))")
+    sed "s|^SECRET_KEY=.*|SECRET_KEY=$NEW_SECRET|" .env.example > .env
+    chmod 600 .env
+fi
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+echo -e "${GREEN}✓ Environment loaded from .env${NC}"
 
 # Kill any existing processes
 echo -e "${YELLOW}Stopping any existing services...${NC}"
@@ -91,7 +109,7 @@ mkdir -p logs
 
 # Start Backend Service
 echo -e "${YELLOW}Starting Backend Service...${NC}"
-nohup python3 -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload > logs/backend.log 2>&1 &
+nohup $PY -m uvicorn backend.app:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}" > logs/backend.log 2>&1 &
 BACKEND_PID=$!
 
 # Wait for backend to be ready
@@ -105,7 +123,7 @@ fi
 
 # Start Frontend Service
 echo -e "${YELLOW}Starting Frontend Service...${NC}"
-nohup streamlit run frontend/streamlit_app.py --server.port 8501 --server.headless true > logs/frontend.log 2>&1 &
+nohup $PY -m streamlit run frontend/streamlit_app.py --server.port 8501 --server.headless true > logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 
 # Wait for frontend to be ready

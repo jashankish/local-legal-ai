@@ -7,7 +7,7 @@ from typing import Optional, Dict, List, Any
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from pydantic import BaseModel
 import json
 import logging
@@ -20,7 +20,7 @@ from backend.config import settings
 
 # Security
 security = HTTPBearer()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt is used directly: passlib is unmaintained and breaks on bcrypt>=4.1.
 
 
 # Pydantic models
@@ -105,12 +105,15 @@ class UserManager:
             self._save_users(users)
     
     def get_password_hash(self, password: str) -> str:
-        """Hash a password."""
-        return pwd_context.hash(password)
+        """Hash a password (bcrypt only considers the first 72 bytes)."""
+        return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password."""
-        return pwd_context.verify(plain_password, hashed_password)
+        try:
+            return bcrypt.checkpw(plain_password.encode("utf-8")[:72], hashed_password.encode("utf-8"))
+        except (ValueError, TypeError):
+            return False
     
     def get_user(self, username: str) -> Optional[Dict]:
         """Get user by username."""

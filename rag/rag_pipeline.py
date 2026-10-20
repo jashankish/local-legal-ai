@@ -1,14 +1,20 @@
 # RAG Pipeline for Legal Document Q&A
+#
+# Retrieval runs against ChromaDB; generation is delegated to any
+# OpenAI-compatible chat endpoint running locally (vLLM, Ollama, llama.cpp
+# server, LM Studio). When no model is reachable the pipeline degrades to an
+# extractive answer built from the highest-scoring sentences, so the product
+# stays usable on machines without a GPU.
 
 import logging
 from typing import List, Dict, Optional, Any, Tuple
-import json
 from datetime import datetime
+import re
 import sys
 import os
+import time
 import httpx
-import asyncio
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 # Add paths for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
@@ -16,9 +22,15 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'vector_store'))
 
 from config import settings
 from chromadb_setup import chroma_manager
-from embedder import get_embedder
 
 logger = logging.getLogger(__name__)
+
+STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for",
+    "from", "has", "have", "how", "i", "if", "in", "is", "it", "of", "on", "or",
+    "shall", "that", "the", "this", "to", "under", "was", "what", "when", "where",
+    "which", "who", "will", "with", "would", "any", "there", "their", "my", "our",
+}
 
 
 @dataclass
@@ -40,338 +52,298 @@ class RAGResponse:
     total_tokens_used: Optional[int] = None
     processing_time: Optional[float] = None
     confidence_score: Optional[float] = None
+    mode: str = "extractive"            # "generative" when an LLM produced the answer
+    model: Optional[str] = None
+    citations: List[int] = field(default_factory=list)
+
+
+class LLMClient:
+    """Minimal client for an OpenAI-compatible /v1/chat/completions endpoint."""
+
+    STATUS_TTL_SECONDS = 30
+
+    def __init__(self, endpoint: str, model_name: str, timeout: float):
+        self.endpoint = (endpoint or "").rstrip("/")
+        self.model_name = model_name
+        self.timeout = timeout
+        self._status_cache: Tuple[float, Dict[str, Any]] = (0.0, {})
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.endpoint) and settings.llm_enabled
+
+    async def status(self, force: bool = False) -> Dict[str, Any]:
+        """Report whether the model server is reachable and which models it serves."""
+        if not self.configured:
+            return {"available": False, "state": "not_configured", "endpoint": self.endpoint}
+
+        checked_at, cached = self._status_cache
+        if not force and cached and time.time() - checked_at < self.STATUS_TTL_SECONDS:
+            return cached
+
+        result: Dict[str, Any] = {"endpoint": self.endpoint, "model": self.model_name}
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                response = await client.get(f"{self.endpoint}/v1/models")
+            if response.status_code == 200:
+                served = [m.get("id") for m in response.json().get("data", [])]
+                result.update(available=True, state="healthy", served_models=served)
+            else:
+                result.update(available=False, state=f"http_{response.status_code}")
+        except Exception as e:
+            result.update(available=False, state="unreachable", error=type(e).__name__)
+
+        self._status_cache = (time.time(), result)
+        return result
+
+    async def chat(self, messages: List[Dict[str, str]]) -> Tuple[str, Optional[int], str]:
+        """Return (content, total_tokens, served_model)."""
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "max_tokens": settings.max_tokens,
+            "temperature": settings.temperature,
+            "stream": False,
+        }
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(f"{self.endpoint}/v1/chat/completions", json=payload)
+        response.raise_for_status()
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        tokens = (data.get("usage") or {}).get("total_tokens")
+        return content.strip(), tokens, data.get("model", self.model_name)
 
 
 class LegalRAGPipeline:
     """RAG Pipeline specialized for legal document Q&A."""
-    
+
     def __init__(self):
         """Initialize the RAG pipeline."""
-        self.embedder = get_embedder()
         self.chroma_manager = chroma_manager
-        self.model_endpoint = settings.model_endpoint
-        self.max_tokens = settings.max_tokens
-        self.temperature = settings.temperature
-        
-        # Legal-specific context templates
-        self.system_prompt = """You are a specialized legal AI assistant. Your role is to provide accurate, 
-helpful answers based on the provided legal documents. Follow these guidelines:
+        self.llm = LLMClient(
+            endpoint=settings.model_endpoint,
+            model_name=settings.model_name,
+            timeout=settings.llm_timeout_seconds,
+        )
 
-1. Only use information from the provided document context
-2. Cite specific sections or clauses when possible
-3. If the context doesn't contain enough information, say so explicitly
-4. Use precise legal terminology
-5. Provide clear, structured answers
-6. Include relevant case law or statute citations if present in the context
-7. Flag any potential legal risks or important considerations
+        self.system_prompt = """You are a legal research assistant used inside a law firm. \
+Answer strictly from the numbered document excerpts you are given.
 
-Always preface your response with a confidence level (High/Medium/Low) based on the completeness 
-of the information in the provided context."""
+Rules:
+1. Cite every factual statement with the excerpt number in square brackets, e.g. [1] or [2][3].
+2. If the excerpts do not contain the answer, say so plainly. Never invent facts, parties, dates, or citations.
+3. Quote short operative language (dollar amounts, notice periods, defined terms) exactly.
+4. Use precise legal terminology and keep the answer structured: a direct answer first, then supporting detail.
+5. Flag material risks, ambiguities, or obligations a reviewing attorney should check.
+6. You do not provide legal advice; you summarize what the documents say."""
 
-        self.context_template = """Based on the following legal document excerpts, please answer the question.
-
-LEGAL DOCUMENT CONTEXT:
+        self.context_template = """DOCUMENT EXCERPTS:
 {context}
 
 QUESTION: {question}
 
-Please provide a comprehensive answer based on the context above, citing specific sections where relevant."""
+Answer using only the excerpts above, citing them by number."""
 
-    async def retrieve_documents(self, 
-                                query: str, 
-                                num_results: int = 5,
-                                filter_metadata: Optional[Dict] = None) -> List[RetrievalResult]:
-        """
-        Retrieve relevant documents using semantic search.
-        
-        Args:
-            query: User question
-            num_results: Number of documents to retrieve
-            filter_metadata: Optional metadata filters
-            
-        Returns:
-            List of retrieval results
-        """
+    async def retrieve_documents(self,
+                                 query: str,
+                                 num_results: int = 5,
+                                 filter_metadata: Optional[Dict] = None) -> List[RetrievalResult]:
+        """Retrieve relevant chunks using semantic search."""
+        logger.info(f"Retrieving documents for query: {query[:100]}...")
+
+        search_results = self.chroma_manager.search_documents(
+            query=query,
+            n_results=num_results,
+            where=filter_metadata or None,
+            include=["documents", "metadatas", "distances"]
+        ) or {}
+
+        def first(key):
+            values = search_results.get(key) or [[]]
+            return values[0] if values and isinstance(values[0], list) else (values or [])
+
+        documents, metadatas = first('documents'), first('metadatas')
+        distances, ids = first('distances'), first('ids')
+
+        retrieval_results = []
+        for i, (doc, metadata, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
+            metadata = metadata or {}
+            retrieval_results.append(RetrievalResult(
+                document_id=doc_id,
+                content=doc or "",
+                metadata=metadata,
+                similarity_score=self._distance_to_similarity(distance),
+                chunk_index=metadata.get('chunk_index', i)
+            ))
+
+        logger.info(f"Retrieved {len(retrieval_results)} relevant chunks")
+        return retrieval_results
+
+    @staticmethod
+    def _distance_to_similarity(distance: Optional[float]) -> float:
+        """Map a ChromaDB L2/cosine distance onto a 0-1 similarity score."""
+        if distance is None:
+            return 0.0
         try:
-            logger.info(f"Retrieving documents for query: {query[:100]}...")
-            
-            # Generate query embedding
-            query_embedding = self.embedder.embed_query(query)
-            
-            # Search ChromaDB
-            search_results = self.chroma_manager.search_documents(
-                query=query,
-                n_results=num_results,
-                where=filter_metadata,
-                include=["documents", "metadatas", "distances"]
-            )
-            
-            # Process results
-            retrieval_results = []
-            documents = search_results.get('documents', [[]])[0]
-            metadatas = search_results.get('metadatas', [[]])[0]
-            distances = search_results.get('distances', [[]])[0]
-            ids = search_results.get('ids', [[]])[0]
-            
-            for i, (doc, metadata, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
-                # Convert distance to similarity score (ChromaDB returns distances)
-                similarity_score = 1.0 - distance if distance is not None else 0.0
-                
-                result = RetrievalResult(
-                    document_id=doc_id,
-                    content=doc,
-                    metadata=metadata,
-                    similarity_score=similarity_score,
-                    chunk_index=metadata.get('chunk_index', i)
-                )
-                retrieval_results.append(result)
-            
-            logger.info(f"Retrieved {len(retrieval_results)} relevant documents")
-            return retrieval_results
-            
-        except Exception as e:
-            logger.error(f"Document retrieval failed: {e}")
-            raise
-    
+            return max(0.0, min(1.0, 1.0 - float(distance) / 2.0))
+        except (TypeError, ValueError):
+            return 0.0
+
     def _format_context(self, retrieval_results: List[RetrievalResult]) -> str:
-        """Format retrieved documents into context for the LLM."""
-        context_parts = []
-        
+        """Format retrieved chunks into numbered excerpts for the LLM."""
+        parts = []
         for i, result in enumerate(retrieval_results, 1):
-            # Format each document with metadata
-            source_info = result.metadata.get('source', f'Document {i}')
-            section = result.metadata.get('section_num', '')
-            chunk_info = f" (chunk {result.chunk_index})" if result.chunk_index else ""
-            
-            context_part = f"""
---- Document {i}: {source_info}{chunk_info} ---
-Section: {section if section else 'General'}
-Relevance Score: {result.similarity_score:.2f}
+            source = result.metadata.get('source', f'Document {i}')
+            section = result.metadata.get('section_num')
+            label = f"[{i}] {source}" + (f", section {section}" if section not in (None, "") else "")
+            parts.append(f"{label}\n{result.content}")
+        return "\n\n".join(parts)
 
-{result.content}
-"""
-            context_parts.append(context_part)
-        
-        return "\n".join(context_parts)
-    
-    async def _generate_response(self, query: str, context: str) -> Tuple[str, Optional[int]]:
-        """
-        Generate response using the LLM.
-        
-        Args:
-            query: User question
-            context: Formatted document context
-            
-        Returns:
-            Tuple of (response, tokens_used)
-        """
-        try:
-            # Format the prompt
-            formatted_prompt = self.context_template.format(
-                context=context,
-                question=query
-            )
-            
-            # Prepare the request for the model endpoint
-            payload = {
-                "model": settings.model_name,
-                "messages": [
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": formatted_prompt}
-                ],
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "stream": False
-            }
-            
-            # Make request to model endpoint
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                logger.info(f"Sending request to model endpoint: {self.model_endpoint}")
-                response = await client.post(
-                    f"{self.model_endpoint}/v1/chat/completions",
-                    json=payload,
-                    headers={"Content-Type": "application/json"}
-                )
-                
-                if response.status_code != 200:
-                    logger.error(f"Model endpoint error: {response.status_code} - {response.text}")
-                    # Fallback response
-                    return self._generate_fallback_response(query, context), None
-                
-                result = response.json()
-                
-                # Extract response and token usage
-                answer = result['choices'][0]['message']['content']
-                tokens_used = result.get('usage', {}).get('total_tokens')
-                
-                logger.info(f"Generated response using {tokens_used} tokens")
-                return answer, tokens_used
-                
-        except Exception as e:
-            logger.error(f"Generation failed: {e}")
-            # Return fallback response
-            return self._generate_fallback_response(query, context), None
-    
-    def _generate_fallback_response(self, query: str, context: str) -> str:
-        """Generate a fallback response when LLM is unavailable."""
-        logger.warning("Using fallback response generation")
-        
-        # Simple extractive response based on context
-        context_snippets = context.split("---")[:3]  # Take first 3 documents
-        
-        response = f"""**Confidence Level: Medium**
+    @staticmethod
+    def _keywords(text: str) -> set:
+        return {w for w in re.findall(r"[a-z0-9$%]+", text.lower()) if w not in STOPWORDS and len(w) > 2}
 
-Based on the available legal documents, here are the relevant sections for your query:
+    def _generate_extractive_response(self, query: str,
+                                      retrieval_results: List[RetrievalResult]) -> Tuple[str, List[int]]:
+        """Build an answer from the most relevant sentences when no LLM is available."""
+        query_terms = self._keywords(query)
+        scored = []
+        for source_num, result in enumerate(retrieval_results, 1):
+            sentences = re.split(r'(?<=[.;:])\s+(?=[A-Z(\d])', result.content)
+            for position, sentence in enumerate(sentences):
+                sentence = sentence.strip()
+                if len(sentence) < 25:
+                    continue
+                overlap = len(query_terms & self._keywords(sentence))
+                # Prefer sentences that share terms with the question, then higher-ranked sources.
+                score = overlap * 2 + result.similarity_score - position * 0.01
+                scored.append((score, overlap, source_num, sentence))
 
-**Query:** {query}
+        scored.sort(key=lambda item: item[0], reverse=True)
+        # Keep supporting sentences only if they match at least half as many
+        # question terms as the best sentence, so incidental hits are dropped.
+        min_overlap = max(1, (scored[0][1] + 1) // 2) if scored else 1
+        picked, seen = [], set()
+        for score, overlap, source_num, sentence in scored:
+            key = sentence[:80]
+            if key in seen:
+                continue
+            if picked and overlap < min_overlap:
+                continue
+            seen.add(key)
+            picked.append((source_num, sentence))
+            if len(picked) == 4:
+                break
 
-**Relevant Information:**
-"""
-        
-        for i, snippet in enumerate(context_snippets[1:], 1):  # Skip first empty element
-            if snippet.strip():
-                lines = snippet.strip().split('\n')
-                doc_title = lines[0] if lines else f"Document {i}"
-                content_lines = [line for line in lines if line.strip() and not line.startswith('Section:') and not line.startswith('Relevance')]
-                content = '\n'.join(content_lines[:3])  # First 3 content lines
-                
-                response += f"\n{i}. {doc_title}\n{content}\n"
-        
-        response += "\n**Note:** This response was generated from document excerpts. For detailed legal advice, please consult with a qualified attorney."
-        
-        return response
-    
+        if not picked:
+            return ("The retrieved documents do not appear to address this question directly. "
+                    "Try rephrasing, or upload the relevant agreement."), []
+
+        lines = ["**Most relevant passages from your documents:**", ""]
+        for source_num, sentence in picked:
+            if len(sentence) > 400:
+                sentence = sentence[:400].rsplit(" ", 1)[0] + "…"
+            lines.append(f"- {sentence} [{source_num}]")
+        lines += ["", "_Extractive mode: no local language model is connected, so these are verbatim "
+                      "excerpts ranked by relevance rather than a generated answer._"]
+        citations = sorted({num for num, _ in picked})
+        return "\n".join(lines), citations
+
+    @staticmethod
+    def _extract_citations(answer: str, num_sources: int) -> List[int]:
+        found = {int(n) for n in re.findall(r"\[(\d{1,2})\]", answer)}
+        return sorted(n for n in found if 1 <= n <= num_sources)
+
     def _calculate_confidence(self, retrieval_results: List[RetrievalResult], query: str) -> float:
-        """Calculate confidence score based on retrieval results."""
+        """Blend retrieval similarity with lexical coverage of the question."""
         if not retrieval_results:
             return 0.0
-        
-        # Factors for confidence calculation
-        avg_similarity = sum(r.similarity_score for r in retrieval_results) / len(retrieval_results)
-        num_results = min(len(retrieval_results), 5)  # Cap at 5 for confidence calc
-        
-        # Higher confidence if we have good similarity scores and multiple results
-        confidence = (avg_similarity * 0.7) + (num_results / 5.0 * 0.3)
-        
-        return min(confidence, 1.0)
-    
-    async def query(self, 
-                   question: str, 
-                   num_documents: int = 5,
-                   filter_metadata: Optional[Dict] = None) -> RAGResponse:
-        """
-        Process a legal question through the complete RAG pipeline.
-        
-        Args:
-            question: User's legal question
-            num_documents: Number of documents to retrieve
-            filter_metadata: Optional metadata filters for document retrieval
-            
-        Returns:
-            RAG response with answer and sources
-        """
+        top = retrieval_results[:3]
+        avg_similarity = sum(r.similarity_score for r in top) / len(top)
+        query_terms = self._keywords(query)
+        if query_terms:
+            covered = set()
+            for r in top:
+                covered |= query_terms & self._keywords(r.content)
+            coverage = len(covered) / len(query_terms)
+        else:
+            coverage = 0.0
+        return round(min(1.0, avg_similarity * 0.6 + coverage * 0.4), 3)
+
+    async def query(self,
+                    question: str,
+                    num_documents: int = 5,
+                    filter_metadata: Optional[Dict] = None) -> RAGResponse:
+        """Process a legal question through retrieval and generation."""
         start_time = datetime.now()
-        
-        try:
-            logger.info(f"Processing RAG query: {question[:100]}...")
-            
-            # Step 1: Retrieve relevant documents
-            retrieval_results = await self.retrieve_documents(
-                query=question,
-                num_results=num_documents,
-                filter_metadata=filter_metadata
-            )
-            
-            if not retrieval_results:
-                return RAGResponse(
-                    answer="I couldn't find any relevant legal documents to answer your question. Please ensure documents have been uploaded to the system.",
-                    sources=[],
-                    query=question,
-                    confidence_score=0.0
-                )
-            
-            # Step 2: Format context for generation
-            context = self._format_context(retrieval_results)
-            
-            # Step 3: Generate response
-            answer, tokens_used = await self._generate_response(question, context)
-            
-            # Step 4: Calculate confidence and processing time
-            confidence = self._calculate_confidence(retrieval_results, question)
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
-            # Create response
-            response = RAGResponse(
-                answer=answer,
-                sources=retrieval_results,
-                query=question,
-                total_tokens_used=tokens_used,
-                processing_time=processing_time,
-                confidence_score=confidence
-            )
-            
-            logger.info(f"RAG query completed in {processing_time:.2f}s with confidence {confidence:.2f}")
-            return response
-            
-        except Exception as e:
-            logger.error(f"RAG pipeline failed: {e}")
-            processing_time = (datetime.now() - start_time).total_seconds()
-            
+        logger.info(f"Processing RAG query: {question[:100]}...")
+
+        retrieval_results = await self.retrieve_documents(
+            query=question,
+            num_results=num_documents,
+            filter_metadata=filter_metadata
+        )
+
+        if not retrieval_results:
             return RAGResponse(
-                answer=f"I encountered an error while processing your question: {str(e)}. Please try again or contact support.",
+                answer="I couldn't find any documents to answer this question. "
+                       "Upload agreements, filings, or policies on the Documents page first.",
                 sources=[],
                 query=question,
-                processing_time=processing_time,
-                confidence_score=0.0
+                confidence_score=0.0,
+                processing_time=(datetime.now() - start_time).total_seconds(),
             )
-    
-    async def stream_query(self, 
-                          question: str, 
-                          num_documents: int = 5,
-                          filter_metadata: Optional[Dict] = None):
-        """
-        Stream a RAG response for real-time UI updates.
-        
-        Args:
-            question: User's legal question
-            num_documents: Number of documents to retrieve
-            filter_metadata: Optional metadata filters
-            
-        Yields:
-            Streaming response chunks
-        """
+
+        answer, tokens_used, mode, model, citations = None, None, "extractive", None, []
+        llm_status = await self.llm.status()
+        if llm_status.get("available"):
+            try:
+                answer, tokens_used, model = await self.llm.chat([
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": self.context_template.format(
+                        context=self._format_context(retrieval_results), question=question)},
+                ])
+                mode = "generative"
+                citations = self._extract_citations(answer, len(retrieval_results))
+            except Exception as e:
+                logger.error(f"LLM generation failed, falling back to extractive answer: {e}")
+                answer = None
+
+        if answer is None:
+            answer, citations = self._generate_extractive_response(question, retrieval_results)
+
+        processing_time = (datetime.now() - start_time).total_seconds()
+        confidence = self._calculate_confidence(retrieval_results, question)
+        logger.info(f"RAG query completed in {processing_time:.2f}s ({mode}) with confidence {confidence:.2f}")
+
+        return RAGResponse(
+            answer=answer,
+            sources=retrieval_results,
+            query=question,
+            total_tokens_used=tokens_used,
+            processing_time=processing_time,
+            confidence_score=confidence,
+            mode=mode,
+            model=model,
+            citations=citations,
+        )
+
+    async def stream_query(self,
+                           question: str,
+                           num_documents: int = 5,
+                           filter_metadata: Optional[Dict] = None):
+        """Yield progress events followed by the final answer."""
         try:
-            # First yield: Retrieval status
             yield {"status": "retrieving", "message": "Searching legal documents..."}
-            
-            # Retrieve documents
-            retrieval_results = await self.retrieve_documents(
-                query=question,
-                num_results=num_documents,
-                filter_metadata=filter_metadata
-            )
-            
-            yield {"status": "retrieved", "sources": [asdict(r) for r in retrieval_results]}
-            
-            if not retrieval_results:
-                yield {"status": "complete", "answer": "No relevant documents found."}
-                return
-            
-            # Generate response
-            yield {"status": "generating", "message": "Generating response..."}
-            
-            context = self._format_context(retrieval_results)
-            answer, tokens_used = await self._generate_response(question, context)
-            
-            # Final response
-            confidence = self._calculate_confidence(retrieval_results, question)
+            response = await self.query(question, num_documents, filter_metadata)
+            yield {"status": "retrieved", "sources": [asdict(r) for r in response.sources]}
             yield {
                 "status": "complete",
-                "answer": answer,
-                "confidence": confidence,
-                "tokens_used": tokens_used
+                "answer": response.answer,
+                "confidence": response.confidence_score,
+                "tokens_used": response.total_tokens_used,
+                "mode": response.mode,
             }
-            
         except Exception as e:
             logger.error(f"Streaming RAG failed: {e}")
             yield {"status": "error", "message": str(e)}
@@ -383,4 +355,4 @@ rag_pipeline = LegalRAGPipeline()
 
 def get_rag_pipeline() -> LegalRAGPipeline:
     """Get the global RAG pipeline instance."""
-    return rag_pipeline 
+    return rag_pipeline

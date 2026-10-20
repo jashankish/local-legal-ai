@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 import logging
 import json
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form
@@ -132,6 +133,9 @@ class RAGQueryResponse(BaseModel):
     total_tokens_used: Optional[int] = None
     processing_time: Optional[float] = None
     confidence_score: Optional[float] = None
+    mode: str = "extractive"
+    model: Optional[str] = None
+    citations: List[int] = []
 
 # Root endpoint
 @app.get("/")
@@ -159,21 +163,14 @@ async def health_check():
     except Exception:
         services["chromadb"] = "unhealthy"
     
-    # Check model endpoint (if configured)
-    if settings.model_endpoint:
-        try:
-            import httpx
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(f"{settings.model_endpoint}/health")
-                if response.status_code == 200:
-                    services["model"] = "healthy"
-                else:
-                    services["model"] = "unhealthy"
-        except Exception:
-            services["model"] = "checking..."
+    # Check the local LLM server. "unreachable" is not fatal: queries fall back
+    # to extractive answers until a model is started.
+    if get_rag_pipeline is not None:
+        llm_status = await get_rag_pipeline().llm.status()
+        services["model"] = llm_status.get("state", "unknown")
     else:
         services["model"] = "not_configured"
-    
+
     return HealthResponse(
         status="healthy",
         version="1.0.0",
@@ -205,6 +202,8 @@ async def login(request: LoginRequest):
                 "is_active": user["is_active"]
             }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Login error: {e}")
         raise HTTPException(
@@ -262,30 +261,47 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
     }
 
 # Document management endpoints
+def _group_chunks_by_document() -> Dict[str, Dict[str, Any]]:
+    """Collapse stored chunks into one record per uploaded document."""
+    results = chroma_manager.collection.get(include=["metadatas"])
+    grouped: Dict[str, Dict[str, Any]] = {}
+    for chunk_id, metadata in zip(results.get("ids", []), results.get("metadatas", [])):
+        metadata = metadata or {}
+        # Chunks stored before document_id existed are grouped by their source name.
+        doc_id = metadata.get("document_id") or metadata.get("source") or chunk_id
+        entry = grouped.setdefault(doc_id, {
+            "id": doc_id,
+            "filename": metadata.get("filename") or metadata.get("source", "Unknown"),
+            "source": metadata.get("source", "Unknown"),
+            "category": metadata.get("category", "general"),
+            "upload_date": metadata.get("upload_date", "Unknown"),
+            "uploaded_by": metadata.get("uploaded_by", "Unknown"),
+            "content_type": metadata.get("content_type", "text/plain"),
+            "file_size": metadata.get("file_size", 0),
+            "document_type": metadata.get("legal_document_type") or metadata.get("document_type", "general"),
+            "page_count": metadata.get("page_count"),
+            "word_count": metadata.get("word_count"),
+            "chunk_count": 0,
+            "chunk_ids": [],
+        })
+        entry["chunk_count"] += 1
+        entry["chunk_ids"].append(chunk_id)
+    return grouped
+
+
 @app.get("/documents")
 async def list_documents(current_user: User = Depends(get_current_active_user)):
-    """List all documents for the current user."""
+    """List uploaded documents (one entry per file, not per chunk)."""
     try:
-        collection = chroma_manager.collection
-        results = collection.get()
-        
-        if not results["ids"]:
-            return {"documents": [], "total": 0}
-        
-        # Extract document metadata
-        documents = []
-        for i, doc_id in enumerate(results["ids"]):
-            metadata = results["metadatas"][i] if i < len(results["metadatas"]) else {}
-            documents.append({
-                "id": doc_id,
-                "filename": metadata.get("filename", "Unknown"),
-                "upload_date": metadata.get("upload_date", "Unknown"),
-                "category": metadata.get("category", "general"),
-                "source": metadata.get("source", "Unknown")
-            })
-        
-        return {"documents": documents, "total": len(documents)}
-    
+        grouped = _group_chunks_by_document()
+        documents = sorted(grouped.values(), key=lambda d: str(d.get("upload_date", "")), reverse=True)
+        for doc in documents:
+            doc.pop("chunk_ids", None)
+        return {
+            "documents": documents,
+            "total": len(documents),
+            "total_chunks": sum(d["chunk_count"] for d in documents),
+        }
     except Exception as e:
         logger.error(f"Failed to list documents: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve documents")
@@ -305,16 +321,27 @@ async def get_document_stats(current_user: User = Depends(get_current_active_use
 
 @app.delete("/documents/{document_id}")
 async def delete_document(document_id: str, current_user: User = Depends(get_current_active_user)):
-    """Delete a document from ChromaDB."""
+    """Delete an uploaded document and all of its chunks."""
+    grouped = _group_chunks_by_document()
+    document = grouped.get(document_id)
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Document {document_id} not found"
+        )
+    if current_user.role != "admin" and document.get("uploaded_by") != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the uploader or an admin can delete this document"
+        )
     try:
-        success = chroma_manager.delete_document(document_id)
-        if success:
-            return {"success": True, "message": f"Document {document_id} deleted successfully"}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Document {document_id} not found"
-            )
+        chroma_manager.collection.delete(ids=document["chunk_ids"])
+        logger.info(f"Deleted document {document_id} ({len(document['chunk_ids'])} chunks)")
+        return {
+            "success": True,
+            "message": f"Document '{document['filename']}' deleted",
+            "chunks_deleted": len(document["chunk_ids"]),
+        }
     except Exception as e:
         logger.error(f"Delete document error: {e}")
         raise HTTPException(
@@ -373,12 +400,24 @@ async def upload_document(
     try:
         # Read file content
         content = await file.read()
+        max_bytes = settings.max_file_size_mb * 1024 * 1024
+        if len(content) > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"File exceeds the {settings.max_file_size_mb} MB upload limit"
+            )
+        if not content:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
+
+        document_id = uuid.uuid4().hex[:16]
         logger.info(f"Read {len(content)} bytes from {filename}")
         
         # Process document with enhanced processor if available
         if USE_ENHANCED_PROCESSOR:
             # Use enhanced document processor
             document_metadata = {
+                "document_id": document_id,
+                "filename": file.filename,
                 "source": title or file.filename,
                 "category": category,
                 "uploaded_by": current_user.username,
@@ -420,6 +459,8 @@ async def upload_document(
                     )
             
             enhanced_metadata = {
+                "document_id": document_id,
+                "filename": file.filename,
                 "source": title or file.filename,
                 "category": category,
                 "uploaded_by": current_user.username,
@@ -440,20 +481,25 @@ async def upload_document(
         embedder = get_embedder()
         
         # Process document using the embedder
-        chunks, embeddings = embedder.process_document(
+        # Chunk only: ChromaDB computes vectors with the collection's embedding function.
+        chunks, _ = embedder.process_document(
             text=text_content,
-            metadata=enhanced_metadata
+            metadata=enhanced_metadata,
+            return_embeddings=False
         )
         
         # Store chunks in ChromaDB
-        document_id = None
         chunks_processed = 0
         
         if chunks:
             # Prepare data for ChromaDB
             texts = [chunk['text'] for chunk in chunks]
-            metadatas = [chunk['metadata'] for chunk in chunks]
-            ids = [chunk['id'] for chunk in chunks]
+            # ChromaDB metadata values must be scalars
+            metadatas = [
+                {k: v for k, v in chunk['metadata'].items() if isinstance(v, (str, int, float, bool))}
+                for chunk in chunks
+            ]
+            ids = [f"{document_id}-{i:04d}" for i in range(len(chunks))]
             
             # Store in ChromaDB
             success = chroma_manager.add_documents(
@@ -463,13 +509,11 @@ async def upload_document(
             )
             
             if success:
-                # Use a proper document ID - generate one based on filename and timestamp
-                document_base_id = f"{title or file.filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                document_id = document_base_id
                 chunks_processed = len(chunks)
                 logger.info(f"Successfully stored {chunks_processed} chunks in ChromaDB with document ID: {document_id}")
             else:
                 logger.error("Failed to store documents in ChromaDB")
+                raise RuntimeError("Vector store rejected the document chunks")
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
@@ -485,6 +529,8 @@ async def upload_document(
             processing_time=processing_time
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Document upload error: {e}")
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -501,81 +547,41 @@ async def query_documents(
     request: RAGQueryRequest,
     current_user: User = Depends(get_current_active_user)
 ):
-    """Query legal documents using simple embedder and ChromaDB."""
+    """Answer a question from the document corpus via the RAG pipeline."""
+    if not request.question.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty")
+    if get_rag_pipeline is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="RAG pipeline unavailable")
     try:
-        start_time = datetime.now()
-        
-        # Get embedder for query processing
-        embedder = get_embedder()
-        
-        # Generate query embedding
-        query_embedding = embedder.embed_query(request.question)
-        
-        # Search documents in ChromaDB
-        search_results = chroma_manager.search_documents(
-            query=request.question,
-            n_results=request.num_documents,
-            where=request.filter_metadata
+        result = await get_rag_pipeline().query(
+            question=request.question,
+            num_documents=max(1, min(request.num_documents, 20)),
+            filter_metadata=request.filter_metadata
         )
-        
-        # Extract search results
-        sources = []
-        if search_results and 'documents' in search_results and search_results['documents']:
-            documents = search_results['documents']
-            metadatas = search_results.get('metadatas', [])
-            distances = search_results.get('distances', [])
-            ids = search_results.get('ids', [])
-            
-            # Flatten nested lists if needed and check for empty lists
-            if documents and isinstance(documents[0], list):
-                documents = documents[0] if documents[0] else []
-            if metadatas and isinstance(metadatas[0], list):
-                metadatas = metadatas[0] if metadatas[0] else []
-            if distances and isinstance(distances[0], list):
-                distances = distances[0] if distances[0] else []
-            if ids and isinstance(ids[0], list):
-                ids = ids[0] if ids[0] else []
-            
-            # Only process if we have actual documents
-            if documents and metadatas and distances and ids:
-                for i, (doc, meta, distance, doc_id) in enumerate(zip(documents, metadatas, distances, ids)):
-                    # Safely calculate similarity score
-                    similarity_score = 0.0
-                    if distance is not None:
-                        try:
-                            similarity_score = 1.0 - float(distance)
-                        except (TypeError, ValueError):
-                            similarity_score = 0.0
-                    
-                    sources.append({
-                        "document_id": doc_id,
-                        "content": doc,
-                        "metadata": meta or {},
-                        "similarity_score": similarity_score,
-                        "chunk_index": i
-                    })
-        
-        # Generate a simple answer based on retrieved documents
-        if sources:
-            # Combine relevant content
-            relevant_content = "\n".join([src["content"][:500] for src in sources[:3]])
-            answer = f"Based on the retrieved documents: {relevant_content[:1000]}..."
-            confidence_score = sources[0]["similarity_score"] if sources else 0.0
-        else:
-            answer = "I couldn't find any relevant documents to answer your question."
-            confidence_score = 0.0
-        
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
+        sources = [
+            {
+                "document_id": src.metadata.get("document_id", src.document_id),
+                "chunk_id": src.document_id,
+                "content": src.content,
+                "metadata": src.metadata,
+                "similarity_score": src.similarity_score,
+                "chunk_index": src.chunk_index,
+            }
+            for src in result.sources
+        ]
         return RAGQueryResponse(
-            answer=answer,
+            answer=result.answer,
             sources=sources,
             query=request.question,
-            total_tokens_used=None,  # Not applicable for TF-IDF
-            processing_time=processing_time,
-            confidence_score=confidence_score
+            total_tokens_used=result.total_tokens_used,
+            processing_time=result.processing_time,
+            confidence_score=result.confidence_score,
+            mode=result.mode,
+            model=result.model,
+            citations=result.citations,
         )
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Query error: {e}")
         raise HTTPException(
@@ -606,6 +612,7 @@ async def query_documents_alt(
             "answer": response.answer,
             "sources": [
                 {
+                    "document_id": src.get("document_id"),
                     "source": src.get("metadata", {}).get("source", "Unknown"),
                     "text": src["content"],
                     "similarity": src["similarity_score"],
@@ -616,6 +623,9 @@ async def query_documents_alt(
             ],
             "confidence": response.confidence_score or 0.0,
             "processing_time": response.processing_time or 0.0,
+            "mode": response.mode,
+            "model": response.model,
+            "citations": response.citations,
             "legal_entities": {},  # Placeholder for enhanced features
             "query_suggestions": []  # Placeholder for enhanced features
         }

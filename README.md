@@ -1,123 +1,99 @@
 # 🧠 Local Legal AI
 
-A fully private, self-hosted LLM-powered assistant tailored for **law firms**. This platform enables secure, high-performance legal document Q&A using **open-source models**, **vector search**, and **automation workflows**—all without sending a single byte to third-party APIs.
+A private, self-hosted assistant for **law firms**: upload contracts, filings and
+policies, then ask questions and get answers that cite the exact passages they
+came from. Everything — documents, vectors, the language model — stays on your
+machine. No third-party AI APIs are called.
 
 ## 🚀 Features
 
-- 🔐 **Private Deployment** — No OpenAI/Anthropic dependencies
-- 🧾 **Legal Document Q&A** — Use RAG (Retrieval-Augmented Generation) with case files, contracts, and statutes
-- ⚡️ **Fast Inference** — Powered by [LLaMA 3](https://ai.meta.com/llama/) via [vLLM](https://github.com/vllm-project/vllm)
-- 📚 **Vector Search** — Efficient and scalable storage of embeddings using [ChromaDB](https://www.trychroma.com/)
-- 💬 **Modern Chat UI** — Streamlit-based frontend for lawyers and staff to ask natural language questions
-- 🔁 **Automation** — Built-in [n8n](https://n8n.io/) to handle file drops, Slack alerts, and data flows
-- 🛡 **Audit Logging & Access Control** — Secure everything with JWT, IP whitelisting, and activity logs
+| Feature | Status |
+|---|---|
+| 🔐 Local login (JWT, bcrypt), admin and user roles | ✅ |
+| 📄 PDF, DOCX and TXT ingestion with legal document-type detection | ✅ |
+| 📚 Semantic search over an embedded ChromaDB store | ✅ |
+| 🧾 Cited answers from a local LLM (vLLM or Ollama) | ✅ |
+| 🪶 Extractive answer mode when no model is running (no GPU required) | ✅ |
+| 🗂 Document library: per-document listing, search, delete | ✅ |
+| 📊 Admin analytics dashboard | 🚧 UI ready, backed by sample data |
+| 🛡 Audit logging and IP whitelisting | 🚧 planned |
+| 🔁 n8n automation (folder ingestion, Slack alerts) | 🚧 planned |
+
+Progress and the remaining roadmap live in [`phases.md`](phases.md).
 
 ## 🧱 Architecture
 
 ```
-User ↔ Streamlit UI ↔ FastAPI Backend ↔ RAG Pipeline ↔ ChromaDB ↔ Embedded Legal Docs
-                                          ↕
-                                    vLLM (LLaMA 3)
-                                          ↕
-                              Secure GPU Host (CoreWeave / On-Prem)
+Browser ─▶ Streamlit UI :8501 ─▶ FastAPI :8000 ─▶ RAG pipeline ─▶ ChromaDB (data/chroma_db)
+                                                       │
+                                                       ▼
+                                  Local LLM, OpenAI-compatible (vLLM :8001 / Ollama :11434)
 ```
 
-## 📂 Project Structure
+Details, endpoint list and data flow: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-```
-local-legal-ai/
-├── backend/                  # FastAPI backend and RAG logic
-│   ├── app.py
-│   ├── auth.py
-│   ├── config.py
-│   ├── embedder.py
-│   └── rag_pipeline.py
-├── frontend/                 # Streamlit-based UI
-│   └── streamlit_app.py
-├── vector_store/             # ChromaDB setup
-│   └── chromadb_setup.py
-├── model/                    # LLaMA 3 launcher via vLLM
-│   └── vllm_launcher.sh
-├── workflows/n8n/           # Automation flows
-│   ├── docker-compose.yml
-│   └── workflows.json
-├── security/                # Access logging and controls
-│   └── audit_log.py
-├── docker-compose.yml       # Orchestration file
-├── requirements.txt         # Python dependencies
-├── .env                     # Secrets and config
-└── README.md                # This file
-```
+## ⚡ Quick Start
 
-## 🧪 Setup Instructions
-
-### 1. Clone and Prepare
+Requires Python 3.10–3.12.
 
 ```bash
-git clone https://github.com/your-org/local-legal-ai.git
+git clone https://github.com/jashankish/local-legal-ai.git
 cd local-legal-ai
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+./start_system.sh
 ```
 
-### 2. Configure Environment
+On first run the script creates `.venv`, installs dependencies, and writes `.env`
+with a randomly generated `SECRET_KEY`. Then open **http://localhost:8501** and
+sign in with `admin` / `admin123` — change this password before real use.
 
-Fill in `.env` with your secrets:
+Stop everything with `./stop_system.sh`.
 
-```env
-SECRET_KEY=your-secret-key
-MODEL_ENDPOINT=http://localhost:8001
-```
+### Connecting a local language model (optional)
 
-### 3. Launch LLaMA 3 with vLLM
+Without a model the assistant answers in **extractive mode**: the most relevant
+sentences from your documents, each cited. To get generated answers, run any
+OpenAI-compatible server and point `.env` at it:
 
 ```bash
+# Option A — Ollama (Mac/Linux, CPU or Apple Silicon)
+ollama pull llama3.1:8b
+# .env: MODEL_ENDPOINT=http://localhost:11434  MODEL_NAME=llama3.1:8b
+
+# Option B — vLLM on an NVIDIA GPU
 bash model/vllm_launcher.sh
+# .env: MODEL_ENDPOINT=http://localhost:8001   MODEL_NAME=legal-ai-model
 ```
 
-You'll need access to A100-class GPUs or rent from a provider like [CoreWeave](https://www.coreweave.com/).
-
-### 4. Start Services
-
-```bash
-docker-compose up --build
-```
-
-This runs:
-- FastAPI backend
-- ChromaDB vector store
-- n8n automation engine
-- Streamlit frontend
+Restart with `./start_system.sh`. `GET /health` reports the model as `healthy`
+once it is reachable, and each answer is labelled with the mode that produced it.
 
 ## 💡 Example Use Cases
 
-- 🔍 **Ask questions** about litigation filings and get citations
-- 📄 **Summarize** long legal contracts or court rulings
-- 📥 **Upload** new PDFs to a folder and trigger ingestion automatically via n8n
-- 🔐 **Keep** all client and case data 100% private
+- 🔍 "What notice period is required to terminate the MSA?" — answer with clause citations
+- 📄 Summarise obligations, fees and governing law across a set of agreements
+- 🗂 Keep a searchable, private library of client documents
 
-## 🛡 Security Best Practices
+## 🛡 Security Notes
 
-- **JWT authentication** (configurable in `auth.py`)
-- **IP whitelisting** and role-based access controls
-- **Full audit logs** of queries in `security/audit_log.py`
-- **No outbound API calls** to third-party LLMs
+- Services bind to `127.0.0.1` by default; the login page is not exposed to the network.
+- Secrets live only in `.env` (git-ignored). Runtime data (`data/`, `logs/`) is git-ignored.
+- Uploads are size-limited (`MAX_FILE_SIZE_MB`); only the uploader or an admin can delete a document.
 
-## 🧩 Stack Highlights
+## 🧪 Testing
 
-| Layer        | Tool/Library          |
-|-------------|-----------------------|
-| Model        | LLaMA 3 (70B) + vLLM  |
-| Vector Store | ChromaDB              |
-| RAG Engine   | LlamaIndex            |
-| Backend      | FastAPI (JWT-secured) |
-| Frontend     | Streamlit             |
-| Automation   | n8n                   |
-| Security     | Audit logging, JWT    |
+```bash
+.venv/bin/python -m pytest tests/
+```
 
-## 📌 Roadmap
+The suite drives the API end to end against a temporary data directory, with a
+mocked LLM for the generative path.
 
-- [ ] Add document classification before embedding
-- [ ] Multi-user roles & access management
-- [ ] UI for document browsing & retrieval
-- [ ] Dockerized GPU inference node
+## 🧩 Stack
+
+| Layer | Tool |
+|---|---|
+| Model | Any OpenAI-compatible local server (vLLM, Ollama) |
+| Vector store | ChromaDB (embedded) + all-MiniLM-L6-v2 |
+| Backend | FastAPI |
+| Frontend | Streamlit |
+| Document parsing | PyMuPDF, PyPDF2, python-docx |

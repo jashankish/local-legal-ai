@@ -28,9 +28,12 @@ class Settings(BaseSettings):
     chromadb_port: int = Field(default=8002, env="CHROMADB_PORT")
     chromadb_collection_name: str = Field(default="legal_documents", env="CHROMADB_COLLECTION")
     
-    # Model Settings
+    # Model Settings — any OpenAI-compatible server: vLLM (model/vllm_launcher.sh,
+    # port 8001), Ollama (http://localhost:11434), llama.cpp server, LM Studio.
+    llm_enabled: bool = Field(default=True, env="LLM_ENABLED")
     model_endpoint: str = Field(default="http://localhost:8001", env="MODEL_ENDPOINT")
-    model_name: str = Field(default="meta-llama/Llama-2-70b-chat-hf", env="MODEL_NAME")
+    model_name: str = Field(default="legal-ai-model", env="MODEL_NAME")
+    llm_timeout_seconds: float = Field(default=120.0, env="LLM_TIMEOUT_SECONDS")
     max_tokens: int = Field(default=2048, env="MAX_TOKENS")
     temperature: float = Field(default=0.1, env="TEMPERATURE")
     

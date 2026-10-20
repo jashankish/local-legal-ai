@@ -1,1 +1,2 @@
-# Embedding logic using local models (e.g., Instructor-XL)
+# Compatibility shim: the embedding implementation lives in rag/embedder.py.
+from rag.embedder import LegalDocumentEmbedder, get_embedder  # noqa: F401

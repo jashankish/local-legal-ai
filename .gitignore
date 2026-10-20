@@ -1,2 +1,27 @@
+# OS / editor
 .DS_Store
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets & local config
 .env
+token.txt
+*.token
+
+# Runtime data (generated locally, never committed)
+data/
+logs/
+analytics.db
+*.db
+*.sqlite3
+uploads/
+
+# Worktrees
+.claude/
