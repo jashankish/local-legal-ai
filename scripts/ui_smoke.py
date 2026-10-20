@@ -1,6 +1,6 @@
 """Render every Streamlit page as admin against a live backend and report exceptions.
 
-Usage: BACKEND_URL=http://127.0.0.1:8000 .venv/bin/python scripts/ui_smoke.py "$PWD/frontend/streamlit_app.py"
+Usage: BACKEND_URL=http://127.0.0.1:8000 ADMIN_PASSWORD=... .venv/bin/python scripts/ui_smoke.py "$PWD/frontend/streamlit_app.py"
 """
 import os
 import sys
@@ -20,7 +20,12 @@ for _ in range(60):
         pass
     time.sleep(1)
 
-login = requests.post(f"{BACKEND}/auth/login", json={"username": "admin", "password": "admin123"}).json()
+login = requests.post(f"{BACKEND}/auth/login", json={
+    "username": "admin", "password": os.environ.get("ADMIN_PASSWORD", "admin123")}).json()
+if "access_token" not in login:
+    sys.exit(f"Admin sign-in failed ({login}); set ADMIN_PASSWORD")
+if login["user"].get("must_change_password"):
+    sys.exit("Admin still has the default password; change it (or run scripts/seed_demo.py) first")
 
 at = AppTest.from_file(APP, default_timeout=60)
 at.session_state["authenticated"] = True

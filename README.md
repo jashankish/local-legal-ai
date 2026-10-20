@@ -11,7 +11,8 @@ machine. No third-party AI APIs are called.
 
 | Feature | Status |
 |---|---|
-| 🔐 Local login (JWT, bcrypt), admin and user roles | ✅ |
+| 🔐 Local login (JWT, bcrypt) with admin, lawyer and user roles | ✅ |
+| 👥 User administration, forced first-login password change, instant session revocation | ✅ |
 | 📄 PDF, DOCX and TXT ingestion with legal document-type detection | ✅ |
 | 📚 Semantic search over an embedded ChromaDB store | ✅ |
 | 🧾 Cited answers from a local LLM (vLLM or Ollama) | ✅ |
@@ -76,6 +77,20 @@ verify the chain in one click, and export to CSV.
 
 ![Audit log](docs/screenshots/10_audit_log.png)
 
+### User administration (admins)
+Add colleagues with a temporary password, change roles (admin, lawyer, user),
+disable leavers and reset forgotten passwords. Disabling an account, changing its
+role or resetting its password signs that person out everywhere. The last active
+administrator can't be removed.
+
+![User administration](docs/screenshots/12_user_admin.png)
+
+### First sign-in
+The default admin password and every temporary password must be replaced before
+the rest of the app (and the API) becomes available.
+
+![Mandatory password change at first sign-in](docs/screenshots/13_first_sign_in_password_change.png)
+
 ### REST API
 Everything in the UI is available over a documented, token-protected API at
 `http://localhost:8000/docs`.
@@ -105,7 +120,8 @@ cd local-legal-ai
 
 On first run the script creates `.venv`, installs dependencies, and writes `.env`
 with a randomly generated `SECRET_KEY`. Then open **http://localhost:8501** and
-sign in with `admin` / `admin123` — change this password before real use.
+sign in with `admin` / `admin123`. You'll be asked to choose your own password
+before anything else is available; after that, add colleagues on the 👥 Users page.
 
 Stop everything with `./stop_system.sh`.
 
@@ -138,9 +154,18 @@ once it is reachable, and each answer is labelled with the mode that produced it
 .venv/bin/python scripts/seed_demo.py --backend http://127.0.0.1:8000
 ```
 
-This uploads the samples, creates a demo `associate` account (role *lawyer*,
-password `associate-demo-1`) and asks a handful of typical questions so the
-analytics and audit pages have data. Use it on a fresh instance only.
+On a fresh install this replaces the default admin password with
+`LegalDemo-2025` (override with `--admin-password`), uploads the samples, creates
+a small team and asks a handful of typical questions so the analytics, audit and
+user pages have data. Use it on a fresh instance only.
+
+| Demo account | Password | Role / state |
+|---|---|---|
+| `admin` | `LegalDemo-2025` | Admin |
+| `associate` | `associate-demo-1` | Lawyer |
+| `paralegal` | `paralegal-demo-1` | User |
+| `new.hire` | `Welcome-temp-1` | Lawyer, must choose a password at first sign-in |
+| `former.counsel` | — | Disabled |
 
 To regenerate the README screenshots from a seeded instance:
 

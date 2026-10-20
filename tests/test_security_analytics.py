@@ -62,7 +62,8 @@ def test_audit_export_is_csv(client, admin_headers):
 
 def test_audit_and_analytics_require_admin(client, admin_headers):
     client.post("/auth/register", headers=admin_headers,
-                json={"username": "associate", "password": "s3cret-pass", "role": "user"})
+                json={"username": "associate", "password": "s3cret-pass", "role": "user",
+                      "must_change_password": False})
     token = client.post("/auth/login", json={"username": "associate", "password": "s3cret-pass"}).json()["access_token"]
     user_headers = {"Authorization": f"Bearer {token}"}
     for path in ("/audit/logs", "/audit/verify", "/analytics/usage", "/analytics/similarity"):

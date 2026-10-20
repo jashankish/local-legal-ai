@@ -26,8 +26,20 @@ def client(tmp_path_factory):
         yield test_client
 
 
+ADMIN_PASSWORD = "Admin-Test-Pass-1"
+
+
 @pytest.fixture(scope="session")
 def admin_headers(client):
+    """Sign in as the default admin and complete the forced first-login password change."""
     response = client.post("/auth/login", json={"username": "admin", "password": "admin123"})
     assert response.status_code == 200, response.text
-    return {"Authorization": f"Bearer {response.json()['access_token']}"}
+    body = response.json()
+    assert body["user"]["must_change_password"] is True
+    changed = client.post(
+        "/auth/change-password",
+        headers={"Authorization": f"Bearer {body['access_token']}"},
+        json={"current_password": "admin123", "new_password": ADMIN_PASSWORD},
+    )
+    assert changed.status_code == 200, changed.text
+    return {"Authorization": f"Bearer {changed.json()['access_token']}"}

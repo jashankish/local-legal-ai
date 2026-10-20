@@ -127,9 +127,22 @@
 - [✅] `samples/` fictional agreements in TXT/DOCX/PDF, `scripts/seed_demo.py`, `scripts/capture_screenshots.py`
 - [✅] README tour with 11 screenshots covering sign-in, dashboard, upload, Q&A, library, analytics, audit log and API
 
+## Phase 12: User Administration & Session Security ✅ **COMPLETE** (2026-10-20)
+- [✅] Admin endpoints: `GET /users`, `PATCH /users/{username}` (role, email, active), `POST /users/{username}/reset-password`
+- [✅] Self-service `POST /auth/change-password` returning a fresh token
+- [✅] Forced password change: the default `admin`/`admin123` account (including older installs) and admin-reset or newly created accounts must set their own password before any other API call succeeds (403 "Password change required")
+- [✅] Token versioning: JWTs carry a `tv` claim; changing a password, disabling an account or changing its role revokes all existing sessions (401)
+- [✅] Safety rails: the last active administrator cannot be disabled or demoted; admins cannot disable themselves
+- [✅] Password policy (≥ 8 characters, not the username, not the default) and username format validation
+- [✅] Last sign-in tracking; atomic, owner-only (0600) writes of `data/users.json`
+- [✅] UI: 👥 Users page (accounts table, add user, role/active/email edit, temporary password reset), 👤 My Account page, blocking first-sign-in password screen, clear messages for disabled accounts and expired sessions
+- [✅] Analytics, Audit Log and Users pages are only listed for admins
+- [✅] Audited: `user.update`, `user.password_reset`, `auth.password_change` (including wrong-current-password failures)
+- [✅] Demo seed builds a small team (lawyer, paralegal, pending new hire, disabled former employee) and rotates the admin password; screenshots of the Users page and first sign-in added to the README
+- [✅] Test suite: 23 tests (8 new for user administration and session revocation)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Admin user-management UI (create, deactivate, reset password) and forced default-password change
 - [ ] n8n workflows: watched-folder ingestion and Slack notifications via `N8N_WEBHOOK_URL`
 - [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service)
 - [ ] UI polish pass for demo: consistent styling, login page branding, empty states

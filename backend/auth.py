@@ -11,6 +11,7 @@ from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel
 import json
+import threading
 import logging
 
 # Configure logging
@@ -47,6 +48,8 @@ class User(BaseModel):
     role: str
     is_active: bool = True
     created_at: datetime
+    last_login: Optional[datetime] = None
+    must_change_password: bool = False
 
 
 class TokenData(BaseModel):
@@ -63,13 +66,27 @@ class Token(BaseModel):
 
 # Simple file-based user store (in production, use a proper database)
 USERS_FILE = "data/users.json"
+DEFAULT_ADMIN_PASSWORD = "admin123"
+MIN_PASSWORD_LENGTH = 8
+
+
+def validate_new_password(password: str, username: str) -> Optional[str]:
+    """Return a human-readable problem with a proposed password, or None if acceptable."""
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+    if password.lower() == username.lower():
+        return "Password cannot be the same as the username"
+    if password == DEFAULT_ADMIN_PASSWORD:
+        return "Choose a password other than the default"
+    return None
 
 
 class UserManager:
     """Simple user management system."""
-    
+
     def __init__(self):
         self.users_file = USERS_FILE
+        self._lock = threading.RLock()
         self._ensure_data_dir()
         self._ensure_admin_user()
     
@@ -88,9 +105,12 @@ class UserManager:
         return {}
     
     def _save_users(self, users: Dict):
-        """Save users to JSON file."""
-        with open(self.users_file, 'w') as f:
+        """Atomically write the user store (temp file + rename), readable only by the owner."""
+        tmp_path = f"{self.users_file}.tmp"
+        with open(tmp_path, 'w') as f:
             json.dump(users, f, indent=2, default=str)
+        os.chmod(tmp_path, 0o600)
+        os.replace(tmp_path, self.users_file)
     
     def _ensure_admin_user(self):
         """Create default admin user if no users exist."""
@@ -100,9 +120,11 @@ class UserManager:
                 "id": "admin",
                 "username": "admin",
                 "email": "admin@legalai.local",
-                "hashed_password": self.get_password_hash("admin123"),
+                "hashed_password": self.get_password_hash(DEFAULT_ADMIN_PASSWORD),
                 "role": "admin",
                 "is_active": True,
+                "must_change_password": True,
+                "token_version": 0,
                 "created_at": datetime.utcnow().isoformat()
             }
             users["admin"] = admin_user
@@ -124,7 +146,7 @@ class UserManager:
         users = self._load_users()
         return users.get(username)
     
-    def create_user(self, user_data: UserCreate) -> User:
+    def create_user(self, user_data: UserCreate, must_change_password: bool = False) -> User:
         """Create a new user."""
         users = self._load_users()
         
@@ -144,9 +166,11 @@ class UserManager:
             "hashed_password": hashed_password,
             "role": user_data.role,
             "is_active": True,
+            "must_change_password": must_change_password,
+            "token_version": 0,
             "created_at": datetime.utcnow().isoformat()
         }
-        
+
         users[user_data.username] = new_user
         self._save_users(users)
         
@@ -159,7 +183,53 @@ class UserManager:
             return None
         if not self.verify_password(password, user["hashed_password"]):
             return None
+        if password == DEFAULT_ADMIN_PASSWORD and not user.get("must_change_password"):
+            # Installs created before forced rotation existed: still make them change it.
+            user = self.update_user(username, must_change_password=True)
         return user
+
+    @staticmethod
+    def public_view(user: Dict) -> Dict:
+        """User record without secrets or internal counters."""
+        return {k: v for k, v in user.items() if k not in ("hashed_password", "token_version")}
+
+    def list_users(self) -> List[Dict]:
+        """All users, without password hashes, sorted by username."""
+        return [self.public_view(u) for _, u in sorted(self._load_users().items())]
+
+    def active_admin_count(self, users: Optional[Dict] = None) -> int:
+        users = users if users is not None else self._load_users()
+        return sum(1 for u in users.values() if u.get("role") == "admin" and u.get("is_active", True))
+
+    def update_user(self, username: str, **changes) -> Dict:
+        """Apply field changes to a user. Disabling or demoting revokes existing sessions."""
+        allowed = {"email", "role", "is_active", "must_change_password", "last_login"}
+        with self._lock:
+            users = self._load_users()
+            if username not in users:
+                raise KeyError(username)
+            user = users[username]
+            for key, value in changes.items():
+                if key in allowed and value is not None:
+                    user[key] = value
+            if changes.get("is_active") is False or ("role" in changes and changes["role"] is not None):
+                user["token_version"] = user.get("token_version", 0) + 1
+            self._save_users(users)
+            return user
+
+    def set_password(self, username: str, new_password: str, must_change: bool) -> Dict:
+        """Replace a password and revoke every token issued before the change."""
+        with self._lock:
+            users = self._load_users()
+            if username not in users:
+                raise KeyError(username)
+            user = users[username]
+            user["hashed_password"] = self.get_password_hash(new_password)
+            user["must_change_password"] = must_change
+            user["token_version"] = user.get("token_version", 0) + 1
+            user["password_changed_at"] = datetime.utcnow().isoformat()
+            self._save_users(users)
+            return user
 
 
 # Initialize user manager
@@ -179,6 +249,11 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
+def issue_token(user: Dict) -> str:
+    """Token bound to the user's current token_version, so it dies on password change or disable."""
+    return create_access_token(data={"sub": user["username"], "tv": user.get("token_version", 0)})
+
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """Get current user from JWT token."""
     credentials_exception = HTTPException(
@@ -193,20 +268,38 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
+        token_version = payload.get("tv", 0)
     except JWTError:
         raise credentials_exception
-    
+
     user = user_manager.get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
-    
-    return User(**{k: v for k, v in user.items() if k != "hashed_password"})
+    if user.get("token_version", 0) != token_version:
+        # Password changed, account disabled or role changed since this token was issued.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired, please sign in again",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return User(**user_manager.public_view(user))
 
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)):
-    """Get current active user."""
+async def get_current_user_pending_ok(current_user: User = Depends(get_current_user)):
+    """Active user who may still have a pending password change (for /auth/me, change-password)."""
     if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
+    return current_user
+
+
+async def get_current_active_user(current_user: User = Depends(get_current_user_pending_ok)):
+    """Active user with no outstanding password change; required by every other endpoint."""
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required before continuing",
+        )
     return current_user
 
 

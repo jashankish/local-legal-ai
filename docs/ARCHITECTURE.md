@@ -32,9 +32,13 @@ FastAPI application. Key endpoints:
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /auth/login` | Username/password → JWT (401 on bad credentials) |
-| `POST /auth/register` | Admin-only user creation |
-| `GET /auth/me` | Current user profile |
+| `POST /auth/login` | Username/password → JWT (401 bad credentials, 403 disabled); returns `must_change_password` |
+| `POST /auth/register` | Admin-only user creation (temporary password, `must_change_password` default true) |
+| `GET /auth/me` | Current user profile (allowed while a password change is pending) |
+| `POST /auth/change-password` | Change own password; returns a new token, revokes other sessions |
+| `GET /users` | All accounts with role, status, last sign-in (admin) |
+| `PATCH /users/{username}` | Change role, email or active status (admin) |
+| `POST /users/{username}/reset-password` | Set a temporary password that must be changed (admin) |
 | `POST /documents/upload` | Extract, chunk and index a file (size-limited by `MAX_FILE_SIZE_MB`) |
 | `GET /documents`, `/documents/list` | One record per uploaded document with chunk count and metadata |
 | `DELETE /documents/{id}` | Remove a document and all its chunks (uploader or admin) |
@@ -70,7 +74,7 @@ timestamp (UTC), username, action, resource, status (`success` / `failure` /
 recomputes the chain and returns the first altered row. Writes are serialised by
 a lock and never raise into the request path. Disable with `ENABLE_AUDIT_LOGGING=false`.
 
-Audited actions: `auth.login`, `user.create`, `document.upload`,
+Audited actions: `auth.login`, `auth.password_change`, `user.create`, `user.update`, `user.password_reset`, `document.upload`,
 `document.delete`, `query.ask` (question, query type, answer mode, documents
 consulted), `analytics.export`, `audit.verify`, `audit.export`, `access.ip_denied`.
 
@@ -136,13 +140,27 @@ answer was produced.
 ### Authentication — `backend/auth.py`
 bcrypt password hashes (used directly; passlib is incompatible with bcrypt ≥ 4.1),
 HS256 JWTs signed with `SECRET_KEY` from `.env`. Roles: `admin`, `lawyer`,
-`user`. Disabled accounts cannot sign in (403). New passwords must be at least
-8 characters. A default `admin`/`admin123` account is created on first start —
-change it before any real use.
+`user`. Users live in `data/users.json`, written atomically with mode 0600.
+
+Session lifecycle:
+- Each user record has a `token_version`; tokens carry it as the `tv` claim.
+  Changing a password, disabling the account or changing its role increments
+  it, so every previously issued token fails with 401 on its next request.
+- `must_change_password` is set for the first-run `admin`/`admin123` account
+  (and detected for older installs still using that password), for accounts
+  created by an admin (by default) and after an admin password reset. While it
+  is set, every endpoint except `/auth/me` and `/auth/change-password` returns
+  403 — enforcement is server-side, not just in the UI.
+- Dependencies: `get_current_user` (valid, current token) →
+  `get_current_user_pending_ok` (account active) → `get_current_active_user`
+  (no pending password change) → `require_admin`.
+- Passwords: ≥ 8 characters, not the username, not the default. Usernames:
+  3–32 of letters, digits, `.`, `_`, `-`. The last active admin cannot be
+  disabled or demoted, and admins cannot disable themselves.
 
 ### Frontend — `frontend/streamlit_app.py`
 Streamlit app: login, Dashboard, Upload, Chat, Enhanced Chat, Document
-Management, Files Management, and the admin-only Analytics and Audit Log pages.
+Management, Files Management, My Account, and the admin-only Analytics, Audit Log and Users pages (hidden from other roles). A pending password change shows a blocking change-password screen instead of the app.
 The Audit Log page offers filters (user, action, outcome, period), a one-click
 chain verification and CSV export. Talks to the backend via
 `BACKEND_URL` (default `http://localhost:8000`).

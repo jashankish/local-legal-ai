@@ -50,11 +50,26 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ui", default="http://127.0.0.1:8501")
     parser.add_argument("--api", default="http://127.0.0.1:8000")
+    parser.add_argument("--password", default=os.getenv("ADMIN_PASSWORD", "LegalDemo-2025"),
+                        help="admin password (seed_demo.py sets LegalDemo-2025 by default)")
     args = parser.parse_args()
     os.makedirs(OUT, exist_ok=True)
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
+
+        # First sign-in with a temporary password (seeded user "new.hire"); not completed,
+        # so the capture can be repeated.
+        first = browser.new_page(viewport={"width": WIDTH, "height": 900}, device_scale_factor=1)
+        first.goto(args.ui)
+        first.get_by_role("textbox", name="Username").wait_for(timeout=60_000)
+        first.get_by_role("textbox", name="Username").fill("new.hire")
+        first.get_by_role("textbox", name="Password").fill("Welcome-temp-1")
+        first.get_by_role("button", name="Sign in").click()
+        first.get_by_text("Choose a new password").wait_for(timeout=60_000)
+        shot(first, "13_first_sign_in_password_change", 900)
+        first.close()
+
         page = browser.new_page(viewport={"width": WIDTH, "height": 900}, device_scale_factor=1)
 
         # Sign-in
@@ -62,7 +77,7 @@ def main():
         page.get_by_label("Username").wait_for(timeout=60_000)
         settle(page)
         page.get_by_role("textbox", name="Username").fill("admin")
-        page.get_by_role("textbox", name="Password").fill("admin123")
+        page.get_by_role("textbox", name="Password").fill(args.password)
         shot(page, "01_login", 820)
         page.get_by_role("button", name="Sign in").click()
         page.get_by_text("Recently added").wait_for(timeout=60_000)
@@ -102,6 +117,11 @@ def main():
         page.get_by_role("button", name="Verify chain").click()
         page.get_by_text("Intact").wait_for(timeout=60_000)
         shot(page, "10_audit_log", 1250)
+
+        # User administration
+        navigate(page, "Users")
+        page.get_by_text("Add a user").wait_for(timeout=60_000)
+        shot(page, "12_user_admin", 1150)
 
         # Interactive API documentation
         page.goto(f"{args.api}/docs")

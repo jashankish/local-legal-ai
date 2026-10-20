@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 import logging
 import json
 import uuid
+import re
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form, Request
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 from backend.config import settings
 from backend.auth import (
-    user_manager, create_access_token, User, get_current_user, get_current_active_user,
-    require_admin, ip_whitelist,
+    user_manager, User, get_current_user, get_current_active_user, get_current_user_pending_ok,
+    require_admin, ip_whitelist, issue_token, validate_new_password,
 )
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
 from rag.legal_insights import extract_legal_entities, suggest_follow_ups
@@ -36,6 +37,8 @@ from vector_store.chromadb_setup import chroma_manager
 
 analytics_manager = AnalyticsManager()
 audit = get_audit_logger()
+
+USERNAME_PATTERN = re.compile(r"[A-Za-z0-9._-]{3,32}")
 
 # Try to import the enhanced document processor for Phase 4
 try:
@@ -144,6 +147,19 @@ class RegisterRequest(BaseModel):
     password: str
     email: Optional[str] = None
     role: str = "user"
+    must_change_password: bool = True  # new accounts pick their own password at first sign-in
+
+class UserUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class PasswordResetRequest(BaseModel):
+    new_password: str
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class HealthResponse(BaseModel):
     status: str
@@ -237,16 +253,20 @@ async def login(request: LoginRequest):
                 detail="This account has been disabled. Contact an administrator."
             )
 
-        access_token = create_access_token(data={"sub": user["username"]})
+        previous_login = user.get("last_login")
+        user = user_manager.update_user(user["username"], last_login=datetime.utcnow().isoformat())
+        access_token = issue_token(user)
         track(user["username"], "auth.login")
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "user": {
                 "username": user["username"],
-                "email": user["email"],
+                "email": user.get("email"),
                 "role": user["role"],
-                "is_active": user["is_active"]
+                "is_active": user["is_active"],
+                "must_change_password": user.get("must_change_password", False),
+                "previous_login": previous_login,
             }
         }
     except HTTPException:
@@ -271,9 +291,12 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
     if request.role not in VALID_ROLES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=f"Role must be one of: {', '.join(VALID_ROLES)}")
-    if len(request.password) < 8:
+    if not USERNAME_PATTERN.fullmatch(request.username):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Password must be at least 8 characters")
+                            detail="Username must be 3-32 characters: letters, digits, '.', '_' or '-'")
+    problem = validate_new_password(request.password, request.username)
+    if problem:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=problem)
     try:
         user_data = UserCreate(
             username=request.username,
@@ -281,8 +304,9 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
             email=request.email,
             role=request.role
         )
-        user = user_manager.create_user(user_data)
-        track(current_user.username, "user.create", resource=user.username, details={"role": user.role})
+        user = user_manager.create_user(user_data, must_change_password=request.must_change_password)
+        track(current_user.username, "user.create", resource=user.username,
+              details={"role": user.role, "must_change_password": request.must_change_password})
         return {
             "message": "User created successfully",
             "user": {
@@ -307,14 +331,85 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
         )
 
 @app.get("/auth/me")
-async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
-    """Get current user information."""
+async def get_current_user_info(current_user: User = Depends(get_current_user_pending_ok)):
+    """Get current user information (also available while a password change is pending)."""
     return {
         "username": current_user.username,
         "email": current_user.email,
         "role": current_user.role,
-        "is_active": current_user.is_active
+        "is_active": current_user.is_active,
+        "must_change_password": current_user.must_change_password,
+        "last_login": current_user.last_login,
     }
+
+
+@app.post("/auth/change-password")
+async def change_password(request: PasswordChangeRequest,
+                          current_user: User = Depends(get_current_user_pending_ok)):
+    """Change your own password. Returns a fresh token; all other sessions are signed out."""
+    stored = user_manager.get_user(current_user.username)
+    if not user_manager.verify_password(request.current_password, stored["hashed_password"]):
+        track(current_user.username, "auth.password_change", "failure", details={"reason": "wrong_current_password"})
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    if request.new_password == request.current_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="New password must be different from the current one")
+    problem = validate_new_password(request.new_password, current_user.username)
+    if problem:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=problem)
+    user = user_manager.set_password(current_user.username, request.new_password, must_change=False)
+    track(current_user.username, "auth.password_change")
+    return {"message": "Password updated", "access_token": issue_token(user), "token_type": "bearer"}
+
+
+# User administration (admin only)
+@app.get("/users")
+async def list_users(current_user: User = Depends(require_admin)):
+    """All accounts with role, status and last sign-in."""
+    users = user_manager.list_users()
+    return {"users": users, "total": len(users)}
+
+
+@app.patch("/users/{username}")
+async def update_user(username: str, request: UserUpdateRequest,
+                      current_user: User = Depends(require_admin)):
+    """Change a user's role, email or active status."""
+    from backend.auth import VALID_ROLES
+    target = user_manager.get_user(username)
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"User {username} not found")
+    if request.role is not None and request.role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {', '.join(VALID_ROLES)}")
+    if username == current_user.username and request.is_active is False:
+        raise HTTPException(status_code=400, detail="You cannot disable your own account")
+
+    removes_admin = target.get("role") == "admin" and target.get("is_active", True) and (
+        request.is_active is False or (request.role is not None and request.role != "admin"))
+    if removes_admin and user_manager.active_admin_count() <= 1:
+        raise HTTPException(status_code=400, detail="At least one active administrator is required")
+
+    changes = request.model_dump(exclude_none=True)
+    if "role" in changes and changes["role"] == target.get("role"):
+        changes.pop("role")  # unchanged role should not sign the user out
+    if not changes:
+        return {"user": user_manager.public_view(target), "message": "No changes"}
+    updated = user_manager.update_user(username, **changes)
+    track(current_user.username, "user.update", resource=username, details=changes)
+    return {"user": user_manager.public_view(updated), "message": "User updated"}
+
+
+@app.post("/users/{username}/reset-password")
+async def reset_user_password(username: str, request: PasswordResetRequest,
+                              current_user: User = Depends(require_admin)):
+    """Set a temporary password; the user must choose a new one at next sign-in."""
+    if user_manager.get_user(username) is None:
+        raise HTTPException(status_code=404, detail=f"User {username} not found")
+    problem = validate_new_password(request.new_password, username)
+    if problem:
+        raise HTTPException(status_code=400, detail=problem)
+    user_manager.set_password(username, request.new_password, must_change=True)
+    track(current_user.username, "user.password_reset", resource=username)
+    return {"message": f"Temporary password set for {username}; they must change it at next sign-in"}
 
 # Document management endpoints
 def _group_chunks_by_document() -> Dict[str, Dict[str, Any]]:
@@ -580,8 +675,8 @@ async def upload_document(
         processing_time = (datetime.now() - start_time).total_seconds()
         
         # Enhanced response with processing details
-        processor_info = "Enhanced Processor (Phase 4)" if USE_ENHANCED_PROCESSOR else "Basic Processor"
-        success_message = f"Document '{title or file.filename}' processed successfully using {processor_info}"
+        success_message = (f"Document '{title or file.filename}' indexed: "
+                           f"{chunks_processed} passages in {processing_time:.1f}s")
 
         analytics_manager.log_document_upload(DocumentMetrics(
             document_id=document_id,

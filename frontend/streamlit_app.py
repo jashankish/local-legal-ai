@@ -130,9 +130,11 @@ class APIClient:
             )
             if response.status_code == 200:
                 return response.json()
+            self.last_error = (response.json().get("detail") if response.headers.get(
+                "content-type", "").startswith("application/json") else None) or "Sign-in failed"
             return None
         except Exception as e:
-            st.error(f"Login error: {e}")
+            self.last_error = f"Cannot reach the API at {self.base_url} ({type(e).__name__})"
             return None
     
     def check_health(self) -> Optional[Dict]:
@@ -220,6 +222,8 @@ def show_login_page():
     col1, col2, col3 = st.columns([1, 1.4, 1])
 
     with col2:
+        if st.session_state.get("session_notice"):
+            st.warning(st.session_state.session_notice)
         with st.form("login_form"):
             st.markdown("#### 🔐 Sign in")
             username = st.text_input("Username", placeholder="e.g. admin")
@@ -235,11 +239,10 @@ def show_login_page():
                         st.session_state.authenticated = True
                         st.session_state.access_token = result["access_token"]
                         st.session_state.user_info = result["user"]
-                        st.success("✅ Login successful!")
-                        time.sleep(1)
+                        st.session_state.pop("session_notice", None)
                         st.rerun()
                     else:
-                        st.error("❌ Invalid credentials")
+                        st.error(f"❌ {getattr(api_client, 'last_error', 'Sign-in failed')}")
                 else:
                     st.error("Please enter both username and password")
         
@@ -1641,7 +1644,177 @@ def display_enhanced_query_result(result: Dict, include_suggestions: bool = True
                 st.markdown(f"**[{i}] {source_name}** · {category} · relevance {similarity:.2f} · _{marker}_")
                 st.caption(content if len(content) <= 600 else content[:600].rsplit(" ", 1)[0] + "…")
 
-# Update the main navigation to include analytics
+def sign_out(notice: Optional[str] = None):
+    """Clear the session and return to the sign-in page."""
+    for key in ["authenticated", "access_token", "user_info", "chat_history"]:
+        st.session_state.pop(key, None)
+    if notice:
+        st.session_state.session_notice = notice
+    st.rerun()
+
+
+def auth_headers() -> Dict[str, str]:
+    return {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+
+
+def api_error(response: requests.Response) -> str:
+    try:
+        return response.json().get("detail", response.text)
+    except ValueError:
+        return response.text or f"HTTP {response.status_code}"
+
+
+def password_change_form(form_key: str, intro: Optional[str] = None) -> bool:
+    """Render a change-password form; on success store the fresh token and return True."""
+    with st.form(form_key, clear_on_submit=True):
+        if intro:
+            st.markdown(intro)
+        current = st.text_input("Current password", type="password")
+        new = st.text_input("New password", type="password",
+                            help="At least 8 characters, not your username or the default password.")
+        confirm = st.text_input("Confirm new password", type="password")
+        submitted = st.form_submit_button("Update password", type="primary")
+    if not submitted:
+        return False
+    if new != confirm:
+        st.error("The new passwords don't match.")
+        return False
+    response = requests.post(f"{BACKEND_URL}/auth/change-password", headers=auth_headers(),
+                             json={"current_password": current, "new_password": new}, timeout=15)
+    if response.status_code != 200:
+        st.error(api_error(response))
+        return False
+    st.session_state.access_token = response.json()["access_token"]
+    st.session_state.user_info["must_change_password"] = False
+    return True
+
+
+def show_forced_password_change():
+    """Blocking screen shown until a default or temporary password is replaced."""
+    st.markdown('<div class="main-header"><h1>⚖️ Local Legal AI</h1>'
+                '<p>Private, on-premise document intelligence for legal teams</p></div>',
+                unsafe_allow_html=True)
+    _, col, _ = st.columns([1, 1.4, 1])
+    with col:
+        username = st.session_state.user_info.get("username", "")
+        st.markdown(f"#### 🔑 Choose a new password, {username}")
+        st.info("You're signed in with a default or temporary password. "
+                "Set your own password to continue — other sessions will be signed out.")
+        if password_change_form("forced_password_change"):
+            st.success("Password updated.")
+            time.sleep(0.8)
+            st.rerun()
+        if st.button("Sign out", key="forced_change_sign_out"):
+            sign_out()
+
+
+def show_my_account():
+    """Profile details and self-service password change for every user."""
+    st.title("👤 My Account")
+    info = st.session_state.get("user_info", {})
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Username", info.get("username", "—"))
+    col2.metric("Role", pretty_label(info.get("role")))
+    previous = info.get("previous_login") or info.get("last_login")
+    col3.metric("Previous sign-in", str(previous)[:16].replace("T", " ") if previous else "First sign-in")
+    if info.get("email"):
+        st.caption(f"Email: {info['email']}")
+
+    st.markdown("### 🔑 Change password")
+    st.caption("Changing your password signs out every other session for your account.")
+    if password_change_form("account_password_change"):
+        st.success("Password updated. Other sessions have been signed out.")
+
+
+def show_user_admin():
+    """Admin view: list, create, update, disable and reset users."""
+    st.title("👥 Users")
+    st.markdown("*Manage who can sign in, what they can do, and reset forgotten passwords.*")
+    if st.session_state.get("user_info", {}).get("role") != "admin":
+        st.error("Admin access required")
+        return
+
+    response = requests.get(f"{BACKEND_URL}/users", headers=auth_headers(), timeout=10)
+    if response.status_code != 200:
+        st.error(f"Failed to load users: {api_error(response)}")
+        return
+    users = response.json()["users"]
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Accounts", len(users))
+    col2.metric("Active", sum(1 for u in users if u.get("is_active", True)))
+    col3.metric("Administrators", sum(1 for u in users if u.get("role") == "admin"))
+    col4.metric("Pending password change", sum(1 for u in users if u.get("must_change_password")))
+
+    def fmt_time(value):
+        return str(value)[:16].replace("T", " ") if value else "Never"
+
+    st.dataframe(pd.DataFrame([{
+        "Username": u["username"],
+        "Email": u.get("email") or "",
+        "Role": pretty_label(u.get("role")),
+        "Status": ("Active" if u.get("is_active", True) else "Disabled")
+                  + (" · must change password" if u.get("must_change_password") else ""),
+        "Last sign-in": fmt_time(u.get("last_login")),
+        "Created": fmt_time(u.get("created_at"))[:10],
+    } for u in users]), width="stretch", hide_index=True)
+
+    create_col, manage_col = st.columns(2)
+    with create_col:
+        with st.container(border=True):
+            st.markdown("#### ➕ Add a user")
+            with st.form("create_user_form", clear_on_submit=True):
+                new_username = st.text_input("Username", placeholder="e.g. j.ellis")
+                new_email = st.text_input("Email (optional)")
+                new_role = st.selectbox("Role", ["lawyer", "user", "admin"], format_func=pretty_label,
+                                        help="Admins manage users and see analytics and the audit log.")
+                temp_password = st.text_input("Temporary password", type="password",
+                                              help="Share it securely; the user must replace it at first sign-in.")
+                must_change = st.checkbox("Require a new password at first sign-in", value=True)
+                if st.form_submit_button("Create user", type="primary"):
+                    created = requests.post(f"{BACKEND_URL}/auth/register", headers=auth_headers(), timeout=15, json={
+                        "username": new_username.strip(), "email": new_email.strip() or None,
+                        "role": new_role, "password": temp_password, "must_change_password": must_change,
+                    })
+                    if created.status_code == 200:
+                        st.success(f"Created {new_username}.")
+                        st.rerun()
+                    else:
+                        st.error(api_error(created))
+
+    with manage_col:
+        with st.container(border=True):
+            st.markdown("#### ✏️ Manage a user")
+            usernames = [u["username"] for u in users]
+            selected = st.selectbox("User", usernames, key="manage_user_select")
+            target = next(u for u in users if u["username"] == selected)
+            roles = ["admin", "lawyer", "user"]
+            with st.form("update_user_form"):
+                role = st.selectbox("Role", roles, index=roles.index(target.get("role", "user"))
+                                    if target.get("role") in roles else 2, format_func=pretty_label)
+                active = st.toggle("Account active", value=target.get("is_active", True))
+                email = st.text_input("Email", value=target.get("email") or "")
+                if st.form_submit_button("Save changes", type="primary"):
+                    saved = requests.patch(f"{BACKEND_URL}/users/{selected}", headers=auth_headers(), timeout=15,
+                                           json={"role": role, "is_active": active, "email": email.strip() or None})
+                    if saved.status_code == 200:
+                        st.success(saved.json().get("message", "Saved"))
+                        st.rerun()
+                    else:
+                        st.error(api_error(saved))
+            with st.form("reset_password_form", clear_on_submit=True):
+                temp = st.text_input(f"Temporary password for {selected}", type="password")
+                if st.form_submit_button("Reset password"):
+                    reset = requests.post(f"{BACKEND_URL}/users/{selected}/reset-password",
+                                          headers=auth_headers(), json={"new_password": temp}, timeout=15)
+                    if reset.status_code == 200:
+                        st.success(reset.json()["message"])
+                    else:
+                        st.error(api_error(reset))
+            st.caption("Disabling an account, changing its role or resetting its password "
+                       "signs that user out everywhere.")
+
+
 def main():
     """Main application function with Phase 4 enhancements."""
     st.sidebar.title("⚖️ Local Legal AI")
@@ -1659,19 +1832,27 @@ def main():
     if st.session_state.authenticated and st.session_state.access_token:
         try:
             headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
-            response = requests.get(f"{BACKEND_URL}/auth/me", headers=headers)
-            if response.status_code != 200:
-                # Token expired or invalid, reset session
+            response = requests.get(f"{BACKEND_URL}/auth/me", headers=headers, timeout=10)
+            if response.status_code == 200:
+                # Keep role / pending-password state current (an admin may have changed them).
+                st.session_state.user_info = {**(st.session_state.user_info or {}), **response.json()}
+            else:
+                # Token expired, revoked (password change, account disabled) or invalid
                 st.session_state.authenticated = False
                 st.session_state.access_token = None
                 st.session_state.user_info = {}
-        except:
+                st.session_state.session_notice = response.json().get("detail", "Please sign in again.")
+        except requests.RequestException:
             # Network error, assume token is still valid
             pass
-    
+
     # Authentication check
     if not st.session_state.authenticated:
         show_login_page()
+        return
+
+    if st.session_state.user_info.get("must_change_password"):
+        show_forced_password_change()
         return
     
     # Handle navigation from button clicks BEFORE creating the widget
@@ -1684,12 +1865,16 @@ def main():
         "🏠 Dashboard": show_dashboard,
         "📄 Upload Documents": show_document_upload,
         "💬 Enhanced Chat": show_enhanced_chat,
-        "📊 Analytics Dashboard": show_analytics_dashboard,
         "📁 Document Management": show_document_management,
-        "📁 Files Management": show_files_management
+        "📁 Files Management": show_files_management,
     }
     if st.session_state.get("user_info", {}).get("role") == "admin":
+        pages["📊 Analytics Dashboard"] = show_analytics_dashboard
         pages["🛡️ Audit Log"] = show_audit_log
+        pages["👥 Users"] = show_user_admin
+    pages["👤 My Account"] = show_my_account
+    if st.session_state.get("main_navigation") not in pages:
+        st.session_state.main_navigation = "🏠 Dashboard"
     
     # Navigation
     # Initialize navigation if not set
@@ -1712,10 +1897,7 @@ def main():
     st.sidebar.markdown(f"**Role:** {user_role.title()}")
     
     if st.sidebar.button("🚪 Logout", key="logout_main"):
-        for key in ["authenticated", "access_token", "user_info"]:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
+        sign_out()
     
     # Show selected page
     pages[selected_page]()
