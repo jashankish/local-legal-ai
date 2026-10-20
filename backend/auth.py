@@ -2,6 +2,7 @@
 
 import os
 import hashlib
+import ipaddress
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 from fastapi import Depends, HTTPException, status, Request
@@ -24,9 +25,12 @@ security = HTTPBearer()
 
 
 # Pydantic models
+VALID_ROLES = ("admin", "lawyer", "user")
+
+
 class UserCreate(BaseModel):
     username: str
-    email: str
+    email: Optional[str] = None
     password: str
     role: str = "user"  # user, admin, lawyer
 
@@ -39,7 +43,7 @@ class UserLogin(BaseModel):
 class User(BaseModel):
     id: str
     username: str
-    email: str
+    email: Optional[str] = None
     role: str
     is_active: bool = True
     created_at: datetime
@@ -232,13 +236,27 @@ class IPWhitelistMiddleware:
     """Middleware to check IP whitelist."""
     
     def __init__(self):
-        self.allowed_ips = settings.get_allowed_ips_list()
-    
+        self.configure(settings.get_allowed_ips_list())
+
+    def configure(self, entries: List[str]):
+        """Accept single addresses ("10.0.0.5") and networks ("10.0.0.0/24")."""
+        self.allowed_ips = entries
+        self.networks = []
+        for entry in entries:
+            try:
+                self.networks.append(ipaddress.ip_network(entry, strict=False))
+            except ValueError:
+                logger.warning(f"Ignoring invalid ALLOWED_IPS entry: {entry}")
+
     def is_allowed(self, client_ip: str) -> bool:
         """Check if IP is allowed."""
         if not self.allowed_ips:  # No restriction if no IPs configured
             return True
-        return client_ip in self.allowed_ips
+        try:
+            address = ipaddress.ip_address(client_ip)
+        except ValueError:
+            return False
+        return any(address in network for network in self.networks)
 
 
 ip_whitelist = IPWhitelistMiddleware()

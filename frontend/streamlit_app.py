@@ -601,7 +601,7 @@ def show_files_management():
         search_query = st.text_input("🔍 Search files...", placeholder="Search by filename, content, or category")
     
     with col3:
-        if st.button("🔄 Refresh", use_container_width=True):
+        if st.button("🔄 Refresh", width="stretch"):
             st.rerun()
     
     # Upload section
@@ -935,7 +935,7 @@ def show_usage_analytics():
                     yaxis_title="Number of Queries",
                     hovermode='x unified'
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             
             # Document analytics
             st.subheader("📄 Document Analytics")
@@ -966,7 +966,7 @@ def show_usage_analytics():
                     names='type',
                     title="Distribution of Query Types"
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
         
         else:
             st.error(f"Failed to fetch usage analytics: {response.status_code}")
@@ -1006,7 +1006,7 @@ def show_performance_analytics():
                     xaxis_title="Performance Category",
                     yaxis_title="Number of Queries"
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.info("Performance distribution data not available")
             
@@ -1029,7 +1029,7 @@ def show_performance_analytics():
                         'very_poor': '#DC143C'
                     }
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.info("Quality distribution data not available")
             
@@ -1083,7 +1083,7 @@ def show_similarity_analytics():
             if doc_response.status_code == 200:
                 documents = doc_response.json()["documents"]
                 if documents:
-                    doc_options = {f"{doc['source']} ({doc['document_id'][:8]}...)": doc['document_id'] 
+                    doc_options = {f"{doc.get('filename') or doc.get('source')} ({doc['id'][:8]})": doc['id']
                                  for doc in documents}
                     
                     selected_doc = st.selectbox(
@@ -1108,15 +1108,15 @@ def show_similarity_analytics():
                             if sim_data["similar_documents"]:
                                 for similar_doc in sim_data["similar_documents"]:
                                     similarity = similar_doc["similarity"]
-                                    doc_id = similar_doc["document_id"]
-                                    
+                                    doc_name = similar_doc.get("filename") or similar_doc["document_id"]
+
                                     # Color code by similarity
                                     if similarity > 0.8:
-                                        st.success(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                                        st.success(f"🔗 **{doc_name}** - Similarity: {similarity:.3f}")
                                     elif similarity > 0.6:
-                                        st.info(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                                        st.info(f"🔗 **{doc_name}** - Similarity: {similarity:.3f}")
                                     else:
-                                        st.warning(f"🔗 **{doc_id[:12]}...** - Similarity: {similarity:.3f}")
+                                        st.warning(f"🔗 **{doc_name}** - Similarity: {similarity:.3f}")
                             else:
                                 st.info("No similar documents found")
                 else:
@@ -1168,12 +1168,13 @@ def show_similarity_analytics():
                         similarity = row['similarity']
                         
                         # Color code by similarity level
+                        pair_label = f"🔗 **{row['doc1']}** ↔ **{row['doc2']}** - Similarity: {similarity:.3f}"
                         if similarity > 0.9:
-                            st.success(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+                            st.success(pair_label)
                         elif similarity > 0.8:
-                            st.info(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+                            st.info(pair_label)
                         else:
-                            st.warning(f"🔗 **{row['doc1'][:12]}...** ↔ **{row['doc2'][:12]}...** - Similarity: {similarity:.3f}")
+                            st.warning(pair_label)
         
     except Exception as e:
         st.error(f"Error loading similarity analytics: {e}")
@@ -1227,7 +1228,7 @@ def show_user_activity_analytics():
                     xaxis_title="Activity Type",
                     yaxis_title="Number of Activities"
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.info("Activity types data not available")
             
@@ -1248,7 +1249,7 @@ def show_user_activity_analytics():
                     xaxis_title="Hour of Day",
                     yaxis_title="Activity Count"
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
             else:
                 st.info("Hourly patterns data not available")
             
@@ -1342,6 +1343,92 @@ def show_analytics_reports():
             
             except Exception as e:
                 st.error(f"Error generating report: {e}")
+
+def show_audit_log():
+    """Admin view of the tamper-evident audit trail."""
+    st.title("🛡️ Audit Log")
+    st.markdown("*Every sign-in, upload, question and deletion, hash-chained so edits are detectable.*")
+
+    if st.session_state.get("user_info", {}).get("role") != "admin":
+        st.error("Admin access required")
+        return
+    headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
+
+    try:
+        summary = requests.get(f"{BACKEND_URL}/audit/summary?days=30", headers=headers, timeout=10).json()
+        by_status = summary.get("by_status", {})
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Events (30 days)", sum(by_status.values()))
+        col2.metric("Sign-ins", summary.get("by_action", {}).get("auth.login", 0))
+        col3.metric("Queries", summary.get("by_action", {}).get("query.ask", 0))
+        col4.metric("Failed / denied", by_status.get("failure", 0) + by_status.get("denied", 0))
+    except Exception as e:
+        st.warning(f"Could not load audit summary: {e}")
+
+    with st.container(border=True):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("**Integrity check** — recomputes the SHA-256 chain over every stored event.")
+        with col2:
+            if st.button("🔍 Verify chain", key="verify_audit_chain", width="stretch"):
+                result = requests.get(f"{BACKEND_URL}/audit/verify", headers=headers, timeout=30).json()
+                if result.get("valid"):
+                    st.success(f"Intact — {result['checked']} events verified")
+                else:
+                    st.error(f"Tampering detected at event #{result.get('first_invalid_id')}")
+
+    st.markdown("### Filter")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        username = st.text_input("User", key="audit_user").strip() or None
+    with col2:
+        action = st.selectbox("Action", ["All", "auth.login", "document.upload", "document.delete",
+                                         "query.ask", "user.create", "analytics.export", "audit.",
+                                         "access.ip_denied"], key="audit_action")
+    with col3:
+        outcome = st.selectbox("Outcome", ["All", "success", "failure", "denied"], key="audit_status")
+    with col4:
+        days = st.selectbox("Period", [1, 7, 30, 90, 365], index=2, key="audit_days",
+                            format_func=lambda d: f"Last {d} day{'s' if d > 1 else ''}")
+
+    params = {"limit": 500, "days": days}
+    if username:
+        params["username"] = username
+    if action != "All":
+        params["action"] = action
+    if outcome != "All":
+        params["status_filter"] = outcome
+
+    try:
+        response = requests.get(f"{BACKEND_URL}/audit/logs", headers=headers, params=params, timeout=15)
+        response.raise_for_status()
+        result = response.json()
+    except Exception as e:
+        st.error(f"Failed to load audit events: {e}")
+        return
+
+    events = result.get("events", [])
+    st.caption(f"Showing {len(events)} of {result.get('total', 0)} matching events")
+    if events:
+        rows = [{
+            "Time (UTC)": e["timestamp"][:19].replace("T", " "),
+            "User": e.get("username") or "—",
+            "Action": e["action"],
+            "Outcome": e["status"],
+            "Resource": e.get("resource") or "",
+            "IP": e.get("ip_address") or "",
+            "Details": json.dumps(e["details"]) if e.get("details") else "",
+        } for e in events]
+        st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+        export = requests.get(f"{BACKEND_URL}/audit/export", headers=headers,
+                              params={k: v for k, v in params.items() if k != "limit"}, timeout=30)
+        if export.status_code == 200:
+            st.download_button("💾 Export CSV", export.content,
+                               f"audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", "text/csv")
+    else:
+        st.info("No audit events match these filters.")
+
 
 # Enhanced chat interface with Phase 4 features
 def show_enhanced_chat():
@@ -1570,6 +1657,8 @@ def main():
         "📁 Document Management": show_document_management,
         "📁 Files Management": show_files_management
     }
+    if st.session_state.get("user_info", {}).get("role") == "admin":
+        pages["🛡️ Audit Log"] = show_audit_log
     
     # Navigation
     # Initialize navigation if not set

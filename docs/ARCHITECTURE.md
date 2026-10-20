@@ -42,7 +42,45 @@ FastAPI application. Key endpoints:
 | `POST /query` | RAG answer with sources, citations, confidence and generation mode |
 | `POST /documents/query` | Same answer in the shape the Enhanced Chat page expects |
 | `GET /health` | API, ChromaDB and model-server status |
-| `GET /analytics/*` | Admin analytics (currently sample data — see Remaining Work) |
+| `GET /analytics/usage` | Query volume, query-type mix, document intake (admin) |
+| `GET /analytics/performance` | Latency / retrieval-quality distributions, tuning suggestions (admin) |
+| `GET /analytics/similarity` | Live document-to-document cosine similarity (admin) |
+| `GET /analytics/activity` | Active users, activity types, hourly pattern (admin) |
+| `GET /analytics/report` | Full JSON export incl. audit summary and integrity result (admin) |
+| `GET /audit/logs` | Filterable audit events, newest first (admin) |
+| `GET /audit/summary` | Event counts by action and outcome (admin) |
+| `GET /audit/verify` | Recompute the audit hash chain (admin) |
+| `GET /audit/export` | Audit events as CSV (admin) |
+
+### Request pipeline
+Every request passes `access_control_middleware`, which (1) rejects clients not in
+`ALLOWED_IPS` (single IPs or CIDR ranges; empty = allow all) with 403 and an
+`access.ip_denied` audit event, and (2) stores the client IP and user agent in a
+context variable that the audit logger reads. Admin-only routes use the
+`require_admin` dependency. CORS is limited to `CORS_ORIGINS` (the local UI).
+
+Note that the Streamlit server calls the API from `127.0.0.1`; if `ALLOWED_IPS`
+is set it must include `127.0.0.1` for the UI to keep working.
+
+### Audit trail — `security/audit_log.py`
+Append-only SQLite table `audit_events` in `data/audit.db`. Each row stores
+timestamp (UTC), username, action, resource, status (`success` / `failure` /
+`denied`), IP, user agent, JSON details, `prev_hash` and `hash`, where
+`hash = SHA-256(prev_hash ‖ canonical JSON of the row)`. `verify_chain()`
+recomputes the chain and returns the first altered row. Writes are serialised by
+a lock and never raise into the request path. Disable with `ENABLE_AUDIT_LOGGING=false`.
+
+Audited actions: `auth.login`, `user.create`, `document.upload`,
+`document.delete`, `query.ask` (question, query type, answer mode, documents
+consulted), `analytics.export`, `audit.verify`, `audit.export`, `access.ip_denied`.
+
+### Analytics — `backend/analytics.py`
+SQLite at `data/analytics.db`. The API logs every query (latency, per-document
+best similarity, keyword-classified query type such as *Termination* or
+*Payment & Fees*), every upload (size, chunks, detected document type,
+uploader) and every successful audited action as user activity. Document
+similarity is computed on request from the mean chunk embedding of each
+document in ChromaDB, so it is always current.
 
 ### Document identity
 Each upload is assigned a 16-hex-character `document_id`. Every chunk stores it in
@@ -81,12 +119,16 @@ answer was produced.
 
 ### Authentication — `backend/auth.py`
 bcrypt password hashes (used directly; passlib is incompatible with bcrypt ≥ 4.1),
-HS256 JWTs signed with `SECRET_KEY` from `.env`. A default `admin`/`admin123`
-account is created on first start — change it before any real use.
+HS256 JWTs signed with `SECRET_KEY` from `.env`. Roles: `admin`, `lawyer`,
+`user`. Disabled accounts cannot sign in (403). New passwords must be at least
+8 characters. A default `admin`/`admin123` account is created on first start —
+change it before any real use.
 
 ### Frontend — `frontend/streamlit_app.py`
 Streamlit app: login, Dashboard, Upload, Chat, Enhanced Chat, Document
-Management, Files Management and admin Analytics pages. Talks to the backend via
+Management, Files Management, and the admin-only Analytics and Audit Log pages.
+The Audit Log page offers filters (user, action, outcome, period), a one-click
+chain verification and CSV export. Talks to the backend via
 `BACKEND_URL` (default `http://localhost:8000`).
 
 ## Configuration
@@ -96,9 +138,12 @@ randomly generated `SECRET_KEY`. The file must stay valid shell syntax because
 the script sources it.
 
 ## Runtime data (git-ignored)
-`data/users.json`, `data/chroma_db/`, `logs/`, `analytics.db`, `.env`, `.venv/`.
+`data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`,
+`logs/`, `.env`, `.venv/`.
 
 ## Testing
 `pytest tests/` runs the API end to end against a throwaway data directory,
-including a mocked LLM to cover generative mode. The legacy `test_phase*.py`
-scripts require a running server.
+including a mocked LLM to cover generative mode, audit tamper detection, IP
+whitelisting and analytics fed by real requests. `scripts/ui_smoke.py` renders
+every Streamlit page as admin against a running backend and fails on any
+exception. The legacy `test_phase*.py` scripts require a running server.

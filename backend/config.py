@@ -53,7 +53,8 @@ class Settings(BaseSettings):
     
     # Security & Audit
     enable_audit_logging: bool = Field(default=True, env="ENABLE_AUDIT_LOGGING")
-    allowed_ips: Optional[str] = Field(default=None, env="ALLOWED_IPS")  # Comma-separated IPs
+    allowed_ips: Optional[str] = Field(default=None, env="ALLOWED_IPS")  # Comma-separated IPs or CIDRs
+    cors_origins: str = Field(default="http://localhost:8501,http://127.0.0.1:8501", env="CORS_ORIGINS")
     
     # n8n Integration
     n8n_webhook_url: Optional[str] = Field(default=None, env="N8N_WEBHOOK_URL")
@@ -73,8 +74,12 @@ class Settings(BaseSettings):
     def get_allowed_ips_list(self) -> list:
         """Parse comma-separated allowed IPs into a list."""
         if self.allowed_ips:
-            return [ip.strip() for ip in self.allowed_ips.split(",")]
+            return [ip.strip() for ip in self.allowed_ips.split(",") if ip.strip()]
         return []
+
+    def get_cors_origins_list(self) -> list:
+        """Parse comma-separated CORS origins."""
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
 
 # Global settings instance

@@ -7,10 +7,11 @@ import json
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse, Response
+import numpy as np
 from pydantic import BaseModel
 import uvicorn
 
@@ -24,8 +25,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from backend.config import settings
-from backend.auth import user_manager, create_access_token, User, get_current_user, get_current_active_user
+from backend.auth import (
+    user_manager, create_access_token, User, get_current_user, get_current_active_user,
+    require_admin, ip_whitelist,
+)
+from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
+from security.audit_log import get_audit_logger, request_context
 from vector_store.chromadb_setup import chroma_manager
+
+analytics_manager = AnalyticsManager()
+audit = get_audit_logger()
 
 # Try to import the enhanced document processor for Phase 4
 try:
@@ -89,14 +98,41 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS: the Streamlit UI calls the API server-side, so only the local UI
+# origins need browser access.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=settings.get_cors_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def access_control_middleware(request: Request, call_next):
+    """Enforce ALLOWED_IPS and expose client details to the audit logger."""
+    client_ip = request.client.host if request.client else "unknown"
+    token = request_context.set({
+        "ip": client_ip,
+        "user_agent": request.headers.get("user-agent", ""),
+    })
+    try:
+        if not ip_whitelist.is_allowed(client_ip):
+            audit.record("access.ip_denied", status="denied", resource=request.url.path)
+            return JSONResponse(status_code=status.HTTP_403_FORBIDDEN,
+                                content={"detail": "IP address not allowed"})
+        return await call_next(request)
+    finally:
+        request_context.reset(token)
+
+
+def track(user: Optional[str], action: str, status_: str = "success",
+          resource: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    """Record an event in the audit trail and the analytics activity feed."""
+    audit.record(action, username=user, status=status_, resource=resource, details=details)
+    if user and status_ == "success":
+        analytics_manager.log_user_activity(user, action, details)
 
 class LoginRequest(BaseModel):
     username: str
@@ -185,13 +221,21 @@ async def login(request: LoginRequest):
     try:
         user = user_manager.authenticate_user(request.username, request.password)
         if not user:
+            track(request.username, "auth.login", "failure", details={"reason": "bad_credentials"})
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+        if not user.get("is_active", True):
+            track(request.username, "auth.login", "denied", details={"reason": "account_disabled"})
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This account has been disabled. Contact an administrator."
+            )
+
         access_token = create_access_token(data={"sub": user["username"]})
+        track(user["username"], "auth.login")
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -220,8 +264,14 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
             detail="Not enough permissions"
         )
     
+    from backend.auth import UserCreate, VALID_ROLES
+    if request.role not in VALID_ROLES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Role must be one of: {', '.join(VALID_ROLES)}")
+    if len(request.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Password must be at least 8 characters")
     try:
-        from backend.auth import UserCreate
         user_data = UserCreate(
             username=request.username,
             password=request.password,
@@ -229,6 +279,7 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
             role=request.role
         )
         user = user_manager.create_user(user_data)
+        track(current_user.username, "user.create", resource=user.username, details={"role": user.role})
         return {
             "message": "User created successfully",
             "user": {
@@ -238,6 +289,8 @@ async def register(request: RegisterRequest, current_user: User = Depends(get_cu
                 "is_active": user.is_active
             }
         }
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -337,6 +390,8 @@ async def delete_document(document_id: str, current_user: User = Depends(get_cur
     try:
         chroma_manager.collection.delete(ids=document["chunk_ids"])
         logger.info(f"Deleted document {document_id} ({len(document['chunk_ids'])} chunks)")
+        track(current_user.username, "document.delete", resource=document_id,
+              details={"filename": document["filename"], "chunks": len(document["chunk_ids"])})
         return {
             "success": True,
             "message": f"Document '{document['filename']}' deleted",
@@ -520,7 +575,23 @@ async def upload_document(
         # Enhanced response with processing details
         processor_info = "Enhanced Processor (Phase 4)" if USE_ENHANCED_PROCESSOR else "Basic Processor"
         success_message = f"Document '{title or file.filename}' processed successfully using {processor_info}"
-        
+
+        analytics_manager.log_document_upload(DocumentMetrics(
+            document_id=document_id,
+            filename=file.filename,
+            uploader_id=current_user.username,
+            upload_timestamp=datetime.now(),
+            file_size=len(content),
+            chunks_created=chunks_processed,
+            processing_time=processing_time,
+            document_type=str(enhanced_metadata.get("legal_document_type")
+                              or enhanced_metadata.get("document_type", "general")),
+        ))
+        track(current_user.username, "document.upload", resource=document_id, details={
+            "filename": file.filename, "category": category,
+            "size_bytes": len(content), "chunks": chunks_processed,
+        })
+
         return DocumentUploadResponse(
             success=True,
             message=success_message,
@@ -534,7 +605,9 @@ async def upload_document(
     except Exception as e:
         logger.error(f"Document upload error: {e}")
         processing_time = (datetime.now() - start_time).total_seconds()
-        
+        track(current_user.username, "document.upload", "failure",
+              details={"filename": file.filename, "error": str(e)[:200]})
+
         return DocumentUploadResponse(
             success=False,
             message=f"Failed to process document: {str(e)}",
@@ -569,6 +642,26 @@ async def query_documents(
             }
             for src in result.sources
         ]
+
+        query_type = classify_query(request.question)
+        analytics_manager.log_query(QueryMetrics(
+            query_id=uuid.uuid4().hex,
+            query_text=request.question,
+            timestamp=datetime.now(),
+            processing_time=result.processing_time or 0.0,
+            similarity_scores=[s["similarity_score"] for s in sources],
+            documents_retrieved=len({s["document_id"] for s in sources}),
+            user_id=current_user.username,
+            query_type=query_type,
+            document_ids=[s["document_id"] for s in sources],
+        ))
+        track(current_user.username, "query.ask", details={
+            "question": request.question[:300],
+            "query_type": query_type,
+            "mode": result.mode,
+            "documents": sorted({s["document_id"] for s in sources}),
+        })
+
         return RAGQueryResponse(
             answer=result.answer,
             sources=sources,
@@ -640,240 +733,156 @@ async def query_documents_alt(
 # Analytics endpoints
 @app.get("/analytics/usage")
 async def get_usage_analytics(
-    days: int = 7,
-    current_user: User = Depends(get_current_active_user)
+    days: int = 30,
+    current_user: User = Depends(require_admin)
 ):
-    """Get usage analytics for the specified number of days."""
-    try:
-        # Check admin access
-        if current_user.role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required for analytics"
-            )
-        
-        # Mock analytics data - in a real system, this would come from a database
-        return {
-            "data": {
-                "query_analytics": {
-                    "total_queries": 42,
-                    "unique_users": 5,
-                    "avg_similarity_score": 0.75,
-                    "avg_processing_time": 1.2
-                },
-                "document_analytics": {
-                    "total_documents": 3,
-                    "total_chunks": 15,
-                    "avg_chunks_per_doc": 5.0
-                },
-                "daily_trends": [
-                    {"date": "2025-05-25", "queries": 8, "documents": 1},
-                    {"date": "2025-05-26", "queries": 12, "documents": 0},
-                    {"date": "2025-05-27", "queries": 15, "documents": 2},
-                    {"date": "2025-05-28", "queries": 7, "documents": 0}
-                ],
-                "top_query_types": [
-                    {"type": "Document Summary", "count": 18},
-                    {"type": "Legal Analysis", "count": 15},
-                    {"type": "Compliance Check", "count": 9}
-                ]
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Usage analytics error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch usage analytics: {str(e)}"
-        )
+    """Query volume, document intake and query-type mix for the last `days` days."""
+    data = analytics_manager.get_usage_analytics(days)
+    if not data:
+        raise HTTPException(status_code=500, detail="Failed to compute usage analytics")
+    grouped = _group_chunks_by_document()
+    data["document_analytics"]["library_documents"] = len(grouped)
+    data["document_analytics"]["library_chunks"] = sum(d["chunk_count"] for d in grouped.values())
+    return {"data": data}
+
 
 @app.get("/analytics/performance")
-async def get_performance_analytics(
-    current_user: User = Depends(get_current_active_user)
-):
-    """Get performance analytics."""
-    try:
-        # Check admin access
-        if current_user.role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required for analytics"
-            )
-        
-        # Mock performance data
-        return {
-            "data": {
-                "response_times": {
-                    "avg_query_time": 1.2,
-                    "avg_upload_time": 3.1,
-                    "avg_processing_time": 2.4
-                },
-                "system_metrics": {
-                    "uptime": "7 days, 12 hours",
-                    "total_requests": 234,
-                    "error_rate": 0.02
-                },
-                "performance_trends": [
-                    {"hour": "00:00", "avg_response_time": 1.1, "requests": 5},
-                    {"hour": "06:00", "avg_response_time": 1.3, "requests": 12},
-                    {"hour": "12:00", "avg_response_time": 1.8, "requests": 25},
-                    {"hour": "18:00", "avg_response_time": 1.4, "requests": 18}
-                ]
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Performance analytics error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch performance analytics: {str(e)}"
-        )
+async def get_performance_analytics(current_user: User = Depends(require_admin)):
+    """Latency and retrieval-quality distributions with tuning suggestions."""
+    return {"data": analytics_manager.get_query_performance_insights()}
+
+
+def _document_centroids() -> Dict[str, Dict[str, Any]]:
+    """Mean, L2-normalised chunk embedding per document."""
+    results = chroma_manager.collection.get(include=["embeddings", "metadatas"])
+    embeddings = results.get("embeddings")
+    if embeddings is None or len(embeddings) == 0:
+        return {}
+    vectors: Dict[str, List[Any]] = {}
+    names: Dict[str, str] = {}
+    for chunk_id, embedding, metadata in zip(results["ids"], embeddings, results["metadatas"]):
+        metadata = metadata or {}
+        doc_id = metadata.get("document_id") or metadata.get("source") or chunk_id
+        vectors.setdefault(doc_id, []).append(np.asarray(embedding, dtype=float))
+        names[doc_id] = metadata.get("filename") or metadata.get("source") or doc_id
+    centroids = {}
+    for doc_id, chunk_vectors in vectors.items():
+        mean = np.mean(chunk_vectors, axis=0)
+        norm = np.linalg.norm(mean)
+        if norm > 0:
+            centroids[doc_id] = {"vector": mean / norm, "name": names[doc_id]}
+    return centroids
+
 
 @app.get("/analytics/similarity")
 async def get_similarity_analytics(
     document_id: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_admin)
 ):
-    """Get document similarity analytics."""
-    try:
-        # Check admin access
-        if current_user.role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required for analytics"
-            )
-        
-        # Mock similarity data
-        return {
-            "data": {
-                "similarity_matrix": [
-                    {"doc1": "contract_1.txt", "doc2": "contract_2.txt", "similarity": 0.85},
-                    {"doc1": "contract_1.txt", "doc2": "policy_1.txt", "similarity": 0.62},
-                    {"doc1": "contract_2.txt", "doc2": "policy_1.txt", "similarity": 0.71}
-                ],
-                "cluster_analysis": {
-                    "num_clusters": 3,
-                    "cluster_sizes": [5, 3, 2]
-                }
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Similarity analytics error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch similarity analytics: {str(e)}"
+    """Cosine similarity between documents, computed live from stored embeddings."""
+    centroids = _document_centroids()
+    if document_id:
+        if document_id not in centroids:
+            raise HTTPException(status_code=404, detail=f"Document {document_id} not found")
+        target = centroids[document_id]["vector"]
+        similar = sorted(
+            (
+                {"document_id": other_id, "filename": info["name"],
+                 "similarity": round(float(np.dot(target, info["vector"])), 3)}
+                for other_id, info in centroids.items() if other_id != document_id
+            ),
+            key=lambda item: item["similarity"], reverse=True,
         )
+        return {"data": {"document_id": document_id,
+                         "filename": centroids[document_id]["name"],
+                         "similar_documents": similar[:10]}}
+
+    ids = list(centroids)
+    pairs = []
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            score = float(np.dot(centroids[ids[i]]["vector"], centroids[ids[j]]["vector"]))
+            pairs.append({"doc1": centroids[ids[i]]["name"], "doc2": centroids[ids[j]]["name"],
+                          "doc1_id": ids[i], "doc2_id": ids[j], "similarity": round(score, 3)})
+    pairs.sort(key=lambda item: item["similarity"], reverse=True)
+    scores = [pair["similarity"] for pair in pairs]
+    return {"data": {
+        "overall_stats": {
+            "avg_similarity": round(float(np.mean(scores)), 3) if scores else 0.0,
+            "max_similarity": round(max(scores), 3) if scores else 0.0,
+            "total_comparisons": len(scores),
+            "documents_compared": len(ids),
+        },
+        "similar_document_pairs": pairs[:20],
+    }}
+
 
 @app.get("/analytics/activity")
 async def get_activity_analytics(
-    days: int = 7,
-    current_user: User = Depends(get_current_active_user)
+    days: int = 30,
+    current_user: User = Depends(require_admin)
 ):
-    """Get user activity analytics."""
-    try:
-        # Check admin access
-        if current_user.role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required for analytics"
-            )
-        
-        # Mock activity data
-        return {
-            "data": {
-                "user_activity": [
-                    {"user": "admin", "queries": 25, "documents_uploaded": 2, "last_active": "2025-05-31T10:30:00"},
-                    {"user": "user1", "queries": 12, "documents_uploaded": 1, "last_active": "2025-05-30T14:15:00"},
-                    {"user": "user2", "queries": 8, "documents_uploaded": 0, "last_active": "2025-05-29T09:45:00"}
-                ],
-                "activity_patterns": {
-                    "peak_hours": ["09:00-11:00", "14:00-16:00"],
-                    "active_days": ["Monday", "Tuesday", "Wednesday"]
-                },
-                "engagement_metrics": {
-                    "avg_session_duration": 25.5,
-                    "avg_queries_per_session": 4.2,
-                    "return_rate": 0.78
-                }
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Activity analytics error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch activity analytics: {str(e)}"
-        )
+    """Who used the system, for what, and when."""
+    return {"data": analytics_manager.get_user_activity_summary(days)}
+
 
 @app.get("/analytics/report")
 async def generate_analytics_report(
     format: str = "json",
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_admin)
 ):
-    """Generate comprehensive analytics report."""
-    try:
-        # Check admin access
-        if current_user.role != "admin":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required for analytics"
-            )
-        
-        # Generate comprehensive report
-        report = {
-            "report_generated": datetime.now().isoformat(),
-            "report_period": "Last 7 days",
-            "usage_analytics": {
-                "query_analytics": {
-                    "total_queries": 42,
-                    "unique_users": 5,
-                    "avg_similarity_score": 0.75,
-                    "avg_processing_time": 1.2
-                },
-                "document_analytics": {
-                    "total_documents": 3,
-                    "total_chunks": 15,
-                    "avg_chunks_per_doc": 5.0
-                }
-            },
-            "performance_analytics": {
-                "response_times": {
-                    "avg_query_time": 1.2,
-                    "avg_upload_time": 3.1,
-                    "avg_processing_time": 2.4
-                },
-                "system_metrics": {
-                    "uptime": "7 days, 12 hours",
-                    "total_requests": 234,
-                    "error_rate": 0.02
-                }
-            },
-            "user_activity": {
-                "active_users": 5,
-                "avg_session_duration": 25.5,
-                "peak_usage_hours": ["09:00-11:00", "14:00-16:00"]
-            }
-        }
-        
-        return report
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Report generation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate report: {str(e)}"
-        )
+    """Full analytics export, including an audit-trail summary and integrity check."""
+    report = analytics_manager.export_analytics_report(format)
+    report["audit_summary"] = audit.summary(30)
+    report["audit_integrity"] = audit.verify_chain()
+    track(current_user.username, "analytics.export", details={"format": format})
+    return report
+
+
+# Audit trail endpoints (admin only)
+@app.get("/audit/logs")
+async def get_audit_logs(
+    limit: int = 100,
+    offset: int = 0,
+    username: Optional[str] = None,
+    action: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    days: Optional[int] = None,
+    current_user: User = Depends(require_admin)
+):
+    """Newest-first audit events with optional filters."""
+    return audit.query(limit=max(1, min(limit, 500)), offset=max(0, offset), username=username,
+                       action=action, status=status_filter, since_days=days)
+
+
+@app.get("/audit/summary")
+async def get_audit_summary(days: int = 30, current_user: User = Depends(require_admin)):
+    """Event counts by action and outcome."""
+    return audit.summary(days)
+
+
+@app.get("/audit/verify")
+async def verify_audit_chain(current_user: User = Depends(require_admin)):
+    """Recompute the hash chain to detect edited or deleted audit rows."""
+    result = audit.verify_chain()
+    track(current_user.username, "audit.verify", "success" if result["valid"] else "failure", details=result)
+    return result
+
+
+@app.get("/audit/export")
+async def export_audit_log(
+    username: Optional[str] = None,
+    action: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    days: Optional[int] = None,
+    current_user: User = Depends(require_admin)
+):
+    """Download matching audit events as CSV."""
+    track(current_user.username, "audit.export", details={"username": username, "action": action, "days": days})
+    csv_text = audit.export_csv(username=username, action=action, status=status_filter, since_days=days)
+    filename = f"audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    return Response(content=csv_text, media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 @app.get("/documents/list")
 async def list_documents_alt(current_user: User = Depends(get_current_active_user)):

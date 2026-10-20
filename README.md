@@ -15,8 +15,9 @@ machine. No third-party AI APIs are called.
 | 🧾 Cited answers from a local LLM (vLLM or Ollama) | ✅ |
 | 🪶 Extractive answer mode when no model is running (no GPU required) | ✅ |
 | 🗂 Document library: per-document listing, search, delete | ✅ |
-| 📊 Admin analytics dashboard | 🚧 UI ready, backed by sample data |
-| 🛡 Audit logging and IP whitelisting | 🚧 planned |
+| 📊 Admin analytics: usage, query types, latency, document similarity, user activity | ✅ |
+| 🛡 Tamper-evident audit log (hash-chained) with filters and CSV export | ✅ |
+| 🌐 IP whitelisting (addresses or CIDR ranges) | ✅ |
 | 🔁 n8n automation (folder ingestion, Slack alerts) | 🚧 planned |
 
 Progress and the remaining roadmap live in [`phases.md`](phases.md).
@@ -78,6 +79,11 @@ once it is reachable, and each answer is labelled with the mode that produced it
 - Services bind to `127.0.0.1` by default; the login page is not exposed to the network.
 - Secrets live only in `.env` (git-ignored). Runtime data (`data/`, `logs/`) is git-ignored.
 - Uploads are size-limited (`MAX_FILE_SIZE_MB`); only the uploader or an admin can delete a document.
+- Every sign-in, upload, question and deletion is written to a hash-chained audit log
+  (`data/audit.db`). Admins can filter it, verify its integrity and export it as CSV
+  from the 🛡️ Audit Log page.
+- `ALLOWED_IPS` restricts which hosts may call the API (include `127.0.0.1` so the
+  local UI keeps working).
 
 ## 🧪 Testing
 

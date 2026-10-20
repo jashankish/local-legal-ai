@@ -26,6 +26,8 @@ class QueryMetrics:
     documents_retrieved: int
     user_feedback: Optional[float] = None
     user_id: Optional[str] = None
+    query_type: str = "general"
+    document_ids: Optional[List[str]] = None  # parallel to similarity_scores
 
 @dataclass
 class DocumentMetrics:
@@ -39,6 +41,31 @@ class DocumentMetrics:
     avg_similarity_score: float = 0.0
     document_type: str = "unknown"
     legal_complexity: float = 0.0
+    filename: Optional[str] = None
+    uploader_id: Optional[str] = None
+
+
+# Keyword families used to label questions for the "query types" chart.
+QUERY_TYPE_KEYWORDS = {
+    "Termination": ["terminat", "cancel", "notice period", "expire", "expiration", "renewal"],
+    "Payment & Fees": ["pay", "fee", "price", "compensation", "salary", "invoice", "retainer", "cost"],
+    "Liability & Indemnity": ["liabil", "indemn", "damages", "warrant", "limitation"],
+    "Confidentiality": ["confidential", "nda", "non-disclosure", "proprietary", "trade secret"],
+    "Governing Law & Disputes": ["governing law", "jurisdiction", "arbitrat", "dispute", "venue"],
+    "Obligations": ["obligat", "shall", "must", "responsib", "duty", "deliver"],
+    "Parties & Dates": ["who are", "parties", "party", "effective date", "signed", "dated"],
+    "Summary": ["summar", "overview", "key terms", "main points", "explain"],
+    "Compliance & Risk": ["complian", "risk", "regulat", "gdpr", "hipaa", "breach"],
+}
+
+
+def classify_query(text: str) -> str:
+    """Assign a question to the first matching keyword family, else 'General'."""
+    lowered = text.lower()
+    for label, keywords in QUERY_TYPE_KEYWORDS.items():
+        if any(keyword in lowered for keyword in keywords):
+            return label
+    return "General"
 
 class AnalyticsManager:
     """
@@ -53,8 +80,10 @@ class AnalyticsManager:
     - System health monitoring
     """
     
-    def __init__(self, db_path: str = "analytics.db"):
+    def __init__(self, db_path: str = "data/analytics.db"):
         self.db_path = db_path
+        if os.path.dirname(db_path):
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.logger = logging.getLogger(__name__)
         self.init_database()
         
@@ -178,24 +207,27 @@ class AnalyticsManager:
                 cursor.execute("""
                     INSERT OR REPLACE INTO query_analytics 
                     (query_id, query_text, timestamp, processing_time, documents_retrieved,
-                     avg_similarity_score, max_similarity_score, user_id, user_feedback)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     avg_similarity_score, max_similarity_score, user_id, user_feedback, query_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     query_metrics.query_id,
                     query_metrics.query_text,
                     query_metrics.timestamp,
                     query_metrics.processing_time,
                     query_metrics.documents_retrieved,
-                    avg_similarity,
-                    max_similarity,
+                    float(avg_similarity),
+                    float(max_similarity),
                     query_metrics.user_id,
-                    query_metrics.user_feedback
+                    query_metrics.user_feedback,
+                    query_metrics.query_type
                 ))
-                
+
                 conn.commit()
-                
-                # Update document query counts
-                self._update_document_query_stats(query_metrics.similarity_scores, cursor)
+
+                # Update per-document retrieval counts for the documents actually returned
+                self._update_document_query_stats(
+                    query_metrics.document_ids or [], query_metrics.similarity_scores, cursor
+                )
                 conn.commit()
                 
                 return True
@@ -213,17 +245,18 @@ class AnalyticsManager:
                 cursor.execute("""
                     INSERT OR REPLACE INTO document_analytics 
                     (document_id, filename, upload_timestamp, file_size, chunks_created,
-                     processing_time, document_type, legal_complexity)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     processing_time, document_type, legal_complexity, uploader_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     document_metrics.document_id,
-                    document_metrics.document_id,  # Using document_id as filename for now
+                    document_metrics.filename or document_metrics.document_id,
                     document_metrics.upload_timestamp,
                     document_metrics.file_size,
                     document_metrics.chunks_created,
                     document_metrics.processing_time,
                     document_metrics.document_type,
-                    document_metrics.legal_complexity
+                    document_metrics.legal_complexity,
+                    document_metrics.uploader_id
                 ))
                 
                 conn.commit()
@@ -608,25 +641,23 @@ class AnalyticsManager:
             self.logger.error(f"Failed to get user activity summary: {e}")
             return {}
     
-    def _update_document_query_stats(self, similarity_scores: List[float], cursor):
-        """Update document query statistics based on similarity scores."""
-        # This is a simplified implementation
-        # In a real system, you'd track which documents were actually retrieved
-        if similarity_scores:
-            avg_score = np.mean(similarity_scores)
-            # Update the most recently uploaded documents (simplified approach)
+    def _update_document_query_stats(self, document_ids: List[str], similarity_scores: List[float], cursor):
+        """Credit each retrieved document once per query with its best chunk score."""
+        best: Dict[str, float] = {}
+        for doc_id, score in zip(document_ids, similarity_scores):
+            if doc_id:
+                best[doc_id] = max(best.get(doc_id, 0.0), float(score))
+        now = datetime.now()
+        for doc_id, score in best.items():
+            # SET expressions see pre-update values, hence the explicit +1 / +score.
             cursor.execute("""
-                UPDATE document_analytics 
+                UPDATE document_analytics
                 SET query_count = query_count + 1,
                     total_similarity_score = total_similarity_score + ?,
-                    avg_similarity_score = total_similarity_score / query_count,
+                    avg_similarity_score = (total_similarity_score + ?) / (query_count + 1),
                     last_queried = ?
-                WHERE id IN (
-                    SELECT id FROM document_analytics 
-                    ORDER BY upload_timestamp DESC 
-                    LIMIT 3
-                )
-            """, (avg_score, datetime.now()))
+                WHERE document_id = ?
+            """, (score, score, now, doc_id))
     
     def _generate_optimization_suggestions(self, performance_dist, slow_queries, quality_dist) -> List[str]:
         """Generate optimization suggestions based on performance data."""
@@ -710,7 +741,8 @@ class AnalyticsManager:
                 
                 # Database size
                 cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
-                db_size = cursor.fetchone()[0] if cursor.fetchone() else 0
+                size_row = cursor.fetchone()
+                db_size = size_row[0] if size_row and size_row[0] else 0
                 
                 return {
                     "avg_cpu_usage": round(perf_data[0] or 0, 2),

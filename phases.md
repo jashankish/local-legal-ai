@@ -98,11 +98,24 @@
 - [✅] `pytest tests/` end-to-end API suite (7 tests, mocked LLM for generative mode)
 - [✅] `docs/ARCHITECTURE.md` describing the system as implemented
 
+## Phase 10: Audit Trail, Access Control & Live Analytics ✅ **COMPLETE** (2026-10-20)
+- [✅] `security/audit_log.py`: append-only, SHA-256 hash-chained audit log in `data/audit.db`
+- [✅] Audited: logins (success / bad credentials / disabled), user creation, uploads (and failures), queries, deletions, exports, chain checks, IP denials
+- [✅] Admin endpoints `/audit/logs`, `/audit/summary`, `/audit/verify`, `/audit/export` (CSV)
+- [✅] 🛡️ Audit Log page: summary metrics, filters, chain verification, CSV export
+- [✅] `ALLOWED_IPS` enforced by middleware, with CIDR support; CORS restricted to `CORS_ORIGINS`
+- [✅] Analytics endpoints now read `backend/analytics.py` (no more sample data); queries, uploads and activity are logged
+- [✅] Query-type classification (Termination, Payment & Fees, Confidentiality, …) for the usage chart
+- [✅] Document similarity computed live from ChromaDB embeddings; per-document view fixed (it read a missing key)
+- [✅] Per-document retrieval stats credit the documents actually retrieved (previously "last 3 uploaded")
+- [✅] Fixed double `fetchone()` in the system-health summary; analytics DB moved to `data/`
+- [✅] Fixed: registering a user without an email failed; duplicate usernames returned 500; disabled users could sign in
+- [✅] Role validation (`admin` / `lawyer` / `user`) and 8-character minimum for new passwords
+- [✅] Streamlit `use_container_width` deprecation removed; `scripts/ui_smoke.py` renders every page in CI-style
+- [✅] Test suite expanded to 15 tests
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Audit logging (`security/audit_log.py`): persistent log of logins, uploads, queries, deletions; admin viewer
-- [ ] IP whitelist enforcement (`ALLOWED_IPS`) as real middleware
-- [ ] Analytics endpoints backed by `backend/analytics.py` (currently sample data)
 - [ ] Legal entity extraction and query suggestions in Enhanced Chat (`rag/enhanced_embedder.py` is unused)
 - [ ] Admin user-management UI (create, deactivate, reset password) and forced default-password change
 - [ ] n8n workflows: watched-folder ingestion and Slack notifications via `N8N_WEBHOOK_URL`
