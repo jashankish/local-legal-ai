@@ -163,10 +163,20 @@
 - [✅] README screenshots re-captured with real generated answers
 - [✅] Test suite: 37 tests (8 new, including a real SSE model server, mid-stream disconnect, off-topic refusal and attribution rules)
 
+## Phase 15: First-Run Experience & Empty States ✅ **COMPLETE** (2026-10-20)
+- [✅] Reviewed every page of a brand-new install (first sign-in, empty library)
+- [✅] Dashboard "Getting started" checklist (documents/inbox, local model, team); "Welcome" vs "Welcome back"; recent-questions list fixed (read the wrong history keys)
+- [✅] Ask Documents refuses gracefully when the library is empty and links to upload
+- [✅] Removed the broken "Document Management" page (showed "unknown" collection/status) and ~210 lines of unreachable legacy UI
+- [✅] Pages renamed "Ask Documents" and "Document Library"; page names centralised as constants
+- [✅] Removed a "Clear All Documents" button that deleted nothing; added a one-click CSV document register
+- [✅] Upload picker limited to PDF/DOCX/TXT and 50 MB (matches the API)
+- [✅] Analytics tabs show one clear empty-state message instead of zeros; no "performance is good" suggestion without queries; similarity explains it needs two documents
+- [✅] README screenshots re-captured with the new page names and real local-model answers
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service) — needs a running Docker daemon to verify
-- [ ] Empty-state review of every page on a fresh install with no documents
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 

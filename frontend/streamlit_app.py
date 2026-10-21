@@ -492,7 +492,7 @@ def show_files_management():
     col1, col2, col3 = st.columns([2, 3, 1])
     
     with col1:
-        st.subheader("📂 Document Library")
+        st.caption("Every document indexed for search and Q&A, grouped by category.")
     
     with col2:
         search_query = st.text_input("🔍 Search files...", placeholder="Search by filename, content, or category")
@@ -773,6 +773,11 @@ def show_usage_analytics():
         
         if response.status_code == 200:
             analytics_data = response.json()["data"]
+            if (analytics_data["query_analytics"]["total_queries"] == 0
+                    and analytics_data["document_analytics"]["total_documents"] == 0):
+                st.info(f"📭 No questions or uploads in the last {days} days yet. Usage charts appear "
+                        "here as soon as your team adds documents and starts asking questions.")
+                return
             
             # Display metrics cards
             col1, col2, col3, col4 = st.columns(4)
@@ -881,6 +886,10 @@ def show_performance_analytics():
         
         if response.status_code == 200:
             perf_data = response.json()["data"]
+            if not perf_data.get("performance_distribution"):
+                st.info("📭 No questions have been answered yet. Response times, retrieval quality and "
+                        "tuning suggestions appear here after the first questions.")
+                return
             
             # Performance distribution
             if perf_data.get("performance_distribution"):
@@ -1021,6 +1030,10 @@ def show_similarity_analytics():
                 sim_data = response.json()["data"]
                 
                 # Overall stats
+                if sim_data.get("overall_stats", {}).get("documents_compared", 0) < 2:
+                    st.info("📭 Similarity compares documents with each other, so it needs at least two "
+                            "documents in the library.")
+                    return
                 if "overall_stats" in sim_data:
                     stats = sim_data["overall_stats"]
                     

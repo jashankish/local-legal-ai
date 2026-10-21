@@ -45,7 +45,7 @@ FastAPI application. Key endpoints:
 | `GET /documents/stats` | Collection statistics |
 | `POST /query` | RAG answer with sources, citations, confidence and generation mode |
 | `POST /query/stream` | Same answer as NDJSON events: `sources`, `token`…, `done` (or `error`) |
-| `POST /documents/query` | Same answer in the shape the Enhanced Chat page expects |
+| `POST /documents/query` | Same answer in a flattened shape (legacy clients) |
 | `GET /health` | API, ChromaDB and model-server status |
 | `GET /analytics/usage` | Query volume, query-type mix, document intake (admin) |
 | `GET /analytics/performance` | Latency / retrieval-quality distributions, tuning suggestions (admin) |
@@ -220,8 +220,8 @@ Session lifecycle:
   disabled or demoted, and admins cannot disable themselves.
 
 ### Frontend — `frontend/streamlit_app.py`
-Streamlit app: login, Dashboard, Upload, Chat, Enhanced Chat, Document
-Management, Files Management, My Account, and the admin-only Analytics, Audit Log and Users pages (hidden from other roles). A pending password change shows a blocking change-password screen instead of the app.
+Streamlit app: login, Dashboard (with a getting-started checklist while the library is empty), Upload Documents,
+Ask Documents (streamed answers), Document Library (search, delete, CSV register), My Account, and the admin-only Analytics, Audit Log, Users and Integrations pages (hidden from other roles). A pending password change shows a blocking change-password screen instead of the app.
 The Audit Log page offers filters (user, action, outcome, period), a one-click
 chain verification and CSV export. Talks to the backend via
 `BACKEND_URL` (default `http://localhost:8000`).

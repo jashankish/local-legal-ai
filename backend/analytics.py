@@ -695,7 +695,8 @@ class AnalyticsManager:
             suggestions.append("Consider pre-computing embeddings for common query patterns")
         
         # Default suggestions
-        if not suggestions:
+        # With no queries there is nothing to judge; don't claim performance is good.
+        if not suggestions and total_queries > 0:
             suggestions.append("System performance is good - consider adding more documents for better coverage")
             suggestions.append("Monitor user feedback to identify areas for improvement")
         
