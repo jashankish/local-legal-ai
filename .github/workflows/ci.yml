@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies (CPU-only PyTorch)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -r requirements.txt
+      - name: Run pytest
+        run: pytest
+
+  docker:
+    name: Docker Compose stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Prepare .env and inbox
+        run: |
+          cp .env.example .env
+          sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$(python -c 'import secrets; print(secrets.token_urlsafe(48))')|" .env
+          # The container runs as uid 1000; make the bind-mounted inbox writable for it.
+          mkdir -p inbox && chmod 777 inbox
+      - name: Validate compose file
+        run: docker compose --profile llm --profile automation config --quiet
+      - name: Build image
+        run: docker compose build
+      - name: Start API and UI (waits for healthchecks)
+        run: docker compose up -d --wait --wait-timeout 300
+      - name: Check endpoints
+        run: |
+          curl -fsS http://127.0.0.1:8000/health | tee /dev/stderr | grep -q '"chromadb":"healthy"'
+          curl -fsS http://127.0.0.1:8501/_stcore/health
+      - name: Seed demo data and ask a question (extractive mode)
+        run: |
+          pip install requests
+          python scripts/seed_demo.py --backend http://127.0.0.1:8000
+          python scripts/ci_check_answer.py --backend http://127.0.0.1:8000 --expect-mode extractive
+      - name: Watched inbox picks up a dropped file
+        run: |
+          mkdir -p inbox/contracts
+          cp samples/inbox/software_license_agreement.txt inbox/contracts/
+          python scripts/ci_check_answer.py --backend http://127.0.0.1:8000 --expect-document software_license_agreement.txt --wait 90
+      - name: Start the local model (llm profile) and get a generated answer
+        run: |
+          docker compose --profile llm up -d llm
+          python scripts/ci_check_answer.py --backend http://127.0.0.1:8000 --expect-mode generative --wait 900
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose --profile llm logs --tail 200
+      - name: Stop stack
+        if: always()
+        run: docker compose --profile llm down -v

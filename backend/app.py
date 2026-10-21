@@ -105,14 +105,19 @@ async def lifespan(app: FastAPI):
 
     global inbox_watcher
     if settings.inbox_enabled:
-        inbox_watcher = FolderWatcher(
-            settings.inbox_dir, ingest_document,
-            interval_seconds=settings.inbox_poll_seconds,
-            on_failure=lambda name, category, error: track(
-                "inbox", "document.upload", "failure",
-                details={"filename": name, "category": category, "error": error[:200], "channel": "inbox"}),
-        )
-        inbox_watcher.start()
+        try:
+            inbox_watcher = FolderWatcher(
+                settings.inbox_dir, ingest_document,
+                interval_seconds=settings.inbox_poll_seconds,
+                on_failure=lambda name, category, error: track(
+                    "inbox", "document.upload", "failure",
+                    details={"filename": name, "category": category, "error": error[:200], "channel": "inbox"}),
+            )
+            inbox_watcher.start()
+        except OSError as e:
+            # e.g. a bind-mounted folder the service user can't write to; the rest of the app still works
+            logger.error(f"Inbox watcher disabled: cannot use {settings.inbox_dir}: {e}")
+            inbox_watcher = None
 
     yield
 
