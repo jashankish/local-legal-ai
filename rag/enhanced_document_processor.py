@@ -14,6 +14,15 @@ import re
 import unicodedata
 from collections import Counter
 
+try:
+    from rag import ocr
+except ImportError:  # imported with rag/ itself on sys.path
+    import ocr
+
+
+class ScannedPdfError(ValueError):
+    """An image-only PDF that can't be read without OCR."""
+
 # Document processing libraries
 try:
     import PyPDF2
@@ -138,6 +147,7 @@ class EnhancedDocumentProcessor:
             doc_metadata = {}
             page_count = 0
             extraction_method = "unknown"
+            ocr_pages: List[int] = []
             
             try:
                 # Use PyMuPDF for better text extraction
@@ -148,12 +158,20 @@ class EnhancedDocumentProcessor:
                 # Extract metadata
                 doc_metadata = doc.metadata or {}
                 
-                # Extract text from all pages with encoding handling
+                # Extract text from all pages with encoding handling; pages
+                # without a text layer (scans) are OCRed when Tesseract is available.
                 full_text = []
+                ocr_pages: List[int] = []
+                scanned_pages: List[int] = []
                 for page_num in range(page_count):
                     page = doc[page_num]
                     page_text = page.get_text()
-                    
+                    if len((page_text or "").strip()) < ocr.MIN_TEXT_CHARS:
+                        scanned_pages.append(page_num + 1)
+                        if ocr.ocr_available() and len(ocr_pages) < ocr.OCR_MAX_PAGES:
+                            page_text = ocr.ocr_page(page)
+                            ocr_pages.append(page_num + 1)
+
                     # Clean the page text immediately
                     if page_text and page_text.strip():
                         cleaned_page_text = self._clean_text(page_text)
@@ -164,10 +182,21 @@ class EnhancedDocumentProcessor:
                 doc.close()
                 
                 # If PyMuPDF extraction resulted in mostly garbage, try alternative
+                if ocr_pages:
+                    extraction_method = "pymupdf+ocr"
+                    self.logger.info(f"OCR recognised {len(ocr_pages)} scanned page(s) in {filename}")
+                if scanned_pages and not ocr_pages and len(text_content.strip()) < ocr.MIN_TEXT_CHARS:
+                    # Image-only PDF and no OCR engine: other extractors can't read images either.
+                    raise ScannedPdfError(
+                        f"This PDF appears to be a scan with no text layer ({len(scanned_pages)} page(s)). "
+                        + ocr.INSTALL_HINT)
+
                 if self._is_text_garbled(text_content):
                     self.logger.warning("PyMuPDF extraction appears garbled, trying alternative method")
                     raise Exception("Text appears garbled, trying fallback")
-                
+
+            except ScannedPdfError:
+                raise
             except Exception as e:
                 self.logger.warning(f"PyMuPDF failed or produced garbled text, trying PyPDF2: {e}")
                 
@@ -214,8 +243,6 @@ class EnhancedDocumentProcessor:
             # Check for still garbled text after cleaning
             if self._is_text_garbled(text_content):
                 self.logger.warning(f"Text still appears garbled after cleaning for {filename}")
-                # Could implement OCR here as a last resort
-                # For now, we'll proceed with a warning
                 text_content = f"[WARNING: Text extraction may be incomplete or corrupted]\n\n{text_content}"
             
             # Extract legal sections
@@ -229,7 +256,9 @@ class EnhancedDocumentProcessor:
                 'char_count': len(text_content),
                 'pdf_metadata': doc_metadata,
                 'extraction_method': extraction_method,
-                'extraction_quality': 'good' if not self._is_text_garbled(text_content) else 'poor'
+                'extraction_quality': 'good' if not self._is_text_garbled(text_content) else 'poor',
+                'ocr_pages': len(ocr_pages),
+                'ocr_page_numbers': ",".join(str(n) for n in ocr_pages),
             }
             
         except Exception as e:

@@ -20,13 +20,17 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
       - name: Install dependencies (CPU-only PyTorch)
         run: |
           python -m pip install --upgrade pip
           pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -r requirements.txt
+      - name: OCR must be available here (so the OCR test cannot be skipped)
+        run: python -c "from rag.ocr import ocr_available, tessdata_path; assert ocr_available(), 'no OCR'; print('tessdata:', tessdata_path())"
       - name: Run pytest
-        run: pytest
+        run: pytest -rs
 
   docker:
     name: Docker Compose stack
@@ -63,6 +67,11 @@ jobs:
           mkdir -p inbox/contracts
           cp samples/inbox/software_license_agreement.txt inbox/contracts/
           python scripts/ci_check_answer.py --backend http://127.0.0.1:8000 --expect-document software_license_agreement.txt --wait 90
+      - name: A scanned (image-only) PDF in the inbox is OCRed and indexed
+        run: |
+          mkdir -p inbox/real_estate
+          cp samples/inbox/scanned_lease_amendment.pdf inbox/real_estate/
+          python scripts/ci_check_answer.py --backend http://127.0.0.1:8000 --expect-document scanned_lease_amendment.pdf --wait 120
       - name: Start the local model (llm profile) and get a generated answer
         run: |
           docker compose --profile llm up -d llm

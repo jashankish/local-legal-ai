@@ -461,7 +461,7 @@ def show_document_upload():
         st.markdown("### ℹ️ Upload Guidelines")
         st.markdown("""
         **Supported formats**
-        - ✅ PDF (text-based; scanned images need OCR first)
+        - ✅ PDF — scanned pages are read with OCR when Tesseract is installed (included in the Docker image)
         - ✅ Word (.docx)
         - ✅ Plain text (.txt)
 

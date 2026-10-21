@@ -9,6 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Tesseract OCR (English) so scanned, image-only PDFs can be indexed.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && rm -rf /var/lib/apt/lists/*
+
 # CPU-only PyTorch keeps the image ~2 GB smaller than the default CUDA build;
 # embeddings for legal documents run comfortably on CPU.
 RUN pip install --index-url https://download.pytorch.org/whl/cpu torch

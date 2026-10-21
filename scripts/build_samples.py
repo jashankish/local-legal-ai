@@ -49,7 +49,24 @@ def build_pdf(source, target):
     pdf.save(target)
 
 
+def build_scanned_pdf(source, target, dpi=200):
+    """Image-only PDF (no text layer), as produced by an office scanner — exercises OCR."""
+    tmp = target + ".tmp.pdf"
+    build_pdf(source, tmp)
+    text_pdf = fitz.open(tmp)
+    scan = fitz.open()
+    for page in text_pdf:
+        pixmap = page.get_pixmap(dpi=dpi, colorspace=fitz.csGRAY)
+        out = scan.new_page(width=page.rect.width, height=page.rect.height)
+        out.insert_image(out.rect, stream=pixmap.tobytes("png"))
+    text_pdf.close()
+    os.remove(tmp)
+    scan.save(target, deflate=True)
+
+
 if __name__ == "__main__":
     build_docx("mutual_nda.txt", os.path.join(ROOT, "samples", "mutual_nda.docx"))
     build_pdf("commercial_lease.txt", os.path.join(ROOT, "samples", "commercial_lease.pdf"))
-    print("Built samples/mutual_nda.docx and samples/commercial_lease.pdf")
+    build_scanned_pdf("lease_amendment.txt", os.path.join(ROOT, "samples", "inbox", "scanned_lease_amendment.pdf"))
+    print("Built samples/mutual_nda.docx, samples/commercial_lease.pdf and "
+          "samples/inbox/scanned_lease_amendment.pdf (image-only)")

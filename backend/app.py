@@ -34,6 +34,7 @@ from backend.auth import (
 )
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
 from rag.legal_insights import extract_legal_entities, suggest_follow_ups
+from rag.ocr import ocr_available
 from security.audit_log import get_audit_logger, request_context
 from backend.integrations import EventNotifier
 from backend.folder_watcher import FolderWatcher
@@ -259,6 +260,7 @@ async def health_check():
         services["model"] = llm_status.get("state", "unknown")
     else:
         services["model"] = "not_configured"
+    services["ocr"] = "available" if ocr_available() else "not_installed"
 
     return HealthResponse(
         status="healthy",
