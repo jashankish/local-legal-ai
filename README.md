@@ -246,6 +246,24 @@ The suite drives the API end to end against a temporary data directory, with a
 mocked LLM for the generative path. `scripts/ui_smoke.py` renders every UI page
 against a running backend and fails on any exception.
 
+## 📂 Repository layout
+
+```
+backend/            FastAPI app, auth, analytics, inbox watcher, webhook notifier
+rag/                document processing, chunking, RAG pipeline, key-term extraction
+vector_store/       embedded ChromaDB wrapper
+security/           hash-chained audit log
+frontend/           Streamlit UI
+model/              local model launchers (llama.cpp, vLLM)
+workflows/n8n/      n8n workflows, compose file and setup guide
+samples/            fictional agreements for demos
+scripts/            demo seeding, UI smoke test, screenshot capture, sample builder
+tests/              pytest suite (run with `pytest`)
+docs/               architecture, screenshots, historical reports (docs/history/)
+legacy/             superseded scripts from earlier phases (not used)
+phases.md           delivery history and remaining work
+```
+
 ## 🧩 Stack
 
 | Layer | Tool |

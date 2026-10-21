@@ -20,3 +20,5 @@ docs/screenshots
 token.txt
 **/token.txt
 *.token
+legacy
+docs/history

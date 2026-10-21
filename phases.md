@@ -182,6 +182,12 @@
 - [✅] Verified: `docker compose config` for all profiles; API and UI run from a `.dockerignore`-filtered build context with the compose environment; healthcheck commands, data layout, seeding and all nine pages work
 - [ ] Build and run the images on a Docker host (the daemon was not available on the development machine)
 
+## Phase 17: Repository Tidy-up ✅ **COMPLETE** (2026-10-20)
+- [✅] Early status reports (`DEPLOYMENT_GUIDE.md`, `DEPLOYMENT_SUCCESS.md`, `SYSTEM_STATUS_FINAL.md`, Phase 3 frontend README) moved to `docs/history/` with an index noting they describe the May 2025 system
+- [✅] Superseded scripts (root `test_*.py`, `debug_*.py`, `check_documents.py`, `setup.py`, extra requirements files, `run_frontend.py`) moved to `legacy/` with a table of what replaced each
+- [✅] `pytest.ini` limits a bare `pytest` run to `tests/`; `legacy/` and `docs/history/` excluded from the Docker build context
+- [✅] README "Repository layout" section
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - [ ] Build and run the Docker images on a Docker host; confirm the `llm` profile's llama.cpp server flags

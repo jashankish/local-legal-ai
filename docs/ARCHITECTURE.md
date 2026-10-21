@@ -267,7 +267,7 @@ Two supported ways to run:
 including a mocked LLM to cover generative mode, audit tamper detection, IP
 whitelisting and analytics fed by real requests. `scripts/ui_smoke.py` renders
 every Streamlit page as admin against a running backend and fails on any
-exception. The legacy `test_phase*.py` scripts require a running server.
+exception. Superseded scripts from earlier phases live in `legacy/` and are excluded from the suite (`pytest.ini`) and the Docker image.
 
 ## Demo tooling
 - `samples/` — four fictional agreements (TXT, DOCX, PDF); `scripts/build_samples.py`
