@@ -44,6 +44,7 @@ FastAPI application. Key endpoints:
 | `DELETE /documents/{id}` | Remove a document and all its chunks (uploader or admin) |
 | `GET /documents/stats` | Collection statistics |
 | `POST /query` | RAG answer with sources, citations, confidence and generation mode |
+| `POST /query/stream` | Same answer as NDJSON events: `sources`, `token`…, `done` (or `error`) |
 | `POST /documents/query` | Same answer in the shape the Enhanced Chat page expects |
 | `GET /health` | API, ChromaDB and model-server status |
 | `GET /analytics/usage` | Query volume, query-type mix, document intake (admin) |
@@ -165,16 +166,37 @@ quality degrades sharply — check backend logs for
 `Using SimpleEmbeddingFunction` if results look random.
 
 ### RAG pipeline — `rag/rag_pipeline.py`
-1. Retrieve the top-k chunks from ChromaDB (distance mapped to a 0–1 similarity).
-2. Format them as numbered excerpts `[1] … [k]`.
-3. If the model server answers `GET /v1/models` (cached 30 s), send a
-   citation-enforcing system prompt to `/v1/chat/completions` → **generative** mode.
-4. Otherwise, or if generation fails, build an **extractive** answer from the
-   sentences that best overlap the question, each tagged with its source number.
-5. Confidence blends retrieval similarity (60%) with question-term coverage (40%).
+`stream_query()` is the single implementation; `query()` consumes it and returns
+the final result. Events: `sources` → `token`* → `done`.
 
-The response carries `mode`, `model` and `citations` so the UI can label how an
-answer was produced.
+1. Retrieve the top-k chunks from ChromaDB (distance mapped to a 0–1 similarity).
+2. **Grounding gate:** if none of the question's key terms occur in the top
+   three passages, answer "None of your documents appear to address this
+   question" (mode **no_match**) without calling the model, so it can't answer
+   from general knowledge.
+3. Format the passages as numbered excerpts `[1] … [k]`.
+4. If the model server answers `GET /v1/models` (cached 30 s), stream from
+   `/v1/chat/completions` (`stream: true`, OpenAI SSE format) → **generative**.
+   Each fragment is forwarded as it arrives. A stream that closes without
+   `[DONE]` or a `finish_reason` is treated as interrupted: the partial answer
+   is kept with a notice.
+5. Sentences the model left uncited are attributed to the excerpt sharing at
+   least half (and ≥ 3) of their key terms; if nothing is cited afterwards, a
+   caution to verify against the sources is appended.
+6. With no model, or if generation fails before any text, build an
+   **extractive** answer from the best-overlapping sentences (streamed one
+   passage at a time).
+7. Confidence blends retrieval similarity (60%) with question-term coverage (40%).
+
+The response carries `mode` (`generative`, `extractive`, `no_match`), `model`,
+`citations`, `legal_entities` and `query_suggestions`. `POST /query/stream`
+returns the same events as newline-delimited JSON; the Ask page renders tokens
+with `st.write_stream` and then shows the full result.
+
+Verified with Qwen2.5-1.5B-Instruct under llama.cpp
+(`model/llamacpp_launcher.sh`): first token ≈ 0.4–0.5 s and full answers in
+≈ 1–2 s on Apple Silicon; the prompt ends with an explicit citation instruction
+because small models otherwise omit `[n]` markers.
 
 ### Authentication — `backend/auth.py`
 bcrypt password hashes (used directly; passlib is incompatible with bcrypt ≥ 4.1),

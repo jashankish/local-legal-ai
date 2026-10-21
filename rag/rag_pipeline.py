@@ -9,6 +9,7 @@
 import logging
 from typing import List, Dict, Optional, Any, Tuple
 from datetime import datetime
+import json
 import re
 import sys
 import os
@@ -113,6 +114,51 @@ class LLMClient:
         tokens = (data.get("usage") or {}).get("total_tokens")
         return content.strip(), tokens, data.get("model", self.model_name)
 
+    async def chat_stream(self, messages: List[Dict[str, str]]):
+        """Yield ("delta", text) for each generated fragment, then ("done", {"model", "tokens"}).
+
+        Parses the OpenAI-style server-sent event stream ("data: {...}" lines,
+        terminated by "data: [DONE]") that vLLM, Ollama and llama.cpp all emit.
+        """
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "max_tokens": settings.max_tokens,
+            "temperature": settings.temperature,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        served_model, tokens, finished = self.model_name, None, False
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", f"{self.endpoint}/v1/chat/completions", json=payload) as response:
+                if response.status_code >= 400:
+                    await response.aread()
+                    response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        finished = True
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except ValueError:
+                        continue
+                    served_model = chunk.get("model") or served_model
+                    if chunk.get("usage"):
+                        tokens = chunk["usage"].get("total_tokens", tokens)
+                    for choice in chunk.get("choices") or []:
+                        text = (choice.get("delta") or {}).get("content")
+                        if text:
+                            yield "delta", text
+                        if choice.get("finish_reason"):
+                            finished = True
+        if not finished:
+            # The connection closed without [DONE] or a finish_reason: the answer is truncated.
+            raise ConnectionError("Model stream ended before the answer was complete")
+        yield "done", {"model": served_model, "tokens": tokens}
+
 
 class LegalRAGPipeline:
     """RAG Pipeline specialized for legal document Q&A."""
@@ -142,7 +188,8 @@ Rules:
 
 QUESTION: {question}
 
-Answer using only the excerpts above, citing them by number."""
+Answer using only the excerpts above. End every sentence with the number of the excerpt
+that supports it in square brackets, for example: "The fee is $500 per month [2]." """
 
     async def retrieve_documents(self,
                                  query: str,
@@ -248,10 +295,48 @@ Answer using only the excerpts above, citing them by number."""
         citations = sorted({num for num, _ in picked})
         return "\n".join(lines), citations
 
+    def _attribute_uncited_sentences(self, answer: str,
+                                     retrieval_results: List[RetrievalResult]) -> str:
+        """Append [n] to sentences the model left uncited, when one excerpt clearly supports them.
+
+        Small local models often ignore citation instructions. A sentence is
+        attributed only if at least half of its key terms (and no fewer than
+        three) appear in a single excerpt, so weak matches stay uncited.
+        """
+        source_terms = [self._keywords(r.content) for r in retrieval_results]
+        pieces = re.split(r'(?<=[.!?])(\s+)', answer)
+        output = []
+        for piece in pieces:
+            sentence = piece.strip()
+            if not sentence or re.search(r"\[\d{1,2}\]", sentence) or len(sentence) < 20:
+                output.append(piece)
+                continue
+            terms = self._keywords(sentence)
+            if len(terms) < 3:
+                output.append(piece)
+                continue
+            overlaps = [len(terms & st) for st in source_terms]
+            best = max(range(len(overlaps)), key=overlaps.__getitem__)
+            if overlaps[best] >= max(3, len(terms) / 2):
+                match = re.match(r"^(.*?)([.!?]*)$", piece, re.S)
+                piece = f"{match.group(1)} [{best + 1}]{match.group(2)}"
+            output.append(piece)
+        return "".join(output)
+
     @staticmethod
     def _extract_citations(answer: str, num_sources: int) -> List[int]:
         found = {int(n) for n in re.findall(r"\[(\d{1,2})\]", answer)}
         return sorted(n for n in found if 1 <= n <= num_sources)
+
+    def _question_coverage(self, retrieval_results: List[RetrievalResult], query: str) -> float:
+        """Share of the question's key terms that occur in the top three passages."""
+        query_terms = self._keywords(query)
+        if not query_terms or not retrieval_results:
+            return 0.0
+        covered = set()
+        for r in retrieval_results[:3]:
+            covered |= query_terms & self._keywords(r.content)
+        return len(covered) / len(query_terms)
 
     def _calculate_confidence(self, retrieval_results: List[RetrievalResult], query: str) -> float:
         """Blend retrieval similarity with lexical coverage of the question."""
@@ -259,21 +344,32 @@ Answer using only the excerpts above, citing them by number."""
             return 0.0
         top = retrieval_results[:3]
         avg_similarity = sum(r.similarity_score for r in top) / len(top)
-        query_terms = self._keywords(query)
-        if query_terms:
-            covered = set()
-            for r in top:
-                covered |= query_terms & self._keywords(r.content)
-            coverage = len(covered) / len(query_terms)
-        else:
-            coverage = 0.0
+        coverage = self._question_coverage(retrieval_results, query)
         return round(min(1.0, avg_similarity * 0.6 + coverage * 0.4), 3)
 
     async def query(self,
                     question: str,
                     num_documents: int = 5,
                     filter_metadata: Optional[Dict] = None) -> RAGResponse:
-        """Process a legal question through retrieval and generation."""
+        """Process a legal question through retrieval and generation (non-streaming)."""
+        async for event in self.stream_query(question, num_documents, filter_metadata):
+            if event["type"] == "done":
+                return event["response"]
+        raise RuntimeError("Answer stream ended without a result")
+
+    async def stream_query(self,
+                           question: str,
+                           num_documents: int = 5,
+                           filter_metadata: Optional[Dict] = None):
+        """Answer a question as a stream of events.
+
+        Yields, in order:
+          {"type": "sources", "sources": [RetrievalResult, ...]}
+          {"type": "token", "text": "..."}            (zero or more)
+          {"type": "done", "response": RAGResponse}
+        Generated answers stream token by token from the model; extractive
+        answers are emitted one passage at a time.
+        """
         start_time = datetime.now()
         logger.info(f"Processing RAG query: {question[:100]}...")
 
@@ -282,40 +378,70 @@ Answer using only the excerpts above, citing them by number."""
             num_results=num_documents,
             filter_metadata=filter_metadata
         )
+        yield {"type": "sources", "sources": retrieval_results}
 
         if not retrieval_results:
-            return RAGResponse(
-                answer="I couldn't find any documents to answer this question. "
-                       "Upload agreements, filings, or policies on the Documents page first.",
-                sources=[],
-                query=question,
-                confidence_score=0.0,
+            answer = ("I couldn't find any documents to answer this question. "
+                      "Upload agreements, filings, or policies on the Documents page first.")
+            yield {"type": "token", "text": answer}
+            yield {"type": "done", "response": RAGResponse(
+                answer=answer, sources=[], query=question, confidence_score=0.0,
                 processing_time=(datetime.now() - start_time).total_seconds(),
-            )
+            )}
+            return
 
         answer, tokens_used, mode, model, citations = None, None, "extractive", None, []
-        llm_status = await self.llm.status()
+
+        # Grounding gate: if none of the question's key terms occur in the best
+        # passages, the library doesn't cover it. Don't let the model answer from
+        # general knowledge (it will happily say "Paris" for the capital of France).
+        if self._question_coverage(retrieval_results, question) == 0.0:
+            answer = ("None of your documents appear to address this question. "
+                      "The closest passages are listed below; try rephrasing with terms "
+                      "used in the agreements, or upload the relevant document.")
+            mode = "no_match"
+            yield {"type": "token", "text": answer}
+
+        llm_status = await self.llm.status() if answer is None else {}
         if llm_status.get("available"):
+            parts: List[str] = []
             try:
-                answer, tokens_used, model = await self.llm.chat([
+                async for kind, payload in self.llm.chat_stream([
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": self.context_template.format(
                         context=self._format_context(retrieval_results), question=question)},
-                ])
+                ]):
+                    if kind == "delta":
+                        parts.append(payload)
+                        yield {"type": "token", "text": payload}
+                    else:
+                        model, tokens_used = payload.get("model"), payload.get("tokens")
+            except Exception as e:
+                logger.error(f"LLM generation failed after {len(parts)} fragments: {e}")
+                if parts:
+                    note = "\n\n_[The model stopped responding; this answer may be incomplete.]_"
+                    parts.append(note)
+                    yield {"type": "token", "text": note}
+            if "".join(parts).strip():
+                answer = self._attribute_uncited_sentences("".join(parts).strip(), retrieval_results)
                 mode = "generative"
                 citations = self._extract_citations(answer, len(retrieval_results))
-            except Exception as e:
-                logger.error(f"LLM generation failed, falling back to extractive answer: {e}")
-                answer = None
+                if not citations:
+                    caution = ("\n\n_No cited passage supports this answer directly — "
+                               "check it against the sources below before relying on it._")
+                    answer += caution
+                    yield {"type": "token", "text": caution}
 
         if answer is None:
             answer, citations = self._generate_extractive_response(question, retrieval_results)
+            for line in answer.splitlines(keepends=True):
+                yield {"type": "token", "text": line}
 
         processing_time = (datetime.now() - start_time).total_seconds()
         confidence = self._calculate_confidence(retrieval_results, question)
         logger.info(f"RAG query completed in {processing_time:.2f}s ({mode}) with confidence {confidence:.2f}")
 
-        return RAGResponse(
+        yield {"type": "done", "response": RAGResponse(
             answer=answer,
             sources=retrieval_results,
             query=question,
@@ -325,27 +451,7 @@ Answer using only the excerpts above, citing them by number."""
             mode=mode,
             model=model,
             citations=citations,
-        )
-
-    async def stream_query(self,
-                           question: str,
-                           num_documents: int = 5,
-                           filter_metadata: Optional[Dict] = None):
-        """Yield progress events followed by the final answer."""
-        try:
-            yield {"status": "retrieving", "message": "Searching legal documents..."}
-            response = await self.query(question, num_documents, filter_metadata)
-            yield {"status": "retrieved", "sources": [asdict(r) for r in response.sources]}
-            yield {
-                "status": "complete",
-                "answer": response.answer,
-                "confidence": response.confidence_score,
-                "tokens_used": response.total_tokens_used,
-                "mode": response.mode,
-            }
-        except Exception as e:
-            logger.error(f"Streaming RAG failed: {e}")
-            yield {"status": "error", "message": str(e)}
+        )}
 
 
 # Global RAG pipeline instance

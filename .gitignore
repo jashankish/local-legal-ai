@@ -29,3 +29,7 @@ uploads/
 # n8n local configuration
 workflows/n8n/n8n.env
 workflows/n8n/dropzone/
+
+# Local model runtime and weights (model/llamacpp_launcher.sh)
+model/.venv/
+model/models/

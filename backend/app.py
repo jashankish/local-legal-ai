@@ -697,75 +697,88 @@ async def upload_document(
         )
 
 # RAG Query endpoints
+def _source_dicts(retrieval_results) -> List[Dict[str, Any]]:
+    return [
+        {
+            "document_id": src.metadata.get("document_id", src.document_id),
+            "chunk_id": src.document_id,
+            "content": src.content,
+            "metadata": src.metadata,
+            "similarity_score": src.similarity_score,
+            "chunk_index": src.chunk_index,
+        }
+        for src in retrieval_results
+    ]
+
+
+def _finalize_answer(question: str, username: str, result) -> RAGQueryResponse:
+    """Shape a pipeline result for the API and record analytics and the audit event."""
+    sources = _source_dicts(result.sources)
+
+    # Entities come from the passages the answer cites (all sources if none are cited).
+    cited = [sources[n - 1] for n in result.citations if 0 < n <= len(sources)] or sources
+    legal_entities = extract_legal_entities("\n".join(s["content"] for s in cited))
+    query_suggestions = suggest_follow_ups(
+        question,
+        dict.fromkeys(s["metadata"].get("legal_document_type") or s["metadata"].get("category", "")
+                      for s in sources),
+    )
+
+    query_type = classify_query(question)
+    analytics_manager.log_query(QueryMetrics(
+        query_id=uuid.uuid4().hex,
+        query_text=question,
+        timestamp=datetime.now(),
+        processing_time=result.processing_time or 0.0,
+        similarity_scores=[s["similarity_score"] for s in sources],
+        documents_retrieved=len({s["document_id"] for s in sources}),
+        user_id=username,
+        query_type=query_type,
+        document_ids=[s["document_id"] for s in sources],
+    ))
+    track(username, "query.ask", details={
+        "question": question[:300],
+        "query_type": query_type,
+        "mode": result.mode,
+        "documents": sorted({s["document_id"] for s in sources}),
+    })
+
+    return RAGQueryResponse(
+        answer=result.answer,
+        sources=sources,
+        query=question,
+        total_tokens_used=result.total_tokens_used,
+        processing_time=result.processing_time,
+        confidence_score=result.confidence_score,
+        mode=result.mode,
+        model=result.model,
+        citations=result.citations,
+        legal_entities=legal_entities,
+        query_suggestions=query_suggestions,
+    )
+
+
+def _validate_query(request: RAGQueryRequest):
+    if not request.question.strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty")
+    if get_rag_pipeline is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="RAG pipeline unavailable")
+
+
 @app.post("/query", response_model=RAGQueryResponse)
 async def query_documents(
     request: RAGQueryRequest,
     current_user: User = Depends(get_current_active_user)
 ):
     """Answer a question from the document corpus via the RAG pipeline."""
-    if not request.question.strip():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question cannot be empty")
-    if get_rag_pipeline is None:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="RAG pipeline unavailable")
+    _validate_query(request)
     try:
         result = await get_rag_pipeline().query(
             question=request.question,
             num_documents=max(1, min(request.num_documents, 20)),
             filter_metadata=request.filter_metadata
         )
-        sources = [
-            {
-                "document_id": src.metadata.get("document_id", src.document_id),
-                "chunk_id": src.document_id,
-                "content": src.content,
-                "metadata": src.metadata,
-                "similarity_score": src.similarity_score,
-                "chunk_index": src.chunk_index,
-            }
-            for src in result.sources
-        ]
-
-        # Entities come from the passages the answer cites (all sources if none are cited).
-        cited = [sources[n - 1] for n in result.citations if 0 < n <= len(sources)] or sources
-        legal_entities = extract_legal_entities("\n".join(s["content"] for s in cited))
-        query_suggestions = suggest_follow_ups(
-            request.question,
-            dict.fromkeys(s["metadata"].get("legal_document_type") or s["metadata"].get("category", "")
-                          for s in sources),
-        )
-
-        query_type = classify_query(request.question)
-        analytics_manager.log_query(QueryMetrics(
-            query_id=uuid.uuid4().hex,
-            query_text=request.question,
-            timestamp=datetime.now(),
-            processing_time=result.processing_time or 0.0,
-            similarity_scores=[s["similarity_score"] for s in sources],
-            documents_retrieved=len({s["document_id"] for s in sources}),
-            user_id=current_user.username,
-            query_type=query_type,
-            document_ids=[s["document_id"] for s in sources],
-        ))
-        track(current_user.username, "query.ask", details={
-            "question": request.question[:300],
-            "query_type": query_type,
-            "mode": result.mode,
-            "documents": sorted({s["document_id"] for s in sources}),
-        })
-
-        return RAGQueryResponse(
-            answer=result.answer,
-            sources=sources,
-            query=request.question,
-            total_tokens_used=result.total_tokens_used,
-            processing_time=result.processing_time,
-            confidence_score=result.confidence_score,
-            mode=result.mode,
-            model=result.model,
-            citations=result.citations,
-            legal_entities=legal_entities,
-            query_suggestions=query_suggestions,
-        )
+        return _finalize_answer(request.question, current_user.username, result)
     except HTTPException:
         raise
     except Exception as e:
@@ -774,6 +787,44 @@ async def query_documents(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Query processing failed: {str(e)}"
         )
+
+
+@app.post("/query/stream")
+async def query_documents_stream(
+    request: RAGQueryRequest,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Stream an answer as newline-delimited JSON events.
+
+    {"type": "sources", "sources": [...]}   retrieved passages, sent first
+    {"type": "token", "text": "..."}          answer fragments as they are generated
+    {"type": "done", "result": {...}}         the complete /query response
+    {"type": "error", "detail": "..."}        if processing fails part-way
+    """
+    _validate_query(request)
+    username = current_user.username
+
+    async def events():
+        try:
+            async for event in get_rag_pipeline().stream_query(
+                question=request.question,
+                num_documents=max(1, min(request.num_documents, 20)),
+                filter_metadata=request.filter_metadata,
+            ):
+                if event["type"] == "sources":
+                    payload = {"type": "sources", "sources": _source_dicts(event["sources"])}
+                elif event["type"] == "token":
+                    payload = event
+                else:
+                    final = _finalize_answer(request.question, username, event["response"])
+                    payload = {"type": "done", "result": final.model_dump()}
+                yield json.dumps(payload, default=str) + "\n"
+        except Exception as e:
+            logger.error(f"Streaming query error: {e}")
+            yield json.dumps({"type": "error", "detail": f"Query processing failed: {e}"}) + "\n"
+
+    return StreamingResponse(events(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 # Alternative query endpoint for frontend compatibility
 @app.post("/documents/query")

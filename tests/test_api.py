@@ -90,13 +90,15 @@ def test_generative_answer_when_llm_available(client, admin_headers, monkeypatch
     async def fake_status(force=False):
         return {"available": True, "state": "healthy"}
 
-    async def fake_chat(messages):
+    async def fake_chat_stream(messages):
         prompt = messages[-1]["content"]
         assert "[1]" in prompt and "QUESTION:" in prompt
-        return "The monthly retainer is $15,000 [1].", 42, "test-model"
+        for fragment in ("The monthly retainer ", "is $15,000 [1]."):
+            yield "delta", fragment
+        yield "done", {"model": "test-model", "tokens": 42}
 
     monkeypatch.setattr(llm, "status", fake_status)
-    monkeypatch.setattr(llm, "chat", fake_chat)
+    monkeypatch.setattr(llm, "chat_stream", fake_chat_stream)
 
     document_id = upload(client, admin_headers, name="fees.txt").json()["document_id"]
     answer = client.post(

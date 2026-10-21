@@ -151,11 +151,22 @@
 - [✅] Fifth sample (`samples/inbox/`) and `seed_demo.py --inbox-dir`; Integrations screenshot; inbox path shown project-relative (no home directories in the UI)
 - [✅] Test suite: 29 tests (6 new: signed delivery and redaction via a real HTTP receiver, Slack text, test endpoint and masking, inbox success/failure/quarantine, write-stability wait, admin-only access)
 
+## Phase 14: Streaming Answers, Real-Model Verification & Grounding ✅ **COMPLETE** (2026-10-20)
+- [✅] `LLMClient.chat_stream()` parses OpenAI-style SSE (vLLM, Ollama, llama.cpp); truncated streams (no `[DONE]`/`finish_reason`) are detected
+- [✅] `stream_query()` is the single pipeline implementation (`sources` → `token`* → `done`); `query()` consumes it
+- [✅] `POST /query/stream` (NDJSON); shared `_finalize_answer()` for analytics, audit, key terms and follow-ups
+- [✅] Ask page streams the answer word by word (`st.write_stream`), then files it in the history with sources
+- [✅] First verification against a real local model (Qwen2.5-1.5B-Instruct via llama.cpp): generated, cited answers; first token ≈ 0.5 s; confirmed progressive rendering in a browser
+- [✅] Grounding gate: questions with no term overlap with the best passages get mode `no_match` and never reach the model (it answered "Paris" for "capital of France" before)
+- [✅] Citation hardening for small models: explicit end-of-prompt instruction, strong-overlap attribution of uncited sentences, caution on answers with no citations
+- [✅] `model/llamacpp_launcher.sh`: one-command, no-GPU model server matching the default `.env`
+- [✅] README screenshots re-captured with real generated answers
+- [✅] Test suite: 37 tests (8 new, including a real SSE model server, mid-stream disconnect, off-topic refusal and attribution rules)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service)
-- [ ] UI polish pass for demo: consistent styling, login page branding, empty states
-- [ ] Streaming answers in chat
+- [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service) — needs a running Docker daemon to verify
+- [ ] Empty-state review of every page on a fresh install with no documents
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 

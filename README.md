@@ -15,7 +15,8 @@ machine. No third-party AI APIs are called.
 | 👥 User administration, forced first-login password change, instant session revocation | ✅ |
 | 📄 PDF, DOCX and TXT ingestion with legal document-type detection | ✅ |
 | 📚 Semantic search over an embedded ChromaDB store | ✅ |
-| 🧾 Cited answers from a local LLM (vLLM or Ollama) | ✅ |
+| 🧾 Cited answers from a local LLM (llama.cpp, Ollama or vLLM), streamed word by word | ✅ |
+| 🧭 Grounding guard: off-topic questions are refused, uncited answers are flagged | ✅ |
 | 🪶 Extractive answer mode when no model is running (no GPU required) | ✅ |
 | 🏛 Key-term extraction (parties, amounts, periods, dates, governing law) and follow-up suggestions | ✅ |
 | 🗂 Document library: per-document listing, search, delete | ✅ |
@@ -31,7 +32,8 @@ Progress and the remaining roadmap live in [`phases.md`](phases.md).
 
 All screenshots come from a fresh instance loaded with the fictional sample
 agreements in [`samples/`](samples/) (see [Try it with sample data](#-try-it-with-sample-data)).
-No language model was connected, so answers are shown in extractive mode.
+Answers were generated on the same laptop by Qwen2.5-1.5B-Instruct running
+under llama.cpp (`bash model/llamacpp_launcher.sh`), served as `legal-ai-model`.
 
 ### Sign in
 A local login page. Credentials are checked by the API (bcrypt + JWT); nothing
@@ -52,10 +54,12 @@ by clause and indexed locally; a preview is shown before processing.
 ![Upload page](docs/screenshots/03_upload.png)
 
 ### Ask your documents
-Every answer cites numbered passages. Parties, amounts, notice periods, dates and
+Answers stream in word by word as the local model writes them, and every
+sentence cites a numbered passage. Parties, amounts, notice periods, dates and
 governing law found in the cited text are pulled out, and follow-up questions
-are suggested for the document types involved. (Full-size view at the top of
-this page.)
+are suggested for the document types involved. Questions the library doesn't
+cover are refused rather than answered from the model's general knowledge.
+(Full-size view at the top of this page.)
 
 ### Document library
 Documents grouped by category with search, details and delete (uploader or admin).
@@ -146,17 +150,23 @@ sentences from your documents, each cited. To get generated answers, run any
 OpenAI-compatible server and point `.env` at it:
 
 ```bash
-# Option A — Ollama (Mac/Linux, CPU or Apple Silicon)
+# Option A — llama.cpp, no GPU needed (CPU or Apple Silicon); works with the default .env
+bash model/llamacpp_launcher.sh        # first run builds llama.cpp and downloads a 1 GB model
+
+# Option B — Ollama
 ollama pull llama3.1:8b
 # .env: MODEL_ENDPOINT=http://localhost:11434  MODEL_NAME=llama3.1:8b
 
-# Option B — vLLM on an NVIDIA GPU
+# Option C — vLLM on an NVIDIA GPU (larger models)
 bash model/vllm_launcher.sh
 # .env: MODEL_ENDPOINT=http://localhost:8001   MODEL_NAME=legal-ai-model
 ```
 
-Restart with `./start_system.sh`. `GET /health` reports the model as `healthy`
-once it is reachable, and each answer is labelled with the mode that produced it.
+`GET /health` reports the model as `healthy` once it is reachable (checked every
+30 s, no restart needed), and each answer is labelled with the mode that
+produced it. On an M-series MacBook the default 1.5B model starts answering in
+about half a second. Larger models give richer answers; any of them works with
+the same settings.
 
 ### 🧪 Try it with sample data
 
