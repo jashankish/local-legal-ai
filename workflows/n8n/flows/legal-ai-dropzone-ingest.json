@@ -1,0 +1,100 @@
+{
+  "name": "Local Legal AI - Drop-zone ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "/files/dropzone",
+        "events": ["add"],
+        "options": {
+          "awaitWriteFinish": true,
+          "ignored": "**/.*"
+        }
+      },
+      "id": "1d2e3f40-5a6b-4c7d-8e9f-0a1b2c3d4e11",
+      "name": "New file in drop zone",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEGAL_AI_URL }}/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: $env.LEGAL_AI_USERNAME, password: $env.LEGAL_AI_PASSWORD }) }}",
+        "options": {}
+      },
+      "id": "2e3f4a51-6b7c-4d8e-9f0a-1b2c3d4e5f12",
+      "name": "Sign in to Local Legal AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "={{ $('New file in drop zone').item.json.path }}",
+        "options": {}
+      },
+      "id": "3f4a5b62-7c8d-4e9f-a0b1-2c3d4e5f6a13",
+      "name": "Read file",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEGAL_AI_URL }}/documents/upload",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Sign in to Local Legal AI').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "category",
+              "value": "={{ $env.LEGAL_AI_DROPZONE_CATEGORY || 'general' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4a5b6c73-8d9e-4f0a-b1c2-3d4e5f6a7b14",
+      "name": "Upload to Local Legal AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "New file in drop zone": {
+      "main": [[{ "node": "Sign in to Local Legal AI", "type": "main", "index": 0 }]]
+    },
+    "Sign in to Local Legal AI": {
+      "main": [[{ "node": "Read file", "type": "main", "index": 0 }]]
+    },
+    "Read file": {
+      "main": [[{ "node": "Upload to Local Legal AI", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

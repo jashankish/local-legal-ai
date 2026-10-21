@@ -6,10 +6,12 @@ import logging
 import json
 import uuid
 import re
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Form, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, Response
 import numpy as np
@@ -33,10 +35,20 @@ from backend.auth import (
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
 from rag.legal_insights import extract_legal_entities, suggest_follow_ups
 from security.audit_log import get_audit_logger, request_context
+from backend.integrations import EventNotifier
+from backend.folder_watcher import FolderWatcher
 from vector_store.chromadb_setup import chroma_manager
 
 analytics_manager = AnalyticsManager()
 audit = get_audit_logger()
+notifier = EventNotifier(
+    n8n_url=settings.n8n_webhook_url,
+    slack_url=settings.slack_webhook_url,
+    secret=settings.webhook_secret,
+    events=settings.notify_events.split(","),
+    instance_name=settings.app_name,
+)
+inbox_watcher: Optional[FolderWatcher] = None
 
 USERNAME_PATTERN = re.compile(r"[A-Za-z0-9._-]{3,32}")
 
@@ -90,10 +102,25 @@ async def lifespan(app: FastAPI):
         
     except Exception as e:
         logger.error(f"Startup error: {e}")
-    
+
+    global inbox_watcher
+    if settings.inbox_enabled:
+        inbox_watcher = FolderWatcher(
+            settings.inbox_dir, ingest_document,
+            interval_seconds=settings.inbox_poll_seconds,
+            on_failure=lambda name, category, error: track(
+                "inbox", "document.upload", "failure",
+                details={"filename": name, "category": category, "error": error[:200], "channel": "inbox"}),
+        )
+        inbox_watcher.start()
+
     yield
-    
+
     logger.info("Shutting down Local Legal AI API...")
+    if inbox_watcher:
+        inbox_watcher.stop()
+    notifier.flush(timeout=5)
+    notifier.stop()
 
 app = FastAPI(
     title="Local Legal AI",
@@ -123,7 +150,7 @@ async def access_control_middleware(request: Request, call_next):
     })
     try:
         if not ip_whitelist.is_allowed(client_ip):
-            audit.record("access.ip_denied", status="denied", resource=request.url.path)
+            track(None, "access.ip_denied", "denied", resource=request.url.path)
             return JSONResponse(status_code=status.HTTP_403_FORBIDDEN,
                                 content={"detail": "IP address not allowed"})
         return await call_next(request)
@@ -133,10 +160,12 @@ async def access_control_middleware(request: Request, call_next):
 
 def track(user: Optional[str], action: str, status_: str = "success",
           resource: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
-    """Record an event in the audit trail and the analytics activity feed."""
+    """Record an event in the audit trail, the analytics activity feed and outbound notifications."""
     audit.record(action, username=user, status=status_, resource=resource, details=details)
     if user and status_ == "success":
         analytics_manager.log_user_activity(user, action, details)
+    notifier.notify_action(action, status_, actor=user, resource=resource, details=details,
+                           ip=request_context.get().get("ip"))
 
 class LoginRequest(BaseModel):
     username: str
@@ -507,6 +536,138 @@ async def delete_document(document_id: str, current_user: User = Depends(get_cur
         )
 
 # Document upload endpoint
+CONTENT_TYPES_BY_EXTENSION = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain",
+}
+_index_lock = threading.Lock()  # uploads and the inbox watcher both write to ChromaDB
+
+
+class IngestError(Exception):
+    """A document was rejected before processing (unsupported, empty, too large)."""
+
+    def __init__(self, status_code: int, detail: str):
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
+
+
+def ingest_document(content: bytes, filename: str, uploaded_by: str,
+                    title: Optional[str] = None, category: Optional[str] = "general",
+                    content_type: Optional[str] = None, channel: str = "upload") -> Dict[str, Any]:
+    """Extract, chunk and index one document; shared by the upload API and the inbox watcher.
+
+    Raises IngestError for rejected input and lets processing errors propagate.
+    """
+    start_time = datetime.now()
+    filename = filename or ""
+    # Browsers and file systems report MIME types inconsistently; trust the extension.
+    content_type = CONTENT_TYPES_BY_EXTENSION.get(os.path.splitext(filename.lower())[1], content_type)
+    category = category or "general"
+    logger.info(f"Processing file: {filename}, Content type: {content_type}, channel: {channel}")
+
+    if USE_ENHANCED_PROCESSOR:
+        supported_formats = enhanced_processor.get_supported_formats()
+        if content_type not in supported_formats:
+            dependencies = enhanced_processor.check_dependencies()
+            missing_deps = [k for k, v in dependencies.items() if not v]
+            raise IngestError(status.HTTP_400_BAD_REQUEST,
+                              f"Unsupported file type: {content_type or os.path.splitext(filename)[1] or 'unknown'}. "
+                              f"Supported: PDF, DOCX, TXT."
+                              + (f" Missing dependencies: {missing_deps}" if missing_deps else ""))
+    elif content_type != "text/plain":
+        raise IngestError(status.HTTP_400_BAD_REQUEST,
+                          f"Unsupported file type: {content_type}. Enhanced processor not available.")
+
+    max_bytes = settings.max_file_size_mb * 1024 * 1024
+    if len(content) > max_bytes:
+        raise IngestError(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                          f"File exceeds the {settings.max_file_size_mb} MB upload limit")
+    if not content:
+        raise IngestError(status.HTTP_400_BAD_REQUEST, "File is empty")
+
+    document_id = uuid.uuid4().hex[:16]
+    document_metadata = {
+        "document_id": document_id,
+        "filename": filename,
+        "source": title or filename,
+        "category": category,
+        "uploaded_by": uploaded_by,
+        "upload_date": datetime.now().isoformat(),
+        "content_type": content_type,
+        "file_size": len(content),
+        "ingest_channel": channel,
+    }
+
+    if USE_ENHANCED_PROCESSOR:
+        processed_result = enhanced_processor.process_document(
+            file_content=content,
+            filename=filename,
+            content_type=content_type,
+            metadata=document_metadata
+        )
+        text_content = processed_result['text']
+        enhanced_metadata = {**document_metadata, **processed_result}
+        enhanced_metadata.pop('text', None)
+        logger.info(f"Enhanced processing complete. Text length: {len(text_content)}, "
+                    f"Extraction method: {enhanced_metadata.get('extraction_method', 'unknown')}")
+    else:
+        text_content = content.decode('utf-8', errors='ignore')
+        enhanced_metadata = dict(document_metadata)
+
+    # Validate that we have actual text content, not binary data
+    if text_content and text_content.startswith('%PDF'):
+        raise RuntimeError("PDF text extraction failed - raw binary data detected")
+
+    # Chunk only: ChromaDB computes vectors with the collection's embedding function.
+    chunks, _ = get_embedder().process_document(
+        text=text_content,
+        metadata=enhanced_metadata,
+        return_embeddings=False
+    )
+
+    chunks_processed = 0
+    if chunks:
+        texts = [chunk['text'] for chunk in chunks]
+        # ChromaDB metadata values must be scalars
+        metadatas = [
+            {k: v for k, v in chunk['metadata'].items() if isinstance(v, (str, int, float, bool))}
+            for chunk in chunks
+        ]
+        ids = [f"{document_id}-{i:04d}" for i in range(len(chunks))]
+        with _index_lock:
+            success = chroma_manager.add_documents(texts=texts, metadatas=metadatas, ids=ids)
+        if not success:
+            raise RuntimeError("Vector store rejected the document chunks")
+        chunks_processed = len(chunks)
+        logger.info(f"Stored {chunks_processed} chunks in ChromaDB with document ID: {document_id}")
+
+    processing_time = (datetime.now() - start_time).total_seconds()
+    analytics_manager.log_document_upload(DocumentMetrics(
+        document_id=document_id,
+        filename=filename,
+        uploader_id=uploaded_by,
+        upload_timestamp=datetime.now(),
+        file_size=len(content),
+        chunks_created=chunks_processed,
+        processing_time=processing_time,
+        document_type=str(enhanced_metadata.get("legal_document_type")
+                          or enhanced_metadata.get("document_type", "general")),
+    ))
+    track(uploaded_by, "document.upload", resource=document_id, details={
+        "filename": filename, "title": title or filename, "category": category,
+        "size_bytes": len(content), "chunks": chunks_processed, "channel": channel,
+        "document_type": str(enhanced_metadata.get("legal_document_type") or "general"),
+    })
+    return {
+        "document_id": document_id,
+        "chunks_processed": chunks_processed,
+        "processing_time": processing_time,
+        "message": f"Document '{title or filename}' indexed: {chunks_processed} passages in {processing_time:.1f}s",
+    }
+
+
 @app.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
@@ -514,206 +675,25 @@ async def upload_document(
     category: Optional[str] = Form("general"),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Upload and process a legal document with enhanced Phase 4 capabilities."""
+    """Upload a PDF, DOCX or TXT file; it is extracted, split clause by clause and indexed."""
     start_time = datetime.now()
-    
-    # Fix content type detection - browser might send wrong MIME type
-    content_type = file.content_type
-    filename = file.filename or ""
-    
-    # Override content type based on file extension if needed
-    if filename.lower().endswith('.pdf'):
-        content_type = 'application/pdf'
-        logger.info(f"Corrected content type for {filename}: {content_type}")
-    elif filename.lower().endswith('.docx'):
-        content_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        logger.info(f"Corrected content type for {filename}: {content_type}")
-    elif filename.lower().endswith('.txt'):
-        content_type = 'text/plain'
-    
-    logger.info(f"Processing file: {filename}, Content type: {content_type}")
-    
-    # Enhanced validation with Phase 4 processor
-    if USE_ENHANCED_PROCESSOR:
-        supported_formats = enhanced_processor.get_supported_formats()
-        if content_type not in supported_formats:
-            dependencies = enhanced_processor.check_dependencies()
-            missing_deps = [k for k, v in dependencies.items() if not v]
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type: {content_type}. "
-                       f"Supported: {supported_formats}. "
-                       f"Missing dependencies: {missing_deps}"
-            )
-    else:
-        # Fallback validation
-        allowed_types = ["text/plain"]
-        if content_type not in allowed_types:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type: {content_type}. Enhanced processor not available."
-            )
-    
+    content = await file.read()
     try:
-        # Read file content
-        content = await file.read()
-        max_bytes = settings.max_file_size_mb * 1024 * 1024
-        if len(content) > max_bytes:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"File exceeds the {settings.max_file_size_mb} MB upload limit"
-            )
-        if not content:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
-
-        document_id = uuid.uuid4().hex[:16]
-        logger.info(f"Read {len(content)} bytes from {filename}")
-        
-        # Process document with enhanced processor if available
-        if USE_ENHANCED_PROCESSOR:
-            # Use enhanced document processor
-            document_metadata = {
-                "document_id": document_id,
-                "filename": file.filename,
-                "source": title or file.filename,
-                "category": category,
-                "uploaded_by": current_user.username,
-                "upload_date": datetime.now().isoformat(),
-                "content_type": content_type,  # Use corrected content type
-                "file_size": len(content)
-            }
-            
-            logger.info(f"Processing with enhanced processor: {content_type}")
-            
-            # Process document with enhanced capabilities
-            processed_result = enhanced_processor.process_document(
-                file_content=content,
-                filename=file.filename,
-                content_type=content_type,  # Use corrected content type
-                metadata=document_metadata
-            )
-            
-            text_content = processed_result['text']
-            enhanced_metadata = {**document_metadata, **processed_result}
-            
-            # Remove the text content from metadata to avoid duplication
-            enhanced_metadata.pop('text', None)
-            
-            logger.info(f"Enhanced processing complete. Text length: {len(text_content)}, "
-                       f"Extraction method: {enhanced_metadata.get('extraction_method', 'unknown')}")
-            
-        else:
-            # Fallback to simple text processing
-            if content_type == "text/plain":
-                text_content = content.decode('utf-8')
-            else:
-                try:
-                    text_content = content.decode('utf-8', errors='ignore')
-                except Exception:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Could not process file content. Please ensure it's a valid text file."
-                    )
-            
-            enhanced_metadata = {
-                "document_id": document_id,
-                "filename": file.filename,
-                "source": title or file.filename,
-                "category": category,
-                "uploaded_by": current_user.username,
-                "upload_date": datetime.now().isoformat(),
-                "content_type": content_type,
-                "file_size": len(content)
-            }
-        
-        # Validate that we have actual text content, not binary data
-        if text_content and text_content.startswith('%PDF'):
-            logger.error(f"ERROR: Text content appears to be raw PDF binary data for {filename}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="PDF text extraction failed - raw binary data detected"
-            )
-        
-        # Get embedder and process document
-        embedder = get_embedder()
-        
-        # Process document using the embedder
-        # Chunk only: ChromaDB computes vectors with the collection's embedding function.
-        chunks, _ = embedder.process_document(
-            text=text_content,
-            metadata=enhanced_metadata,
-            return_embeddings=False
+        result = await run_in_threadpool(
+            ingest_document, content, file.filename or "", current_user.username,
+            title, category, file.content_type, "upload",
         )
-        
-        # Store chunks in ChromaDB
-        chunks_processed = 0
-        
-        if chunks:
-            # Prepare data for ChromaDB
-            texts = [chunk['text'] for chunk in chunks]
-            # ChromaDB metadata values must be scalars
-            metadatas = [
-                {k: v for k, v in chunk['metadata'].items() if isinstance(v, (str, int, float, bool))}
-                for chunk in chunks
-            ]
-            ids = [f"{document_id}-{i:04d}" for i in range(len(chunks))]
-            
-            # Store in ChromaDB
-            success = chroma_manager.add_documents(
-                texts=texts,
-                metadatas=metadatas,
-                ids=ids
-            )
-            
-            if success:
-                chunks_processed = len(chunks)
-                logger.info(f"Successfully stored {chunks_processed} chunks in ChromaDB with document ID: {document_id}")
-            else:
-                logger.error("Failed to store documents in ChromaDB")
-                raise RuntimeError("Vector store rejected the document chunks")
-        
-        processing_time = (datetime.now() - start_time).total_seconds()
-        
-        # Enhanced response with processing details
-        success_message = (f"Document '{title or file.filename}' indexed: "
-                           f"{chunks_processed} passages in {processing_time:.1f}s")
-
-        analytics_manager.log_document_upload(DocumentMetrics(
-            document_id=document_id,
-            filename=file.filename,
-            uploader_id=current_user.username,
-            upload_timestamp=datetime.now(),
-            file_size=len(content),
-            chunks_created=chunks_processed,
-            processing_time=processing_time,
-            document_type=str(enhanced_metadata.get("legal_document_type")
-                              or enhanced_metadata.get("document_type", "general")),
-        ))
-        track(current_user.username, "document.upload", resource=document_id, details={
-            "filename": file.filename, "category": category,
-            "size_bytes": len(content), "chunks": chunks_processed,
-        })
-
-        return DocumentUploadResponse(
-            success=True,
-            message=success_message,
-            document_id=document_id,
-            chunks_processed=chunks_processed,
-            processing_time=processing_time
-        )
-        
-    except HTTPException:
-        raise
+        return DocumentUploadResponse(success=True, **result)
+    except IngestError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except Exception as e:
         logger.error(f"Document upload error: {e}")
-        processing_time = (datetime.now() - start_time).total_seconds()
         track(current_user.username, "document.upload", "failure",
-              details={"filename": file.filename, "error": str(e)[:200]})
-
+              details={"filename": file.filename, "error": str(e)[:200], "channel": "upload"})
         return DocumentUploadResponse(
             success=False,
             message=f"Failed to process document: {str(e)}",
-            processing_time=processing_time
+            processing_time=(datetime.now() - start_time).total_seconds()
         )
 
 # RAG Query endpoints
@@ -996,6 +976,42 @@ async def export_audit_log(
     filename = f"audit_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(content=csv_text, media_type="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+# Integrations (admin only)
+@app.get("/integrations/status")
+async def integrations_status(current_user: User = Depends(require_admin)):
+    """Webhook targets, recent deliveries and inbox watcher state."""
+    return {
+        "notifications": notifier.status(),
+        "inbox": inbox_watcher.status() if inbox_watcher else {"running": False, "enabled": False},
+    }
+
+
+@app.post("/integrations/test")
+async def send_test_notification(current_user: User = Depends(require_admin)):
+    """Send a test event to every configured target and report the outcome."""
+    if not notifier.enabled:
+        raise HTTPException(status_code=400,
+                            detail="No webhook configured. Set N8N_WEBHOOK_URL and/or SLACK_WEBHOOK_URL in .env")
+    event = notifier.build_event("integration.test", "success", current_user.username, None,
+                                 {"message": "Test notification"}, request_context.get().get("ip"))
+    if event is None:
+        raise HTTPException(status_code=400, detail="integration.test is excluded by NOTIFY_EVENTS")
+    deliveries = await run_in_threadpool(notifier.deliver, event)
+    audit.record("integration.test", username=current_user.username,
+                 status="success" if all(d["ok"] for d in deliveries) else "failure",
+                 details={"deliveries": deliveries})
+    return {"event": event, "deliveries": deliveries}
+
+
+@app.post("/integrations/inbox/scan")
+async def scan_inbox_now(current_user: User = Depends(require_admin)):
+    """Process everything currently in the inbox immediately (skips the stability wait)."""
+    if not inbox_watcher:
+        raise HTTPException(status_code=400, detail="Inbox watcher is disabled (INBOX_ENABLED=false)")
+    counts = await run_in_threadpool(inbox_watcher.scan_once, False)
+    return {"counts": counts, "inbox": inbox_watcher.status()}
+
 
 @app.get("/documents/list")
 async def list_documents_alt(current_user: User = Depends(get_current_active_user)):

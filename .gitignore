@@ -25,3 +25,7 @@ uploads/
 
 # Worktrees
 .claude/
+
+# n8n local configuration
+workflows/n8n/n8n.env
+workflows/n8n/dropzone/

@@ -1,0 +1,126 @@
+{
+  "name": "Local Legal AI - Daily digest to Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 8 * * 1-5" }
+          ]
+        }
+      },
+      "id": "5b6c7d84-9e0f-4a1b-8c2d-4e5f6a7b8c21",
+      "name": "Weekdays at 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 220]
+    },
+    {
+      "parameters": {},
+      "id": "6c7d8e95-0f1a-4b2c-9d3e-5f6a7b8c9d22",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEGAL_AI_URL }}/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ username: $env.LEGAL_AI_USERNAME, password: $env.LEGAL_AI_PASSWORD }) }}",
+        "options": {}
+      },
+      "id": "7d8e9fa6-1a2b-4c3d-8e4f-6a7b8c9d0e23",
+      "name": "Sign in to Local Legal AI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LEGAL_AI_URL }}/analytics/usage?days=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.access_token }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8e9fa0b7-2b3c-4d4e-9f5a-7b8c9d0e1f24",
+      "name": "Usage (last 24h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LEGAL_AI_URL }}/audit/summary?days=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $('Sign in to Local Legal AI').item.json.access_token }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9fa0b1c8-3c4d-4e5f-8a6b-8c9d0e1f2a25",
+      "name": "Audit summary (last 24h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const usage = $('Usage (last 24h)').first().json.data || {};\nconst audit = $input.first().json || {};\nconst q = usage.query_analytics || {};\nconst docs = usage.document_analytics || {};\nconst types = (usage.top_query_types || []).slice(0, 3).map(t => `${t.type} (${t.count})`).join(', ') || 'none';\nconst status = audit.by_status || {};\nconst flagged = (status.failure || 0) + (status.denied || 0);\nconst lines = [\n  ':scales: *Local Legal AI — daily digest*',\n  `• Questions answered: *${q.total_queries || 0}* by ${q.unique_users || 0} people (avg retrieval quality ${(q.avg_similarity_score || 0).toFixed(2)})`,\n  `• Top topics: ${types}`,\n  `• Documents added: *${docs.total_documents || 0}* — library now ${docs.library_documents || 0} documents / ${docs.library_chunks || 0} passages`,\n  `• Failed or denied actions: *${flagged}*${flagged ? ' — review the Audit Log' : ''}`,\n];\nreturn [{ json: { text: lines.join('\\n') } }];\n"
+      },
+      "id": "a0b1c2d9-4d5e-4f6a-9b7c-9d0e1f2a3b26",
+      "name": "Compose digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text }) }}",
+        "options": {}
+      },
+      "id": "b1c2d3ea-5e6f-4a7b-8c8d-0e1f2a3b4c27",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1360, 300]
+    }
+  ],
+  "connections": {
+    "Weekdays at 08:00": {
+      "main": [[{ "node": "Sign in to Local Legal AI", "type": "main", "index": 0 }]]
+    },
+    "Run now": {
+      "main": [[{ "node": "Sign in to Local Legal AI", "type": "main", "index": 0 }]]
+    },
+    "Sign in to Local Legal AI": {
+      "main": [[{ "node": "Usage (last 24h)", "type": "main", "index": 0 }]]
+    },
+    "Usage (last 24h)": {
+      "main": [[{ "node": "Audit summary (last 24h)", "type": "main", "index": 0 }]]
+    },
+    "Audit summary (last 24h)": {
+      "main": [[{ "node": "Compose digest", "type": "main", "index": 0 }]]
+    },
+    "Compose digest": {
+      "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

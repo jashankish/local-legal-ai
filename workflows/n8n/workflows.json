@@ -1,0 +1,8 @@
+{
+  "description": "Index of the Local Legal AI n8n workflows. Import each file separately; see README.md.",
+  "workflows": [
+    {"file": "flows/legal-ai-alerts.json", "name": "Local Legal AI - Event alerts to Slack"},
+    {"file": "flows/legal-ai-dropzone-ingest.json", "name": "Local Legal AI - Drop-zone ingestion"},
+    {"file": "flows/legal-ai-daily-digest.json", "name": "Local Legal AI - Daily digest to Slack"}
+  ]
+}

@@ -22,7 +22,8 @@ machine. No third-party AI APIs are called.
 | 📊 Admin analytics: usage, query types, latency, document similarity, user activity | ✅ |
 | 🛡 Tamper-evident audit log (hash-chained) with filters and CSV export | ✅ |
 | 🌐 IP whitelisting (addresses or CIDR ranges) | ✅ |
-| 🔁 n8n automation (folder ingestion, Slack alerts) | 🚧 planned |
+| 📥 Watched-folder ingestion: drop files in `data/inbox/` and they're indexed | ✅ |
+| 🔁 n8n automation and Slack alerts (signed webhooks, 3 ready-made workflows) | ✅ |
 
 Progress and the remaining roadmap live in [`phases.md`](phases.md).
 
@@ -85,6 +86,17 @@ administrator can't be removed.
 
 ![User administration](docs/screenshots/12_user_admin.png)
 
+### Integrations (admins)
+**Watched inbox:** drop PDF, DOCX or TXT files into `data/inbox/` — or
+`data/inbox/<category>/` — and they're indexed within seconds, then moved to
+`processed/` (or `failed/` with an explanation). **Notifications:** uploads,
+deletions, user changes and security events are sent to n8n (HMAC-signed) and/or
+Slack — metadata only, never document text or questions. Three ready-made n8n
+workflows (Slack alerts, drop-zone ingestion, daily digest) live in
+[`workflows/n8n/`](workflows/n8n/README.md).
+
+![Integrations page](docs/screenshots/14_integrations.png)
+
 ### First sign-in
 The default admin password and every temporary password must be replaced before
 the rest of the app (and the API) becomes available.
@@ -101,9 +113,11 @@ Everything in the UI is available over a documented, token-protected API at
 
 ```
 Browser ─▶ Streamlit UI :8501 ─▶ FastAPI :8000 ─▶ RAG pipeline ─▶ ChromaDB (data/chroma_db)
-                                                       │
-                                                       ▼
-                                  Local LLM, OpenAI-compatible (vLLM :8001 / Ollama :11434)
+                                   │      ▲            │
+            data/inbox/ (watched) ─┘      │            ▼
+                                          │   Local LLM, OpenAI-compatible (vLLM :8001 / Ollama :11434)
+                                          │
+              signed events ─▶ n8n :5678 ─┴─ drop-zone uploads, daily digest ─▶ Slack
 ```
 
 Details, endpoint list and data flow: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -146,18 +160,20 @@ once it is reachable, and each answer is labelled with the mode that produced it
 
 ### 🧪 Try it with sample data
 
-`samples/` contains four fictional agreements — a master services agreement
-(TXT), a mutual NDA (DOCX), a commercial lease (PDF) and an employment agreement
-(TXT). With the system running:
+`samples/` contains fictional agreements — a master services agreement (TXT), a
+mutual NDA (DOCX), a commercial lease (PDF), an employment agreement (TXT) and,
+in `samples/inbox/`, a software licence for the watched-folder demo. With the
+system running:
 
 ```bash
-.venv/bin/python scripts/seed_demo.py --backend http://127.0.0.1:8000
+.venv/bin/python scripts/seed_demo.py --backend http://127.0.0.1:8000 --inbox-dir data/inbox
 ```
 
 On a fresh install this replaces the default admin password with
-`LegalDemo-2025` (override with `--admin-password`), uploads the samples, creates
-a small team and asks a handful of typical questions so the analytics, audit and
-user pages have data. Use it on a fresh instance only.
+`LegalDemo-2025` (override with `--admin-password`), uploads the samples, drops
+the inbox sample into `data/inbox/contracts/`, creates a small team and asks a
+handful of typical questions so the analytics, audit, user and integration pages
+have data. Use it on a fresh instance only.
 
 | Demo account | Password | Role / state |
 |---|---|---|

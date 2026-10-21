@@ -57,9 +57,16 @@ class Settings(BaseSettings):
     allowed_ips: Optional[str] = Field(default=None, env="ALLOWED_IPS")  # Comma-separated IPs or CIDRs
     cors_origins: str = Field(default="http://localhost:8501,http://127.0.0.1:8501", env="CORS_ORIGINS")
     
-    # n8n Integration
+    # Automation & notifications (n8n, Slack)
     n8n_webhook_url: Optional[str] = Field(default=None, env="N8N_WEBHOOK_URL")
     slack_webhook_url: Optional[str] = Field(default=None, env="SLACK_WEBHOOK_URL")
+    webhook_secret: Optional[str] = Field(default=None, env="WEBHOOK_SECRET")
+    notify_events: str = Field(default="", env="NOTIFY_EVENTS")  # comma-separated; empty = all
+
+    # Watched-folder ingestion
+    inbox_enabled: bool = Field(default=True, env="INBOX_ENABLED")
+    inbox_dir: str = Field(default="data/inbox", env="INBOX_DIR")
+    inbox_poll_seconds: float = Field(default=10.0, env="INBOX_POLL_SECONDS")
     
     model_config = {
         "env_file": ".env",

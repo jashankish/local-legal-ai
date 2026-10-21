@@ -123,6 +123,11 @@ def main():
         page.get_by_text("Add a user").wait_for(timeout=60_000)
         shot(page, "12_user_admin", 1150)
 
+        # Integrations (inbox + notifications)
+        navigate(page, "Integrations")
+        page.get_by_text("Watched inbox folder").wait_for(timeout=60_000)
+        shot(page, "14_integrations", 1150)
+
         # Interactive API documentation
         page.goto(f"{args.api}/docs")
         page.get_by_text("Local Legal AI").first.wait_for(timeout=60_000)

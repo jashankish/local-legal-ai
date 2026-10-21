@@ -1,6 +1,6 @@
 """Load the sample library into a running instance and generate realistic activity.
 
-Usage: .venv/bin/python scripts/seed_demo.py [--backend http://127.0.0.1:8000]
+Usage: .venv/bin/python scripts/seed_demo.py [--backend http://127.0.0.1:8000] [--inbox-dir data/inbox]
 
 Signs in as admin (completing the first-login password change if needed),
 uploads every file in samples/, creates a small demo team and asks a set of
@@ -10,6 +10,7 @@ data to show. Run it against a fresh instance; it does not delete anything.
 
 import argparse
 import os
+import shutil
 import sys
 import time
 
@@ -80,6 +81,9 @@ def main():
     parser.add_argument("--backend", default=os.getenv("BACKEND_URL", "http://127.0.0.1:8000"))
     parser.add_argument("--admin-password", default=os.getenv("ADMIN_PASSWORD", "LegalDemo-2025"),
                         help="Password to set for admin on a fresh install (or the current one)")
+    parser.add_argument("--inbox-dir", default=None,
+                        help="The server's INBOX_DIR (e.g. data/inbox); when given, samples/inbox/* is "
+                             "dropped there to demonstrate watched-folder ingestion")
     args = parser.parse_args()
     base = args.backend.rstrip("/")
 
@@ -124,6 +128,14 @@ def main():
             answer = requests.post(f"{base}/query", headers=users[username], timeout=300,
                                    json={"question": question, "num_documents": 4}).json()
             print(f"[{username}] {question} -> {answer.get('mode')} ({answer.get('confidence_score')})")
+    if args.inbox_dir:
+        target = os.path.join(args.inbox_dir, "contracts")
+        os.makedirs(target, exist_ok=True)
+        for name in sorted(os.listdir(os.path.join(ROOT, "samples", "inbox"))):
+            shutil.copy(os.path.join(ROOT, "samples", "inbox", name), os.path.join(target, name))
+            print(f"dropped {name} into {target}")
+        scan = requests.post(f"{base}/integrations/inbox/scan", headers=admin, timeout=300).json()
+        print(f"inbox scan: {scan.get('counts')}")
     print("Demo data loaded.")
 
 

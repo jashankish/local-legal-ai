@@ -55,6 +55,9 @@ FastAPI application. Key endpoints:
 | `GET /audit/summary` | Event counts by action and outcome (admin) |
 | `GET /audit/verify` | Recompute the audit hash chain (admin) |
 | `GET /audit/export` | Audit events as CSV (admin) |
+| `GET /integrations/status` | Inbox watcher state and webhook targets / recent deliveries (admin) |
+| `POST /integrations/test` | Send a test event to every configured target (admin) |
+| `POST /integrations/inbox/scan` | Process the inbox immediately (admin) |
 
 ### Request pipeline
 Every request passes `access_control_middleware`, which (1) rejects clients not in
@@ -77,6 +80,42 @@ a lock and never raise into the request path. Disable with `ENABLE_AUDIT_LOGGING
 Audited actions: `auth.login`, `auth.password_change`, `user.create`, `user.update`, `user.password_reset`, `document.upload`,
 `document.delete`, `query.ask` (question, query type, answer mode, documents
 consulted), `analytics.export`, `audit.verify`, `audit.export`, `access.ip_denied`.
+
+### Ingestion — `ingest_document()` in `backend/app.py`
+One code path for every way a document arrives: validates type (by extension;
+browsers and file systems report MIME types inconsistently), size and
+emptiness (raising `IngestError` → 400/413), extracts, chunks, indexes under a
+lock (uploads and the inbox watcher can run concurrently), then logs analytics
+and the `document.upload` audit event with its `channel` (`upload` or `inbox`).
+The upload endpoint runs it in a worker thread so large PDFs don't block the
+event loop.
+
+### Watched inbox — `backend/folder_watcher.py`
+A polling thread (portable to network shares, where file-system events are
+unreliable) started in the API lifespan when `INBOX_ENABLED=true`. Every
+`INBOX_POLL_SECONDS` it walks `INBOX_DIR`; files in `INBOX_DIR/<category>/` get
+that category. A file is processed only after its size and mtime are unchanged
+across one full scan, so half-copied files are never read. Success → moved to
+`processed/YYYY-MM-DD/`; failure → `failed/` plus `<name>.error.txt`, an audit
+failure event and a `document.ingest_failed` notification. Documents are owned
+by the pseudo-user `inbox` (deletable by admins).
+
+### Notifications — `backend/integrations.py`
+`track()` hands every audit action to `EventNotifier`, which maps a fixed set
+of (action, outcome) pairs to public events (`document.indexed`,
+`security.login_failed`, `user.created`, …; queries are never mapped) and
+queues them for a daemon thread. Delivery: JSON to `N8N_WEBHOOK_URL`, signed
+with `X-LegalAI-Signature: sha256=HMAC(WEBHOOK_SECRET, body)`; a formatted
+message to `SLACK_WEBHOOK_URL`. Three attempts with backoff for network errors,
+5xx and 429; the last 50 deliveries are kept for the Integrations page. Detail
+keys that could hold privileged text (`question`, `answer`, `content`, `text`)
+are stripped. `NOTIFY_EVENTS` restricts the set.
+
+### n8n workflows — `workflows/n8n/flows/`
+Event alerts (webhook → HMAC check → Slack), drop-zone ingestion (local file
+trigger → sign in → multipart upload) and a daily digest (schedule → analytics
+and audit summary → Slack). Verified end to end against n8n 1.123; see
+`workflows/n8n/README.md`.
 
 ### Analytics — `backend/analytics.py`
 SQLite at `data/analytics.db`. The API logs every query (latency, per-document
@@ -172,7 +211,7 @@ randomly generated `SECRET_KEY`. The file must stay valid shell syntax because
 the script sources it.
 
 ## Runtime data (git-ignored)
-`data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`,
+`data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,
 `logs/`, `.env`, `.venv/`.
 
 ## Testing

@@ -141,9 +141,18 @@
 - [✅] Demo seed builds a small team (lawyer, paralegal, pending new hire, disabled former employee) and rotates the admin password; screenshots of the Users page and first sign-in added to the README
 - [✅] Test suite: 23 tests (8 new for user administration and session revocation)
 
+## Phase 13: Automation — Watched Inbox, Webhooks, Slack & n8n ✅ **COMPLETE** (2026-10-20)
+- [✅] Upload logic extracted into `ingest_document()`, shared by the API and the inbox; runs in a worker thread; ChromaDB writes serialised
+- [✅] Watched inbox (`data/inbox/`, category sub-folders, stability check, `processed/` and `failed/` with error notes)
+- [✅] `EventNotifier`: background delivery of 11 public events to n8n (HMAC-SHA256 signed) and Slack, retries, history, privileged fields stripped, questions never sent
+- [✅] `/integrations/status`, `/integrations/test`, `/integrations/inbox/scan`; 🔌 Integrations admin page
+- [✅] Three n8n workflows (alerts, drop-zone ingestion, daily digest) in `workflows/n8n/flows/` with compose file, env template and README
+- [✅] Verified end to end with n8n 1.123: signed events reached a Slack endpoint, forged/unsigned events were dropped, a DOCX in the drop zone was uploaded by the service account, and the digest posted
+- [✅] Fifth sample (`samples/inbox/`) and `seed_demo.py --inbox-dir`; Integrations screenshot; inbox path shown project-relative (no home directories in the UI)
+- [✅] Test suite: 29 tests (6 new: signed delivery and redaction via a real HTTP receiver, Slack text, test endpoint and masking, inbox success/failure/quarantine, write-stability wait, admin-only access)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] n8n workflows: watched-folder ingestion and Slack notifications via `N8N_WEBHOOK_URL`
 - [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service)
 - [ ] UI polish pass for demo: consistent styling, login page branding, empty states
 - [ ] Streaming answers in chat

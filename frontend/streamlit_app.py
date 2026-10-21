@@ -467,6 +467,9 @@ def show_document_upload():
         - The document is split clause by clause ("Section 1", "Section 2", …)
         - Each passage is embedded locally and indexed in ChromaDB
         - The upload is recorded in the audit log
+
+        **Bulk import**
+        - Drop files into `data/inbox/` (or `data/inbox/<category>/`) on the server — they are indexed automatically
         """)
 
 def show_chat_interface():
@@ -796,7 +799,7 @@ def show_files_management():
                                             st.markdown(f"""
                                             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 8px 0; background: #f9f9f9;">
                                                 <div style="font-size: 24px; text-align: center; margin-bottom: 8px;">{icon}</div>
-                                                <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; word-wrap: break-word;">{filename[:25]}</div>
+                                                <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; word-wrap: break-word;" title="{html.escape(filename)}">{html.escape(filename if len(filename) <= 34 else filename[:32] + "…")}</div>
                                                 <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
                                                     {doc.get('upload_date', 'Unknown')[:10]}<br>
                                                     ID: {doc.get('id', 'Unknown')[:8]}...
@@ -1726,6 +1729,110 @@ def show_my_account():
         st.success("Password updated. Other sessions have been signed out.")
 
 
+def show_integrations():
+    """Admin view of the watched inbox folder and outbound n8n / Slack notifications."""
+    st.title("🔌 Integrations")
+    st.markdown("*Automatic ingestion from a watched folder, and event notifications to n8n and Slack.*")
+    if st.session_state.get("user_info", {}).get("role") != "admin":
+        st.error("Admin access required")
+        return
+
+    response = requests.get(f"{BACKEND_URL}/integrations/status", headers=auth_headers(), timeout=10)
+    if response.status_code != 200:
+        st.error(f"Failed to load integration status: {api_error(response)}")
+        return
+    status_data = response.json()
+    inbox = status_data.get("inbox", {})
+    notifications = status_data.get("notifications", {})
+
+    # --- Watched folder -------------------------------------------------------------
+    with st.container(border=True):
+        head, action = st.columns([4, 1])
+        with head:
+            st.markdown("#### 📥 Watched inbox folder")
+            if inbox.get("running"):
+                st.caption(f"Checking `{inbox.get('inbox_dir')}` every {inbox.get('interval_seconds', 0):.0f}s. "
+                           "Drop PDF, DOCX or TXT files in it — or in a sub-folder named after a category, "
+                           "e.g. `contracts/` — and they are indexed automatically.")
+            else:
+                st.caption("The inbox watcher is disabled (`INBOX_ENABLED=false`).")
+        with action:
+            if inbox.get("running") and st.button("🔄 Scan now", key="scan_inbox", width="stretch"):
+                scan = requests.post(f"{BACKEND_URL}/integrations/inbox/scan", headers=auth_headers(), timeout=600)
+                if scan.status_code == 200:
+                    counts = scan.json()["counts"]
+                    st.toast(f"Indexed {counts['processed']}, failed {counts['failed']}")
+                    st.rerun()
+                else:
+                    st.error(api_error(scan))
+        if inbox.get("running"):
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Indexed", inbox.get("processed", 0))
+            col2.metric("Failed", inbox.get("failed", 0))
+            col3.metric("Waiting", inbox.get("waiting", 0))
+            col4.metric("Last check", str(inbox.get("last_scan") or "—")[11:19] or "—")
+            recent = inbox.get("recent", [])
+            if recent:
+                st.dataframe(pd.DataFrame([{
+                    "Time": r["timestamp"].replace("T", " "),
+                    "File": r["file"],
+                    "Category": pretty_label(r.get("category")),
+                    "Result": f"✅ {r.get('passages')} passages" if r.get("ok") else f"❌ {r.get('error')}",
+                    "Moved to": r.get("moved_to", ""),
+                } for r in recent]), width="stretch", hide_index=True)
+            else:
+                st.caption("No files processed since the server started.")
+
+    # --- Notifications --------------------------------------------------------------
+    with st.container(border=True):
+        head, action = st.columns([4, 1])
+        with head:
+            st.markdown("#### 📣 Event notifications")
+            st.caption("Uploads, deletions, user changes and security events are sent as JSON to n8n and/or as "
+                       "messages to Slack. Only metadata is sent — never document text or questions.")
+        with action:
+            if notifications.get("enabled") and st.button("📨 Send test event", key="send_test_event", width="stretch"):
+                test = requests.post(f"{BACKEND_URL}/integrations/test", headers=auth_headers(), timeout=60)
+                if test.status_code == 200:
+                    for delivery in test.json()["deliveries"]:
+                        if delivery["ok"]:
+                            st.success(f"{delivery['target']}: delivered (HTTP {delivery['status_code']})")
+                        else:
+                            st.error(f"{delivery['target']}: failed — {delivery['error']}")
+                else:
+                    st.error(api_error(test))
+
+        n8n = notifications.get("n8n", {})
+        slack = notifications.get("slack", {})
+        col1, col2 = st.columns(2)
+        with col1:
+            if n8n.get("configured"):
+                st.success(f"**n8n webhook:** {n8n.get('target')}"
+                           + (" · signed (HMAC-SHA256)" if n8n.get("signed") else " · ⚠️ unsigned — set WEBHOOK_SECRET"))
+            else:
+                st.info("**n8n webhook:** not configured — set `N8N_WEBHOOK_URL` in `.env`")
+        with col2:
+            if slack.get("configured"):
+                st.success(f"**Slack:** {slack.get('target')}")
+            else:
+                st.info("**Slack:** not configured — set `SLACK_WEBHOOK_URL` in `.env`")
+
+        events = notifications.get("events", [])
+        if events:
+            st.markdown("**Events sent:** " + "  ".join(f"`{e}`" for e in events))
+        deliveries = notifications.get("recent_deliveries", [])
+        if deliveries:
+            st.dataframe(pd.DataFrame([{
+                "Time (UTC)": d["timestamp"].replace("T", " ")[:19],
+                "Event": d["event"],
+                "Target": d["target"],
+                "Result": "✅ delivered" if d["ok"] else f"❌ {d['error']}",
+                "Attempts": d["attempts"],
+            } for d in deliveries]), width="stretch", hide_index=True)
+        st.caption("Ready-made n8n workflows (Slack alerts, drop-zone ingestion, daily digest) are in "
+                   "`workflows/n8n/` — see its README for setup.")
+
+
 def show_user_admin():
     """Admin view: list, create, update, disable and reset users."""
     st.title("👥 Users")
@@ -1872,6 +1979,7 @@ def main():
         pages["📊 Analytics Dashboard"] = show_analytics_dashboard
         pages["🛡️ Audit Log"] = show_audit_log
         pages["👥 Users"] = show_user_admin
+        pages["🔌 Integrations"] = show_integrations
     pages["👤 My Account"] = show_my_account
     if st.session_state.get("main_navigation") not in pages:
         st.session_state.main_navigation = "🏠 Dashboard"

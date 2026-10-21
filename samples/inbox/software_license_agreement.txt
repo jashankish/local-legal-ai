@@ -1,0 +1,19 @@
+SOFTWARE LICENSE AGREEMENT
+
+This Software License Agreement (the "Agreement") is entered into as of May 12, 2025 between Quillmark Software Inc., a Washington corporation ("Licensor"), and Alder & Finch LLP, a New York limited liability partnership ("Licensee").
+
+Section 1. License Grant. Licensor grants Licensee a non-exclusive, non-transferable license to install and use the DocketFlow case management software (the "Software") for up to 150 named users at Licensee's offices.
+
+Section 2. Fees. Licensee shall pay an annual license fee of $48,000, due within thirty (30) days of each anniversary of the Effective Date. Fees for additional users are $320 per user per year, prorated monthly.
+
+Section 3. Support and Updates. Licensor shall provide email and telephone support during business hours and shall respond to critical incidents within four (4) hours. Updates and security patches are included in the annual fee.
+
+Section 4. Data Protection. Licensee data remains the property of Licensee. Licensor shall not access Licensee data except to provide support at Licensee's request and shall notify Licensee of any security breach within seventy-two (72) hours of discovery.
+
+Section 5. Term and Termination. This Agreement has an initial term of three (3) years and renews for successive one (1) year terms unless either party gives sixty (60) days written notice of non-renewal. Either party may terminate for material breach not cured within thirty (30) days of written notice.
+
+Section 6. Warranty. Licensor warrants that the Software will perform substantially in accordance with its documentation for ninety (90) days after delivery. Licensee's exclusive remedy for breach of this warranty is repair or replacement of the Software or a refund of the fees paid.
+
+Section 7. Limitation of Liability. Neither party's aggregate liability shall exceed the fees paid in the twelve (12) months preceding the claim, except for breaches of Section 4.
+
+Section 8. Governing Law. This Agreement is governed by the laws of the State of Washington.
