@@ -232,6 +232,32 @@ All settings live in `.env` (template: `.env.example`) and are read by
 randomly generated `SECRET_KEY`. The file must stay valid shell syntax because
 the script sources it.
 
+## Deployment
+Two supported ways to run:
+
+- **`start_system.sh`** — creates `.venv`, generates `.env` with a random
+  `SECRET_KEY`, starts uvicorn (API) and Streamlit (UI) on 127.0.0.1.
+- **Docker Compose** — `Dockerfile` at the repo root builds one image
+  (Python 3.12, CPU-only PyTorch, `all-MiniLM-L6-v2` baked in under
+  `HF_HOME=/opt/huggingface`, non-root user `legalai`). `docker-compose.yml`
+  runs it twice: `api` (uvicorn, port 8000) and `ui` (Streamlit, port 8501,
+  `BACKEND_URL=http://api:8000`, starts once the API is healthy). Ports are
+  bound to 127.0.0.1. `SECRET_KEY` is required at compose time. State lives in
+  the `legal_data` volume at `/app/data`; `./inbox` on the host is mounted as
+  the watched inbox. Optional profiles: `llm` (llama.cpp server image,
+  model pulled once into the `llm_models` volume, served as `legal-ai-model`;
+  the API's default `MODEL_ENDPOINT` is `http://llm:8080`) and `automation`
+  (n8n 1.123 with the workflows mounted read-only). `.dockerignore` keeps
+  `.env`, token files, runtime data, virtualenvs and model weights out of the
+  image. `ALLOWED_IPS` is left empty in containers because requests arrive
+  from the Docker bridge; the 127.0.0.1 port binding provides locality.
+
+  Verification so far: `docker compose config` (all profiles), and the API and
+  UI commands run from a `.dockerignore`-filtered copy of the build context
+  with the compose environment — both healthchecks pass, all runtime files
+  land under `/app/data`, seeding and every UI page work. The images have not
+  yet been built on a Docker host.
+
 ## Runtime data (git-ignored)
 `data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,
 `logs/`, `.env`, `.venv/`.

@@ -143,6 +143,25 @@ before anything else is available; after that, add colleagues on the 👥 Users 
 
 Stop everything with `./stop_system.sh`.
 
+### Or with Docker Compose
+
+```bash
+cp .env.example .env            # then set SECRET_KEY to a long random string
+docker compose up -d --build                       # API + web UI on 127.0.0.1
+docker compose --profile llm up -d --build         # + local model server (llama.cpp, CPU)
+docker compose --profile automation up -d --build  # + n8n (see workflows/n8n/)
+```
+
+One image serves both the API and the UI. The embedding model is built into the
+image so containers need no internet access at runtime, and all state (users,
+vector store, audit and analytics databases) lives in the `legal_data` volume.
+Drop files into `./inbox/` on the host to have them indexed.
+
+> **Status:** the compose file validates (`docker compose config`) and the exact
+> container commands, environment and data layout have been verified against the
+> build context, but the images have not yet been built on a Docker host. Please
+> report any build issue.
+
 ### Connecting a local language model (optional)
 
 Without a model the assistant answers in **extractive mode**: the most relevant

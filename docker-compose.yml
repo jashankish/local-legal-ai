@@ -1,31 +1,103 @@
-# Orchestrates backend, frontend, n8n, and ChromaDB services
-version: '3.8'
+# Local Legal AI — full stack.
+#
+#   cp .env.example .env        # then set SECRET_KEY to a long random value
+#   docker compose up -d --build                        # API + web UI
+#   docker compose --profile llm up -d --build          # + local model server
+#   docker compose --profile automation up -d --build   # + n8n
+#
+# Open http://localhost:8501 and sign in with admin / admin123 (you'll be asked
+# to choose a new password). Ports are published on 127.0.0.1 only, so the
+# sign-in page is not exposed to the network.
+
+x-app: &app
+  build: .
+  image: local-legal-ai:latest
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: false
+
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
+  api:
+    <<: *app
     environment:
-      - MODEL_ENDPOINT=http://model:8001
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (any long random string)}
+      HOST: 0.0.0.0
+      PORT: "8000"
+      # The llm profile below; with no model server the API answers in extractive mode.
+      MODEL_ENDPOINT: ${MODEL_ENDPOINT:-http://llm:8080}
+      MODEL_NAME: ${MODEL_NAME:-legal-ai-model}
+      CORS_ORIGINS: http://localhost:8501,http://127.0.0.1:8501
+      # Inside Docker every request arrives from the bridge network, so an
+      # address allow-list must use Docker-side addresses; leave empty here
+      # and rely on the 127.0.0.1-only port binding.
+      ALLOWED_IPS: ""
     volumes:
-      - ./logs:/app/logs
-
-  frontend:
-    build: ./frontend
+      - legal_data:/app/data
+      - ${INBOX_HOST_DIR:-./inbox}:/app/data/inbox
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
 
-  chromadb:
-    image: chromadb/chroma
+  ui:
+    <<: *app
+    command: ["python", "-m", "streamlit", "run", "frontend/streamlit_app.py",
+              "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true"]
+    environment:
+      BACKEND_URL: http://api:8000
     ports:
-      - "8002:8000"
+      - "127.0.0.1:8501:8501"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
 
+  # Optional local model (CPU). Downloads the model from Hugging Face on first start
+  # into the llm_models volume; afterwards it runs offline.
+  llm:
+    profiles: ["llm"]
+    image: ghcr.io/ggml-org/llama.cpp:server
+    restart: unless-stopped
+    command: ["-hf", "${LLM_HF_REPO:-Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M}",
+              "--alias", "legal-ai-model", "--host", "0.0.0.0", "--port", "8080", "-c", "8192"]
+    environment:
+      LLAMA_CACHE: /models
+    volumes:
+      - llm_models:/models
+
+  # Optional automation (see workflows/n8n/README.md for the workflows and n8n.env).
   n8n:
-    image: n8nio/n8n
+    profiles: ["automation"]
+    image: n8nio/n8n:1.123.0
+    restart: unless-stopped
+    env_file:
+      - path: workflows/n8n/n8n.env
+        required: false
+    environment:
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      N8N_RESTRICT_FILE_ACCESS_TO: /files/dropzone
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      LEGAL_AI_URL: http://api:8000
     ports:
-      - "5678:5678"
+      - "127.0.0.1:5678:5678"
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./workflows/n8n/flows:/workflows:ro
+      - ${DROPZONE_DIR:-./workflows/n8n/dropzone}:/files/dropzone
 
 volumes:
+  legal_data:
+  llm_models:
   n8n_data:

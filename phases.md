@@ -174,9 +174,17 @@
 - [✅] Analytics tabs show one clear empty-state message instead of zeros; no "performance is good" suggestion without queries; similarity explains it needs two documents
 - [✅] README screenshots re-captured with the new page names and real local-model answers
 
+## Phase 16: Docker Compose Stack 🟡 **BUILT, PARTIALLY VERIFIED** (2026-10-20)
+- [✅] Root `Dockerfile`: one image for API and UI, CPU-only PyTorch, embedding model baked in (no runtime downloads), non-root user, `/app/data` volume
+- [✅] `docker-compose.yml`: `api` + `ui` (healthchecks, UI waits for a healthy API), ports on 127.0.0.1 only, required `SECRET_KEY`, optional `llm` (llama.cpp) and `automation` (n8n) profiles, host `./inbox` mounted as the watched folder
+- [✅] `.dockerignore` keeps `.env`, token files, runtime data, virtualenvs and model weights out of the image (a stray `token.txt` was caught this way)
+- [✅] Removed the broken `backend/Dockerfile` (wrong build context and module path)
+- [✅] Verified: `docker compose config` for all profiles; API and UI run from a `.dockerignore`-filtered build context with the compose environment; healthcheck commands, data layout, seeding and all nine pages work
+- [ ] Build and run the images on a Docker host (the daemon was not available on the development machine)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Docker Compose that actually starts (backend module path, frontend Dockerfile, optional model service) — needs a running Docker daemon to verify
+- [ ] Build and run the Docker images on a Docker host; confirm the `llm` profile's llama.cpp server flags
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 
