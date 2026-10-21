@@ -16,6 +16,7 @@ machine. No third-party AI APIs are called.
 | 🔐 Local login (JWT, bcrypt) with admin, lawyer and user roles | ✅ |
 | 👥 User administration, forced first-login password change, instant session revocation | ✅ |
 | 📄 PDF, DOCX and TXT ingestion with legal document-type detection | ✅ |
+| 🖨 OCR for scanned, image-only PDFs (Tesseract, local; included in the Docker image) | ✅ |
 | 📚 Semantic search over an embedded ChromaDB store | ✅ |
 | 🧾 Cited answers from a local LLM (llama.cpp, Ollama or vLLM), streamed word by word | ✅ |
 | 🧭 Grounding guard: off-topic questions are refused, uncited answers are flagged | ✅ |

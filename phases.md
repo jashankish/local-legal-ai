@@ -203,9 +203,16 @@
 - [✅] Inbox watcher failure (unwritable bind mount) no longer stops the API
 - [✅] CI badge in the README; actions on Node 24 (checkout v5, setup-python v6)
 
+## Phase 20: OCR for Scanned PDFs ✅ **COMPLETE** (2026-10-21)
+- [✅] `rag/ocr.py`: Tesseract via PyMuPDF for pages without a text layer (configurable language, dpi, page cap); no new Python dependency
+- [✅] Clear rejection with install instructions when OCR is unavailable; `/health` reports OCR status
+- [✅] Docker image ships Tesseract; scanned sample `samples/inbox/scanned_lease_amendment.pdf`
+- [✅] Verified in CI: OCR test runs (47 passed, none skipped) and the container OCRs and indexes the scanned sample from the inbox
+- [✅] RapidOCR evaluated and rejected (≈ 41–50 % word recall, merged English words)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- None outstanding. Candidates: persistent sign-in throttle state, OCR for scanned PDFs, multi-tenant matter separation
+- None outstanding. Candidates: persistent sign-in throttle state, multi-tenant matter separation, OCR for image uploads (PNG/JPEG)
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 

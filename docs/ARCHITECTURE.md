@@ -137,6 +137,15 @@ classifies the legal document type by keyword scoring (contract, NDA, lease,
 employment, will, …) and extracts legal terms and section headings. Metadata is
 flattened to scalars because ChromaDB rejects nested values.
 
+**OCR** (`rag/ocr.py`): pages whose text layer has fewer than 20 characters
+are recognised with Tesseract through PyMuPDF (`get_textpage_ocr`, 300 dpi,
+`OCR_LANGUAGE`, up to `OCR_MAX_PAGES` per document); normal pages keep their
+native text. Chunks record `extraction_method = pymupdf+ocr` and `ocr_pages`.
+Without Tesseract an image-only PDF is rejected with instructions to install
+it; `/health` reports `ocr: available | not_installed`. The Docker image
+includes `tesseract-ocr`. (RapidOCR was evaluated and rejected: it dropped
+spaces between English words and missed lines.)
+
 Text cleaning collapses spaces but **preserves line breaks**, which the chunker
 relies on. The garbled-text heuristic flags extractions dominated by a single
 character or lacking word boundaries; when PyMuPDF output looks garbled the
