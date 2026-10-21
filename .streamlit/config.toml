@@ -1,6 +1,10 @@
 [client]
 toolbarMode = "minimal"
 
+[server]
+# Matches the API limit (MAX_FILE_SIZE_MB) so oversized files are rejected before upload
+maxUploadSize = 50
+
 [browser]
 gatherUsageStats = false
 

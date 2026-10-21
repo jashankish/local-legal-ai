@@ -90,14 +90,14 @@ def main():
         shot(page, "03_upload", 900)
 
         # Ask a question
-        navigate(page, "Enhanced Chat")
+        navigate(page, "Ask Documents")
         page.get_by_label("Your question").fill("Can the tenant terminate the lease early, and what does it cost?")
         page.get_by_role("button", name="Submit Query").click()
         page.get_by_text("Key Terms in the Cited Passages").wait_for(timeout=120_000)
         shot(page, "04_ask_answer", 1500)
 
         # Document library
-        navigate(page, "Files Management")
+        navigate(page, "Document Library")
         shot(page, "05_document_library", 1100)
 
         # Analytics tabs

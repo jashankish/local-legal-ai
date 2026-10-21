@@ -259,48 +259,20 @@ def show_login_page():
         </div>
         """, unsafe_allow_html=True)
 
-def show_main_interface():
-    """Display main application interface."""
-    # Header
-    st.markdown('<div class="main-header"><h1>⚖️ Local Legal AI</h1><p>AI-Powered Legal Document Analysis System</p></div>', 
-                unsafe_allow_html=True)
-    
-    # Sidebar
-    with st.sidebar:
-        st.markdown(f"### Welcome, {st.session_state.user_info['username']}!")
-        st.markdown(f"**Role:** {st.session_state.user_info['role']}")
-        
-        if st.button("🚪 Logout", type="secondary"):
-            st.session_state.authenticated = False
-            st.session_state.access_token = None
-            st.session_state.user_info = None
-            st.session_state.chat_history = []
-            st.rerun()
-        
-        st.markdown("---")
-        
-        # Navigation
-        page = st.selectbox(
-            "Navigate to:",
-            ["🏠 Dashboard", "📄 Document Upload", "💬 Chat Interface", "📊 Document Management"],
-            key="page_selector"
-        )
-    
-    # Main content based on selected page
-    if page == "🏠 Dashboard":
-        show_dashboard()
-    elif page == "📄 Document Upload":
-        show_document_upload()
-    elif page == "💬 Chat Interface":
-        show_chat_interface()
-    elif page == "📊 Document Management":
-        show_document_management()
+PAGE_DASHBOARD = "🏠 Dashboard"
+PAGE_UPLOAD = "📄 Upload Documents"
+PAGE_ASK = "💬 Ask Documents"
+PAGE_LIBRARY = "📁 Document Library"
+PAGE_USERS = "👥 Users"
+PAGE_INTEGRATIONS = "🔌 Integrations"
 
 ACRONYMS = {"nda": "NDA", "msa": "MSA", "sow": "SOW", "llc": "LLC"}
 ACTIVITY_LABELS = {
     "query.ask": "Questions asked", "auth.login": "Sign-ins", "document.upload": "Uploads",
     "document.delete": "Deletions", "user.create": "Users created", "analytics.export": "Report exports",
     "audit.verify": "Audit checks", "audit.export": "Audit exports",
+    "auth.password_change": "Password changes", "user.update": "User updates",
+    "user.password_reset": "Password resets", "integration.test": "Integration tests",
 }
 
 
@@ -310,11 +282,45 @@ def pretty_label(value: Any) -> str:
     return " ".join(ACRONYMS.get(w.lower(), w.capitalize()) for w in words)
 
 
+def show_getting_started(model_connected: bool, is_admin: bool):
+    """First-run checklist shown while the library is empty."""
+    with st.container(border=True):
+        st.markdown("### 🚀 Getting started")
+        st.caption("Your library is empty. Three steps to your first cited answer:")
+        steps = st.columns(3)
+        with steps[0]:
+            st.markdown("**1. Add documents**")
+            st.caption("Upload PDF, DOCX or TXT files — or drop them into `data/inbox/` on the server.")
+            if st.button("📄 Upload documents", type="primary", key="start_upload"):
+                st.session_state.navigate_to = PAGE_UPLOAD
+                st.rerun()
+        with steps[1]:
+            st.markdown("**2. Connect a local model** " + ("✅" if model_connected else "(optional)"))
+            if model_connected:
+                st.caption("A local model is connected — answers will be generated and cited.")
+            else:
+                st.caption("Without one, answers are cited excerpts. Run `bash model/llamacpp_launcher.sh` "
+                           "on the server for generated answers — no GPU needed.")
+        with steps[2]:
+            st.markdown("**3. Invite your team**" if is_admin else "**3. Ask a question**")
+            if is_admin:
+                st.caption("Add colleagues with a temporary password; they choose their own at first sign-in.")
+                if st.button("👥 Manage users", key="start_users"):
+                    st.session_state.navigate_to = PAGE_USERS
+                    st.rerun()
+            else:
+                st.caption("Once documents are indexed, ask in plain English on the Ask Documents page.")
+        st.caption("Want to explore first? Load the fictional sample agreements with "
+                   "`scripts/seed_demo.py` (see the README).")
+
+
 def show_dashboard():
     """Display the main dashboard with quick actions and system info."""
     st.markdown("## 🏠 Dashboard")
-    username = st.session_state.get("user_info", {}).get("username", "")
-    st.markdown(f"Welcome back{', **' + username + '**' if username else ''}. "
+    user_info = st.session_state.get("user_info", {})
+    username = user_info.get("username", "")
+    greeting = "Welcome back" if user_info.get("previous_login") else "Welcome"
+    st.markdown(f"{greeting}{', **' + username + '**' if username else ''}. "
                 "Here's the state of your private document library.")
 
     headers = {"Authorization": f"Bearer {st.session_state.get('access_token', '')}"}
@@ -336,7 +342,9 @@ def show_dashboard():
     col4.metric("🗄️ Vector store", "Online" if health.get("chromadb") == "healthy" else "Offline")
 
     documents = library.get("documents", [])
-    if documents:
+    if not documents:
+        show_getting_started(model_state == "healthy", user_info.get("role") == "admin")
+    else:
         st.markdown("### 🗂️ Recently added")
         st.dataframe(pd.DataFrame([{
             "Document": d.get("filename"),
@@ -357,20 +365,20 @@ def show_dashboard():
         
         # Use different session state variables for button navigation
         if st.button("📄 Upload New Document", type="primary", key="nav_upload"):
-            st.session_state.navigate_to = "📄 Upload Documents"
+            st.session_state.navigate_to = PAGE_UPLOAD
             st.rerun()
         
-        if st.button("💬 Start Chat Session", key="nav_chat"):
-            st.session_state.navigate_to = "💬 Enhanced Chat"
+        if st.button("💬 Ask a question", key="nav_chat"):
+            st.session_state.navigate_to = PAGE_ASK
             st.rerun()
     
     with col2:
         st.markdown("##### 📈 Your recent questions")
-        if len(st.session_state.chat_history) > 0:
-            st.write("Recent queries:")
-            for i, msg in enumerate(st.session_state.chat_history[-3:]):
-                if msg.get('role') == 'user':
-                    st.write(f"• {msg['content'][:50]}...")
+        history = [entry for entry in st.session_state.chat_history if entry.get("query")]
+        if history:
+            for entry in reversed(history[-3:]):
+                question = entry["query"] if len(entry["query"]) <= 70 else entry["query"][:70] + "…"
+                st.markdown(f"• {html.escape(question)}")
         else:
             st.caption("No questions yet this session.")
     
@@ -406,7 +414,7 @@ def show_document_upload():
     with col1:
         uploaded_file = st.file_uploader(
             "Choose a legal document",
-            type=['txt', 'pdf', 'doc', 'docx'],
+            type=['pdf', 'docx', 'txt'],
             help="Upload legal documents for AI analysis. Currently optimized for text files."
         )
         
@@ -472,183 +480,9 @@ def show_document_upload():
         - Drop files into `data/inbox/` (or `data/inbox/<category>/`) on the server — they are indexed automatically
         """)
 
-def show_chat_interface():
-    """Display chat interface for querying documents."""
-    st.markdown("## 💬 Legal AI Chat Interface")
-    
-    # Chat history display
-    st.markdown("### 📜 Conversation History")
-    
-    chat_container = st.container()
-    with chat_container:
-        if len(st.session_state.chat_history) == 0:
-            st.markdown("""
-            <div class="chat-message assistant-message">
-                <strong>🤖 Legal AI Assistant:</strong><br>
-                Hello! I'm here to help you analyze legal documents. Ask me questions about uploaded documents, 
-                and I'll provide detailed answers based on the content.
-            </div>
-            """, unsafe_allow_html=True)
-        
-        for message in st.session_state.chat_history:
-            if message['role'] == 'user':
-                st.markdown(f"""
-                <div class="chat-message user-message">
-                    <strong>👤 You:</strong><br>
-                    {html.escape(message['content'])}
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                with st.chat_message("assistant", avatar="⚖️"):
-                    st.markdown(message['content'])
-                    if message.get('mode'):
-                        st.caption(answer_mode_caption(message))
-                
-                # Show sources if available
-                if 'sources' in message and message['sources']:
-                    with st.expander(f"📚 Sources ({len(message['sources'])} passages)"):
-                        for i, source in enumerate(message['sources']):
-                            metadata = source.get('metadata') or {}
-                            st.markdown(
-                                f"**[{i+1}] {metadata.get('source', 'Unknown document')}** "
-                                f"· relevance {source.get('similarity_score', 0):.2f}"
-                            )
-                            st.caption(source.get('content', '')[:400] + "…")
-    
-    # Chat input
-    st.markdown("---")
-    
-    # Suggested questions
-    st.markdown("### 💡 Suggested Questions")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("💰 Ask about compensation"):
-            query = "What compensation or salary information is mentioned in the documents?"
-            st.session_state.pending_query = query
-    
-    with col2:
-        if st.button("📋 Ask about terms"):
-            query = "What are the key terms and conditions mentioned?"
-            st.session_state.pending_query = query
-    
-    with col3:
-        if st.button("⚠️ Ask about termination"):
-            query = "How can the agreement be terminated?"
-            st.session_state.pending_query = query
-    
-    # Text input for custom questions
-    user_input = st.text_input(
-        "Ask a question about your legal documents:",
-        value=getattr(st.session_state, 'pending_query', ''),
-        placeholder="e.g., What are the confidentiality requirements in the employment agreement?",
-        key="chat_input"
-    )
-    
-    if hasattr(st.session_state, 'pending_query'):
-        del st.session_state.pending_query
-    
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        send_button = st.button("🚀 Send", type="primary")
-    
-    if send_button and user_input:
-        # Add user message to history
-        st.session_state.chat_history.append({
-            'role': 'user',
-            'content': user_input,
-            'timestamp': datetime.now()
-        })
-        
-        # Query the API
-        with st.spinner("🤖 Analyzing documents..."):
-            result = api_client.query_documents(user_input)
-        
-        if result:
-            # Add assistant response to history
-            assistant_message = {
-                'role': 'assistant',
-                'content': result.get('answer', 'Sorry, I could not process your question.'),
-                'sources': result.get('sources', []),
-                'confidence': result.get('confidence_score', 0),
-                'mode': result.get('mode'),
-                'model': result.get('model'),
-                'timestamp': datetime.now()
-            }
-            st.session_state.chat_history.append(assistant_message)
-        else:
-            st.session_state.chat_history.append({
-                'role': 'assistant',
-                'content': 'Sorry, I encountered an error while processing your question. Please try again.',
-                'timestamp': datetime.now()
-            })
-        
-        # Clear input and refresh
-        st.rerun()
-
-def show_document_management():
-    """Display document management interface."""
-    st.markdown("## 📊 Document Management")
-    
-    # Document statistics
-    stats = api_client.get_document_stats()
-    doc_list = api_client.list_documents()
-    
-    if stats:
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("📚 Total Documents", stats.get('document_count', 0))
-        
-        with col2:
-            st.metric("🗄️ Collection", stats.get('name', 'Unknown'))
-        
-        with col3:
-            st.metric("✅ Status", stats.get('status', 'Unknown'))
-    
-    if doc_list:
-        st.markdown(f"### 📋 Document Overview")
-        total_docs = doc_list.get('total_documents', 0)
-        collection_name = doc_list.get('collection_name', 'unknown')
-        status = doc_list.get('status', 'unknown')
-        
-        st.markdown(f"""
-        **Collection Information:**
-        - **Total Documents:** {total_docs}
-        - **Collection Name:** {collection_name}
-        - **Status:** {status}
-        """)
-    
-    # Recent uploads (simulated)
-    st.markdown("### 📈 System Activity")
-    
-    if len(st.session_state.chat_history) > 0:
-        st.markdown("**Recent Queries:**")
-        recent_queries = [msg for msg in st.session_state.chat_history if msg.get('role') == 'user']
-        
-        for query in recent_queries:
-            st.markdown(f"• {query['content'][:80]}...")
-    else:
-        st.markdown("No recent activity to display.")
-    
-    # Clear data option (admin only)
-    if st.session_state.user_info.get('role') == 'admin':
-        st.markdown("---")
-        st.markdown("### ⚠️ Admin Actions")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🗑️ Clear Chat History", type="secondary"):
-                st.session_state.chat_history = []
-                st.success("Chat history cleared!")
-        
-        with col2:
-            if st.button("🔄 Refresh Stats", type="secondary"):
-                st.rerun()
-
 def show_files_management():
     """Display Google Drive-style file management interface."""
-    st.header("📁 Files Management")
+    st.header("📁 Document Library")
     
     if 'access_token' not in st.session_state:
         st.error("Please login first")
@@ -853,30 +687,23 @@ def show_files_management():
     
     # Bulk operations section
     st.markdown("---")
-    with st.expander("🔧 Advanced Operations", expanded=False):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("🗑️ Bulk Delete")
-            if st.button("Clear All Documents", type="secondary"):
-                st.warning("⚠️ This will delete ALL documents!")
-                
-        with col2:
-            st.subheader("📊 Export Data")
-            if st.button("📥 Export Document List", type="secondary"):
-                try:
-                    docs_response = api_client.list_documents()
-                    if docs_response:
-                        import json
-                        data = json.dumps(docs_response, indent=2)
-                        st.download_button(
-                            "💾 Download JSON",
-                            data,
-                            "documents_export.json",
-                            "application/json"
-                        )
-                except Exception as e:
-                    st.error(f"Export error: {e}")
+    register = (api_client.list_documents() or {}).get("documents", [])
+    if register:
+        register_csv = pd.DataFrame([{
+            "Document ID": d.get("id"),
+            "File name": d.get("filename"),
+            "Title": d.get("source"),
+            "Category": pretty_label(d.get("category")),
+            "Type": pretty_label(d.get("document_type")),
+            "Pages": d.get("page_count") or "",
+            "Words": d.get("word_count") or "",
+            "Passages": d.get("chunk_count"),
+            "Uploaded by": d.get("uploaded_by"),
+            "Uploaded": str(d.get("upload_date", ""))[:19].replace("T", " "),
+        } for d in register]).to_csv(index=False)
+        st.download_button("📥 Export document register (CSV)", register_csv,
+                           f"document_register_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv",
+                           help="Every document in the library with its metadata — for file reviews and audits.")
 
 def show_analytics_dashboard():
     """Show the analytics dashboard (Phase 4 feature)."""
@@ -1503,6 +1330,21 @@ def show_enhanced_chat():
     # A clicked suggestion is applied before the text area is created.
     if "pending_enhanced_query" in st.session_state:
         st.session_state.enhanced_chat_input = st.session_state.pop("pending_enhanced_query")
+
+    try:
+        library_size = requests.get(f"{BACKEND_URL}/documents/stats", headers=auth_headers(),
+                                    timeout=10).json().get("document_count", 0)
+    except (requests.RequestException, ValueError):
+        library_size = None  # unknown: let the user try
+    if library_size == 0:
+        with st.container(border=True):
+            st.markdown("#### 📭 Nothing to search yet")
+            st.caption("Answers come only from documents in your library, and it's empty. "
+                       "Upload agreements, filings or policies first.")
+            if st.button("📄 Upload documents", type="primary", key="ask_empty_upload"):
+                st.session_state.navigate_to = PAGE_UPLOAD
+                st.rerun()
+        return
     
     # Query input with enhancements
     col1, col2 = st.columns([4, 1])
@@ -1999,25 +1841,24 @@ def main():
     
     # Enhanced navigation with Phase 4 features
     pages = {
-        "🏠 Dashboard": show_dashboard,
-        "📄 Upload Documents": show_document_upload,
-        "💬 Enhanced Chat": show_enhanced_chat,
-        "📁 Document Management": show_document_management,
-        "📁 Files Management": show_files_management,
+        PAGE_DASHBOARD: show_dashboard,
+        PAGE_UPLOAD: show_document_upload,
+        PAGE_ASK: show_enhanced_chat,
+        PAGE_LIBRARY: show_files_management,
     }
     if st.session_state.get("user_info", {}).get("role") == "admin":
         pages["📊 Analytics Dashboard"] = show_analytics_dashboard
         pages["🛡️ Audit Log"] = show_audit_log
-        pages["👥 Users"] = show_user_admin
-        pages["🔌 Integrations"] = show_integrations
+        pages[PAGE_USERS] = show_user_admin
+        pages[PAGE_INTEGRATIONS] = show_integrations
     pages["👤 My Account"] = show_my_account
     if st.session_state.get("main_navigation") not in pages:
-        st.session_state.main_navigation = "🏠 Dashboard"
+        st.session_state.main_navigation = PAGE_DASHBOARD
     
     # Navigation
     # Initialize navigation if not set
     if "main_navigation" not in st.session_state:
-        st.session_state.main_navigation = "🏠 Dashboard"
+        st.session_state.main_navigation = PAGE_DASHBOARD
     
     selected_page = st.sidebar.selectbox(
         "Navigate to:",
