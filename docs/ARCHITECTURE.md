@@ -262,11 +262,18 @@ Two supported ways to run:
   image. `ALLOWED_IPS` is left empty in containers because requests arrive
   from the Docker bridge; the 127.0.0.1 port binding provides locality.
 
-  Verification so far: `docker compose config` (all profiles), and the API and
-  UI commands run from a `.dockerignore`-filtered copy of the build context
-  with the compose environment — both healthchecks pass, all runtime files
-  land under `/app/data`, seeding and every UI page work. The images have not
-  yet been built on a Docker host.
+  The API's model endpoint comes from `DOCKER_MODEL_ENDPOINT` (default
+  `http://llm:8080`), deliberately not `MODEL_ENDPOINT`: compose interpolates
+  `${...}` from `.env`, whose host value would point the container at itself.
+  If the inbox folder isn't writable by uid 1000 the API starts without the
+  watcher and logs why.
+
+  Verification: CI (`.github/workflows/ci.yml`) builds the image on every push,
+  starts `api` + `ui` with `docker compose up --wait`, seeds the samples, checks
+  a cited extractive answer, drops a file in `./inbox` and waits for it to be
+  indexed, then starts the `llm` profile and waits for a generated answer
+  (`scripts/ci_check_answer.py`). First green run: 2026-10-21, generated answer
+  in ≈ 6.5 s on a 2-core runner.
 
 ## Runtime data (git-ignored)
 `data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,

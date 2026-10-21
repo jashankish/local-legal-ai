@@ -174,13 +174,13 @@
 - [✅] Analytics tabs show one clear empty-state message instead of zeros; no "performance is good" suggestion without queries; similarity explains it needs two documents
 - [✅] README screenshots re-captured with the new page names and real local-model answers
 
-## Phase 16: Docker Compose Stack 🟡 **BUILT, PARTIALLY VERIFIED** (2026-10-20)
+## Phase 16: Docker Compose Stack ✅ **COMPLETE** (2026-10-20, verified in CI 2026-10-21)
 - [✅] Root `Dockerfile`: one image for API and UI, CPU-only PyTorch, embedding model baked in (no runtime downloads), non-root user, `/app/data` volume
 - [✅] `docker-compose.yml`: `api` + `ui` (healthchecks, UI waits for a healthy API), ports on 127.0.0.1 only, required `SECRET_KEY`, optional `llm` (llama.cpp) and `automation` (n8n) profiles, host `./inbox` mounted as the watched folder
 - [✅] `.dockerignore` keeps `.env`, token files, runtime data, virtualenvs and model weights out of the image (a stray `token.txt` was caught this way)
 - [✅] Removed the broken `backend/Dockerfile` (wrong build context and module path)
 - [✅] Verified: `docker compose config` for all profiles; API and UI run from a `.dockerignore`-filtered build context with the compose environment; healthcheck commands, data layout, seeding and all nine pages work
-- [ ] Build and run the images on a Docker host (the daemon was not available on the development machine)
+- [✅] Built and run on a Docker host in CI (see Phase 19)
 
 ## Phase 17: Repository Tidy-up ✅ **COMPLETE** (2026-10-20)
 - [✅] Early status reports (`DEPLOYMENT_GUIDE.md`, `DEPLOYMENT_SUCCESS.md`, `SYSTEM_STATUS_FINAL.md`, Phase 3 frontend README) moved to `docs/history/` with an index noting they describe the May 2025 system
@@ -195,9 +195,17 @@
 - [✅] Removed two deprecated API uses (`fitz` module name, sentence-transformers dimension method)
 - [✅] Test suite: 45 tests (8 new)
 
+## Phase 19: Continuous Integration ✅ **COMPLETE** (2026-10-21)
+- [✅] GitHub Actions: pytest on every push and pull request
+- [✅] Docker job: build, `compose up --wait` (healthchecks), seed, cited extractive answer, watched-inbox ingestion, and a generated answer from the containerised llama.cpp model
+- [✅] `scripts/ci_check_answer.py` post-deployment check (answer mode / document present, with retries)
+- [✅] Found and fixed by CI: the API container read `MODEL_ENDPOINT` interpolated from `.env` (host value `localhost:8001`) and silently stayed extractive; now `DOCKER_MODEL_ENDPOINT` with default `http://llm:8080`
+- [✅] Inbox watcher failure (unwritable bind mount) no longer stops the API
+- [✅] CI badge in the README; actions on Node 24 (checkout v5, setup-python v6)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- [ ] Build and run the Docker images on a Docker host; confirm the `llm` profile's llama.cpp server flags
+- None outstanding. Candidates: persistent sign-in throttle state, OCR for scanned PDFs, multi-tenant matter separation
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 

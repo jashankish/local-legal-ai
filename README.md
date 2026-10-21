@@ -1,5 +1,7 @@
 # 🧠 Local Legal AI
 
+[![CI](https://github.com/jashankish/local-legal-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/jashankish/local-legal-ai/actions/workflows/ci.yml)
+
 A private, self-hosted assistant for **law firms**: upload contracts, filings and
 policies, then ask questions and get answers that cite the exact passages they
 came from. Everything — documents, vectors, the language model — stays on your
@@ -157,10 +159,12 @@ image so containers need no internet access at runtime, and all state (users,
 vector store, audit and analytics databases) lives in the `legal_data` volume.
 Drop files into `./inbox/` on the host to have them indexed.
 
-> **Status:** the compose file validates (`docker compose config`) and the exact
-> container commands, environment and data layout have been verified against the
-> build context, but the images have not yet been built on a Docker host. Please
-> report any build issue.
+Every push to `main` builds the image in CI and runs the stack end to end:
+healthchecks, seeding, a cited answer, watched-inbox ingestion and a generated
+answer from the `llm` profile. To use a model running on the host instead of the
+`llm` container, set `DOCKER_MODEL_ENDPOINT=http://host.docker.internal:8001` in
+`.env`. On Linux, make the inbox folder writable for the container user
+(`mkdir -p inbox && chmod 777 inbox`, or `chown 1000 inbox`).
 
 ### Connecting a local language model (optional)
 
@@ -246,7 +250,9 @@ To regenerate the README screenshots from a seeded instance:
 ```
 
 The suite drives the API end to end against a temporary data directory, with a
-mocked LLM for the generative path. `scripts/ui_smoke.py` renders every UI page
+mocked LLM for the generative path. GitHub Actions ([`ci.yml`](.github/workflows/ci.yml))
+runs it on every push and also builds and exercises the Docker stack, including a
+real local model; `scripts/ci_check_answer.py` is the post-deployment check it uses. `scripts/ui_smoke.py` renders every UI page
 against a running backend and fails on any exception.
 
 ## 📂 Repository layout
