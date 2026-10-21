@@ -18,7 +18,7 @@ When `N8N_WEBHOOK_URL` is set in the Local Legal AI `.env`, these events are
 POSTed as JSON (only metadata — never document text or questions):
 
 `document.indexed`, `document.ingest_failed`, `document.deleted`,
-`security.login_failed`, `security.login_denied`, `security.ip_denied`,
+`security.login_failed`, `security.login_denied`, `security.login_locked`, `security.ip_denied`,
 `security.audit_tamper_detected`, `user.created`, `user.updated`,
 `user.password_reset`, `integration.test`
 

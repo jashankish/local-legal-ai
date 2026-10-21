@@ -17,7 +17,7 @@ from collections import Counter
 # Document processing libraries
 try:
     import PyPDF2
-    import fitz  # PyMuPDF
+    import pymupdf as fitz  # PyMuPDF (the "fitz" module name is deprecated)
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False

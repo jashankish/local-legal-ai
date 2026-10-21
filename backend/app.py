@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 from backend.config import settings
 from backend.auth import (
     user_manager, User, get_current_user, get_current_active_user, get_current_user_pending_ok,
-    require_admin, ip_whitelist, issue_token, validate_new_password,
+    require_admin, ip_whitelist, issue_token, validate_new_password, login_throttle,
 )
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
 from rag.legal_insights import extract_legal_entities, suggest_follow_ups
@@ -266,15 +266,29 @@ async def health_check():
 @app.post("/auth/login")
 async def login(request: LoginRequest):
     """User login."""
+    client_ip = request_context.get().get("ip")
     try:
+        wait = login_throttle.retry_after(request.username, client_ip)
+        if wait:
+            track(request.username, "auth.login", "locked",
+                  details={"reason": "too_many_failures", "retry_after_seconds": wait})
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Too many failed sign-in attempts. Try again in {max(1, round(wait / 60))} minute(s).",
+                headers={"Retry-After": str(wait)},
+            )
+
         user = user_manager.authenticate_user(request.username, request.password)
         if not user:
-            track(request.username, "auth.login", "failure", details={"reason": "bad_credentials"})
+            remaining = login_throttle.record_failure(request.username, client_ip)
+            track(request.username, "auth.login", "failure",
+                  details={"reason": "bad_credentials", "attempts_remaining": remaining})
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        login_throttle.reset(request.username, client_ip)
         if not user.get("is_active", True):
             track(request.username, "auth.login", "denied", details={"reason": "account_disabled"})
             raise HTTPException(

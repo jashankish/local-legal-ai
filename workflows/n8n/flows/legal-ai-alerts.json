@@ -14,18 +14,24 @@
       "name": "Receive Legal AI event",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "webhookId": "3b1f7d2e-6c44-4f1a-8f0e-2d9c5a7b1e10"
     },
     {
       "parameters": {
-        "jsCode": "// Verify the X-LegalAI-Signature header (HMAC-SHA256 of the raw body) and\n// turn the event into a Slack message. Unsigned or tampered events are dropped.\nconst crypto = require('crypto');\nconst secret = $env.LEGAL_AI_WEBHOOK_SECRET || '';\nconst item = $input.first();\nconst raw = item.binary && item.binary.data\n  ? await this.helpers.getBinaryDataBuffer(0, 'data')\n  : Buffer.from(JSON.stringify(item.json.body || {}));\nconst headers = item.json.headers || {};\nconst signature = headers['x-legalai-signature'] || '';\n\nif (secret) {\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');\n  const ok = signature.length === expected.length &&\n    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));\n  if (!ok) {\n    return [];\n  }\n}\n\nconst event = JSON.parse(raw.toString('utf8'));\nconst d = event.details || {};\nconst who = event.actor || 'someone';\nconst messages = {\n  'document.indexed': `:page_facing_up: *${d.title || d.filename}* indexed by ${who} (${d.chunks} passages, ${d.category}, via ${d.channel})`,\n  'document.ingest_failed': `:warning: Could not index *${d.filename}* (via ${d.channel}): ${d.error}`,\n  'document.deleted': `:wastebasket: *${d.filename}* deleted by ${who}`,\n  'security.login_failed': `:closed_lock_with_key: Failed sign-in for *${who}* from ${event.ip}`,\n  'security.login_denied': `:no_entry: Sign-in attempt on disabled account *${who}* from ${event.ip}`,\n  'security.ip_denied': `:no_entry_sign: Request from non-allowed address ${event.ip} to ${event.resource}`,\n  'security.audit_tamper_detected': `:rotating_light: Audit log integrity check FAILED at event #${d.first_invalid_id}`,\n  'user.created': `:bust_in_silhouette: ${who} added user *${event.resource}* (${d.role})`,\n  'user.updated': `:pencil2: ${who} updated user *${event.resource}*`,\n  'user.password_reset': `:key: ${who} reset the password for *${event.resource}*`,\n  'integration.test': `:white_check_mark: n8n received a test event from Local Legal AI (sent by ${who})`,\n};\nconst text = messages[event.event] || `${event.event}: ${event.resource || ''}`;\nreturn [{ json: { event: event.event, severity: event.event.startsWith('security.') ? 'high' : 'info', text } }];\n"
+        "jsCode": "// Verify the X-LegalAI-Signature header (HMAC-SHA256 of the raw body) and\n// turn the event into a Slack message. Unsigned or tampered events are dropped.\nconst crypto = require('crypto');\nconst secret = $env.LEGAL_AI_WEBHOOK_SECRET || '';\nconst item = $input.first();\nconst raw = item.binary && item.binary.data\n  ? await this.helpers.getBinaryDataBuffer(0, 'data')\n  : Buffer.from(JSON.stringify(item.json.body || {}));\nconst headers = item.json.headers || {};\nconst signature = headers['x-legalai-signature'] || '';\n\nif (secret) {\n  const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');\n  const ok = signature.length === expected.length &&\n    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));\n  if (!ok) {\n    return [];\n  }\n}\n\nconst event = JSON.parse(raw.toString('utf8'));\nconst d = event.details || {};\nconst who = event.actor || 'someone';\nconst messages = {\n  'document.indexed': `:page_facing_up: *${d.title || d.filename}* indexed by ${who} (${d.chunks} passages, ${d.category}, via ${d.channel})`,\n  'document.ingest_failed': `:warning: Could not index *${d.filename}* (via ${d.channel}): ${d.error}`,\n  'document.deleted': `:wastebasket: *${d.filename}* deleted by ${who}`,\n  'security.login_failed': `:closed_lock_with_key: Failed sign-in for *${who}* from ${event.ip}`,\n  'security.login_denied': `:no_entry: Sign-in attempt on disabled account *${who}* from ${event.ip}`,\n  'security.login_locked': `:lock: Sign-in for *${who}* from ${event.ip} blocked after repeated failures`,\n  'security.ip_denied': `:no_entry_sign: Request from non-allowed address ${event.ip} to ${event.resource}`,\n  'security.audit_tamper_detected': `:rotating_light: Audit log integrity check FAILED at event #${d.first_invalid_id}`,\n  'user.created': `:bust_in_silhouette: ${who} added user *${event.resource}* (${d.role})`,\n  'user.updated': `:pencil2: ${who} updated user *${event.resource}*`,\n  'user.password_reset': `:key: ${who} reset the password for *${event.resource}*`,\n  'integration.test': `:white_check_mark: n8n received a test event from Local Legal AI (sent by ${who})`,\n};\nconst text = messages[event.event] || `${event.event}: ${event.resource || ''}`;\nreturn [{ json: { event: event.event, severity: event.event.startsWith('security.') ? 'high' : 'info', text } }];\n"
       },
       "id": "8a7d2c41-3f5e-4b6a-9c0d-1e2f3a4b5c02",
       "name": "Verify signature and format",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -40,20 +46,43 @@
       "name": "Post to Slack",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 300]
+      "position": [
+        720,
+        300
+      ]
     }
   ],
   "connections": {
     "Receive Legal AI event": {
-      "main": [[{ "node": "Verify signature and format", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Verify signature and format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Verify signature and format": {
-      "main": [[{ "node": "Post to Slack", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "pinData": {},
-  "meta": { "templateCredsSetupCompleted": true },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "tags": []
 }

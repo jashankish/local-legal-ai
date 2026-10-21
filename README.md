@@ -228,6 +228,9 @@ To regenerate the README screenshots from a seeded instance:
 ## 🛡 Security Notes
 
 - Services bind to `127.0.0.1` by default; the login page is not exposed to the network.
+- Repeated failed sign-ins (5 in 15 minutes for a username from one address) are
+  blocked with HTTP 429, audited and can trigger an alert.
+- The API refuses to start with a placeholder or short `SECRET_KEY`.
 - Secrets live only in `.env` (git-ignored). Runtime data (`data/`, `logs/`) is git-ignored.
 - Uploads are size-limited (`MAX_FILE_SIZE_MB`); only the uploader or an admin can delete a document.
 - Every sign-in, upload, question and deletion is written to a hash-chained audit log

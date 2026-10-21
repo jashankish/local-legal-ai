@@ -2,8 +2,16 @@
 
 import os
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
+
+KNOWN_PLACEHOLDER_SECRETS = {
+    "your-secret-key-here-change-this-in-production",
+    "your-secret-key",
+    "changeme",
+    "change-me",
+    "secret",
+}
 
 
 class Settings(BaseSettings):
@@ -22,6 +30,22 @@ class Settings(BaseSettings):
     secret_key: str = Field(env="SECRET_KEY", description="JWT secret key")
     algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=1440, env="ACCESS_TOKEN_EXPIRE_MINUTES")  # 24 hours
+
+    # Sign-in throttling: failures per (username, client address) within the window
+    login_max_failures: int = Field(default=5, env="LOGIN_MAX_FAILURES")
+    login_lockout_minutes: int = Field(default=15, env="LOGIN_LOCKOUT_MINUTES")
+
+    @field_validator("secret_key")
+    @classmethod
+    def _reject_weak_secret(cls, value: str) -> str:
+        # Anyone who knows a published placeholder could forge sign-in tokens.
+        if value.strip() in KNOWN_PLACEHOLDER_SECRETS or len(value.strip()) < 16:
+            raise ValueError(
+                "SECRET_KEY is missing, a published placeholder, or shorter than 16 characters. "
+                "Set a long random value in .env, e.g. "
+                "python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        return value
     
     # Database/Vector Store Settings
     chromadb_host: str = Field(default="localhost", env="CHROMADB_HOST")

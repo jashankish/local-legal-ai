@@ -12,6 +12,7 @@ import bcrypt
 from pydantic import BaseModel
 import json
 import threading
+import time
 import logging
 
 # Configure logging
@@ -323,6 +324,59 @@ async def require_admin(current_user: User = Depends(get_current_active_user)):
             detail="Admin access required"
         )
     return current_user
+
+
+class LoginThrottle:
+    """Sliding-window limit on failed sign-ins per (username, client address).
+
+    Keying on both means a brute-force attempt is slowed down without letting
+    an outsider lock a real user out from their own machine.
+    """
+
+    def __init__(self, max_failures: int, window_seconds: int):
+        self.max_failures = max_failures
+        self.window_seconds = window_seconds
+        self._failures: Dict[tuple, List[float]] = {}
+        self._lock = threading.Lock()
+
+    @staticmethod
+    def _key(username: str, client_ip: Optional[str]) -> tuple:
+        return ((username or "").strip().lower(), client_ip or "unknown")
+
+    def _recent(self, key: tuple, now: float) -> List[float]:
+        attempts = [t for t in self._failures.get(key, []) if now - t < self.window_seconds]
+        if attempts:
+            self._failures[key] = attempts
+        else:
+            self._failures.pop(key, None)
+        return attempts
+
+    def retry_after(self, username: str, client_ip: Optional[str]) -> int:
+        """Seconds until another attempt is allowed (0 = allowed now)."""
+        if self.max_failures <= 0:
+            return 0
+        now = time.time()
+        with self._lock:
+            attempts = self._recent(self._key(username, client_ip), now)
+            if len(attempts) < self.max_failures:
+                return 0
+            return max(1, int(attempts[-self.max_failures] + self.window_seconds - now) + 1)
+
+    def record_failure(self, username: str, client_ip: Optional[str]) -> int:
+        """Record a failed attempt; returns how many attempts remain before lockout."""
+        now = time.time()
+        with self._lock:
+            key = self._key(username, client_ip)
+            attempts = self._recent(key, now) + [now]
+            self._failures[key] = attempts
+            return max(0, self.max_failures - len(attempts))
+
+    def reset(self, username: str, client_ip: Optional[str]):
+        with self._lock:
+            self._failures.pop(self._key(username, client_ip), None)
+
+
+login_throttle = LoginThrottle(settings.login_max_failures, settings.login_lockout_minutes * 60)
 
 
 class IPWhitelistMiddleware:

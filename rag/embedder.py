@@ -78,7 +78,7 @@ class LegalDocumentEmbedder:
             logger.info(f"Loading embedding model: {self.model_name}")
             self.model = SentenceTransformer(self.model_name)
             self.use_fallback = False
-            logger.info(f"Model loaded successfully. Embedding dimension: {self.model.get_sentence_embedding_dimension()}")
+            logger.info(f"Model loaded successfully. Embedding dimension: {getattr(self.model, 'get_embedding_dimension', getattr(self.model, 'get_sentence_embedding_dimension', lambda: '?'))()}")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}. Using fallback method.")
             self.model = None

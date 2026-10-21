@@ -78,7 +78,7 @@ timestamp (UTC), username, action, resource, status (`success` / `failure` /
 recomputes the chain and returns the first altered row. Writes are serialised by
 a lock and never raise into the request path. Disable with `ENABLE_AUDIT_LOGGING=false`.
 
-Audited actions: `auth.login`, `auth.password_change`, `user.create`, `user.update`, `user.password_reset`, `document.upload`,
+Audited actions: `auth.login` (success / failure / denied / locked), `auth.password_change`, `user.create`, `user.update`, `user.password_reset`, `document.upload`,
 `document.delete`, `query.ask` (question, query type, answer mode, documents
 consulted), `analytics.export`, `audit.verify`, `audit.export`, `access.ip_denied`.
 
@@ -218,6 +218,16 @@ Session lifecycle:
 - Passwords: ≥ 8 characters, not the username, not the default. Usernames:
   3–32 of letters, digits, `.`, `_`, `-`. The last active admin cannot be
   disabled or demoted, and admins cannot disable themselves.
+- Sign-in throttling (`LoginThrottle`): after `LOGIN_MAX_FAILURES` (5)
+  failures for a username from one client address within
+  `LOGIN_LOCKOUT_MINUTES` (15), further attempts — even with the right
+  password — get 429 with `Retry-After`, an `auth.login`/`locked` audit event
+  and a `security.login_locked` notification. Keying on username *and*
+  address prevents an outsider from locking a user out of their own machine;
+  a successful sign-in clears the count. State is in memory (reset on restart).
+- `SECRET_KEY` is validated at start-up: published placeholders and values
+  shorter than 16 characters are rejected, because a known key would let
+  anyone forge tokens.
 
 ### Frontend — `frontend/streamlit_app.py`
 Streamlit app: login, Dashboard (with a getting-started checklist while the library is empty), Upload Documents,

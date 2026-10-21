@@ -1258,7 +1258,7 @@ def show_audit_log():
         col1.metric("Events (30 days)", sum(by_status.values()))
         col2.metric("Sign-ins", summary.get("by_action", {}).get("auth.login", 0))
         col3.metric("Queries", summary.get("by_action", {}).get("query.ask", 0))
-        col4.metric("Failed / denied", by_status.get("failure", 0) + by_status.get("denied", 0))
+        col4.metric("Failed / denied / locked", by_status.get("failure", 0) + by_status.get("denied", 0) + by_status.get("locked", 0))
     except Exception as e:
         st.warning(f"Could not load audit summary: {e}")
 
@@ -1283,7 +1283,7 @@ def show_audit_log():
                                          "query.ask", "user.create", "analytics.export", "audit.",
                                          "access.ip_denied"], key="audit_action")
     with col3:
-        outcome = st.selectbox("Outcome", ["All", "success", "failure", "denied"], key="audit_status")
+        outcome = st.selectbox("Outcome", ["All", "success", "failure", "denied", "locked"], key="audit_status")
     with col4:
         days = st.selectbox("Period", [1, 7, 30, 90, 365], index=2, key="audit_days",
                             format_func=lambda d: f"Last {d} day{'s' if d > 1 else ''}")

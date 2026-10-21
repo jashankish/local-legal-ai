@@ -188,6 +188,13 @@
 - [✅] `pytest.ini` limits a bare `pytest` run to `tests/`; `legacy/` and `docs/history/` excluded from the Docker build context
 - [✅] README "Repository layout" section
 
+## Phase 18: Sign-in Hardening ✅ **COMPLETE** (2026-10-20)
+- [✅] Sign-in throttling per (username, client address): 5 failures in 15 minutes → HTTP 429 with `Retry-After`, configurable via `LOGIN_MAX_FAILURES` / `LOGIN_LOCKOUT_MINUTES`
+- [✅] Lockouts audited (`auth.login` / `locked`), shown in the Audit Log filters and summary, and sent as `security.login_locked` to n8n/Slack (alerts workflow updated)
+- [✅] `SECRET_KEY` validation rejects published placeholders and keys under 16 characters at start-up
+- [✅] Removed two deprecated API uses (`fitz` module name, sentence-transformers dimension method)
+- [✅] Test suite: 45 tests (8 new)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - [ ] Build and run the Docker images on a Docker host; confirm the `llm` profile's llama.cpp server flags
