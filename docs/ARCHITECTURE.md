@@ -143,7 +143,9 @@ are recognised with Tesseract through PyMuPDF (`get_textpage_ocr`, 300 dpi,
 native text. Chunks record `extraction_method = pymupdf+ocr` and `ocr_pages`.
 Without Tesseract an image-only PDF is rejected with instructions to install
 it; `/health` reports `ocr: available | not_installed`. The Docker image
-includes `tesseract-ocr`. (RapidOCR was evaluated and rejected: it dropped
+includes `tesseract-ocr`. Scanned images (PNG, JPEG, multi-page TIFF) are
+opened with PyMuPDF, converted to PDF and sent through the same path
+(`extraction_method = image+ocr`); the upload page previews them. (RapidOCR was evaluated and rejected: it dropped
 spaces between English words and missed lines.)
 
 Text cleaning collapses spaces but **preserves line breaks**, which the chunker

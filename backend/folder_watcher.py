@@ -22,7 +22,7 @@ from typing import Any, Callable, Deque, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt"}
+SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 RESERVED_DIRS = {"processed", "failed"}
 
 
@@ -116,7 +116,7 @@ class FolderWatcher:
         ext = os.path.splitext(name)[1].lower()
         try:
             if ext not in SUPPORTED_EXTENSIONS:
-                raise ValueError(f"Unsupported file type '{ext or 'none'}'; use PDF, DOCX or TXT")
+                raise ValueError(f"Unsupported file type '{ext or 'none'}'; use PDF, DOCX, TXT or a scanned image")
             with open(path, "rb") as f:
                 content = f.read()
             title = os.path.splitext(name)[0].replace("_", " ").strip() or name

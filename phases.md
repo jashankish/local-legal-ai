@@ -209,10 +209,19 @@
 - [✅] Docker image ships Tesseract; scanned sample `samples/inbox/scanned_lease_amendment.pdf`
 - [✅] Verified in CI: OCR test runs (47 passed, none skipped) and the container OCRs and indexes the scanned sample from the inbox
 - [✅] RapidOCR evaluated and rejected (≈ 41–50 % word recall, merged English words)
+- [✅] Scanned images (PNG, JPEG, TIFF) accepted by upload and the inbox, converted to PDF and OCRed; image preview on the upload page
 
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
-- None outstanding. Candidates: persistent sign-in throttle state, multi-tenant matter separation, OCR for image uploads (PNG/JPEG)
+- None outstanding. See the roadmap below.
+
+## Roadmap (next steps)
+1. **Matter-level access control (ethical walls)** — tag documents with a client matter and restrict each user's search, answers and library to their matters.
+2. **Persistent sign-in throttling** — keep lockout state in SQLite so a restart doesn't reset it.
+3. **Backup and restore** — one command to snapshot `data/` (users, vector store, audit and analytics databases) consistently, plus a restore guide.
+4. **Larger local models** — document tested settings for 7–8B models (Ollama/vLLM) and compare answer quality on the samples.
+5. **Answer feedback** — thumbs up/down on answers, stored with the query analytics, to tune retrieval and prompts.
+6. **HTTPS for LAN access** — optional reverse-proxy profile (e.g. Caddy) for firms that want access beyond `127.0.0.1`.
 
 ## 🎯 Status Snapshot at Phase 8 (2025-05-31, historical)
 

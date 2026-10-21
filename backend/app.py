@@ -561,6 +561,12 @@ CONTENT_TYPES_BY_EXTENSION = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".txt": "text/plain",
+    # Scanned images are converted to PDF and read with OCR.
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
 }
 _index_lock = threading.Lock()  # uploads and the inbox watcher both write to ChromaDB
 
@@ -595,7 +601,7 @@ def ingest_document(content: bytes, filename: str, uploaded_by: str,
             missing_deps = [k for k, v in dependencies.items() if not v]
             raise IngestError(status.HTTP_400_BAD_REQUEST,
                               f"Unsupported file type: {content_type or os.path.splitext(filename)[1] or 'unknown'}. "
-                              f"Supported: PDF, DOCX, TXT."
+                              f"Supported: PDF, DOCX, TXT, and scanned images (PNG, JPEG, TIFF)."
                               + (f" Missing dependencies: {missing_deps}" if missing_deps else ""))
     elif content_type != "text/plain":
         raise IngestError(status.HTTP_400_BAD_REQUEST,

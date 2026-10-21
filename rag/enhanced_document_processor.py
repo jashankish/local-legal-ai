@@ -23,6 +23,10 @@ except ImportError:  # imported with rag/ itself on sys.path
 class ScannedPdfError(ValueError):
     """An image-only PDF that can't be read without OCR."""
 
+
+# Scanned images accepted for upload; they are converted to PDF and OCRed.
+IMAGE_TYPES = {"image/png": "png", "image/jpeg": "jpeg", "image/tiff": "tiff"}
+
 # Document processing libraries
 try:
     import PyPDF2
@@ -52,7 +56,8 @@ class EnhancedDocumentProcessor:
             'text/plain': self._process_text,
             'application/pdf': self._process_pdf,
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': self._process_docx,
-            'application/msword': self._process_doc
+            'application/msword': self._process_doc,
+            **{content_type: self._process_image for content_type in IMAGE_TYPES},
         }
         
         # Legal document patterns for better chunking
@@ -621,12 +626,30 @@ class EnhancedDocumentProcessor:
         
         return list(found_terms)
 
+    def _process_image(self, file_content: bytes, filename: str,
+                       metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Scanned image (PNG/JPEG/TIFF, multi-page TIFF included): convert to PDF, then OCR."""
+        if not ocr.ocr_available():
+            raise ValueError("Images are read with OCR, which isn't available here. " + ocr.INSTALL_HINT)
+        extension = os.path.splitext(filename.lower())[1].lstrip(".")
+        filetype = {"jpg": "jpeg", "tif": "tiff"}.get(extension, extension) or "png"
+        try:
+            image_doc = fitz.open(stream=file_content, filetype=filetype)
+            pdf_bytes = image_doc.convert_to_pdf()
+            image_doc.close()
+        except Exception as e:
+            raise ValueError(f"Could not read image '{filename}': {e}")
+        result = self._process_pdf(pdf_bytes, filename, metadata)
+        result['extraction_method'] = 'image+ocr'
+        return result
+
     def get_supported_formats(self) -> List[str]:
         """Return list of supported file formats"""
         formats = ['text/plain']
-        
+
         if PDF_AVAILABLE:
             formats.append('application/pdf')
+            formats.extend(IMAGE_TYPES)  # read via OCR; rejected with guidance if OCR is missing
         
         if DOCX_AVAILABLE or DOCX2TXT_AVAILABLE:
             formats.append('application/vnd.openxmlformats-officedocument.wordprocessingml.document')

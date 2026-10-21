@@ -414,7 +414,7 @@ def show_document_upload():
     with col1:
         uploaded_file = st.file_uploader(
             "Choose a legal document",
-            type=['pdf', 'docx', 'txt'],
+            type=['pdf', 'docx', 'txt', 'png', 'jpg', 'jpeg', 'tif', 'tiff'],
             help="Upload legal documents for AI analysis. Currently optimized for text files."
         )
         
@@ -435,7 +435,11 @@ def show_document_upload():
                 st.markdown("### 👀 Document Preview")
                 st.text_area("Content Preview", content[:500] + "..." if len(content) > 500 else content, height=150)
                 uploaded_file.seek(0)  # Reset file pointer
-            
+            elif uploaded_file.type.startswith("image/"):
+                st.markdown("### 👀 Scan Preview")
+                st.image(uploaded_file, width=320, caption="Text will be read with OCR")
+                uploaded_file.seek(0)
+
             # Upload button
             if st.button("🚀 Upload and Process", type="primary"):
                 with st.spinner("Processing document..."):
@@ -464,6 +468,7 @@ def show_document_upload():
         - ✅ PDF — scanned pages are read with OCR when Tesseract is installed (included in the Docker image)
         - ✅ Word (.docx)
         - ✅ Plain text (.txt)
+        - ✅ Scanned images (PNG, JPEG, TIFF incl. multi-page) — read with OCR
 
         **Best practices**
         - Use a descriptive title — it is shown in every citation
