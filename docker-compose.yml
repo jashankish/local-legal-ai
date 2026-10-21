@@ -25,8 +25,11 @@ services:
       HOST: 0.0.0.0
       PORT: "8000"
       # The llm profile below; with no model server the API answers in extractive mode.
-      MODEL_ENDPOINT: ${MODEL_ENDPOINT:-http://llm:8080}
-      MODEL_NAME: ${MODEL_NAME:-legal-ai-model}
+      # Deliberately not ${MODEL_ENDPOINT}: compose interpolates from .env, whose
+      # host-oriented value (localhost:8001) would point the container at itself.
+      # For a model running on the host use DOCKER_MODEL_ENDPOINT=http://host.docker.internal:8001
+      MODEL_ENDPOINT: ${DOCKER_MODEL_ENDPOINT:-http://llm:8080}
+      MODEL_NAME: ${DOCKER_MODEL_NAME:-legal-ai-model}
       CORS_ORIGINS: http://localhost:8501,http://127.0.0.1:8501
       # Inside Docker every request arrives from the bridge network, so an
       # address allow-list must use Docker-side addresses; leave empty here
