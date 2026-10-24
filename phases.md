@@ -211,6 +211,17 @@
 - [✅] RapidOCR evaluated and rejected (≈ 41–50 % word recall, merged English words)
 - [✅] Scanned images (PNG, JPEG, TIFF) accepted by upload and the inbox, converted to PDF and OCRed; image preview on the upload page
 
+## Phase 21: Document Registry ✅ **COMPLETE** (2026-10-24)
+First iteration of the feature-expansion plan — the foundation for matters, retention and feedback.
+- [✅] `backend/store.py`: `data/app.db` (SQLite, WAL, `busy_timeout`) with an append-only migration list applied by `init_db()`
+- [✅] `backend/registry.py`: `documents` table, one row per document, replacing the full chunk-metadata scan behind `_group_chunks_by_document()`
+- [✅] Registry written under the existing `_index_lock` on ingest; deletion resolves chunk ids from the vector store, then removes the row
+- [✅] `reconcile()` at startup — idempotent; adds missing documents, repairs drifted chunk counts, drops orphaned rows
+- [✅] Pre-`document_id` documents adopted under their `source` name, with the lookup field recorded so deletion still finds their chunks
+- [✅] Verified against a copy of the real legacy corpus (7 chunks, none with `document_id`, one non-ASCII filename): both documents adopted, listed and deletable
+- [✅] Listing 5 000 documents ≈ 16 ms vs ≈ 450 ms for the scan it replaces; stats now a single aggregate
+- [✅] Test suite: 54 tests (4 new covering registry/vector-store agreement, legacy adoption, idempotent reconcile and drift repair)
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - None outstanding. See the roadmap below.

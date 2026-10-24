@@ -33,6 +33,7 @@ from backend.auth import (
     require_admin, ip_whitelist, issue_token, validate_new_password, login_throttle,
 )
 from backend.analytics import AnalyticsManager, QueryMetrics, DocumentMetrics, classify_query
+from backend import registry, store
 from rag.legal_insights import extract_legal_entities, suggest_follow_ups
 from rag.ocr import ocr_available
 from security.audit_log import get_audit_logger, request_context
@@ -100,7 +101,14 @@ async def lifespan(app: FastAPI):
         # Initialize RAG pipeline
         rag_pipeline = get_rag_pipeline()
         logger.info("RAG pipeline initialized")
-        
+
+        # Bring the document registry in line with the vector store. Safe to run
+        # every start: it adds anything missing (including documents indexed
+        # before the registry existed) and drops rows whose chunks are gone.
+        store.init_db()
+        registry.reconcile(chroma_manager.collection)
+        logger.info("Document registry ready")
+
     except Exception as e:
         logger.error(f"Startup error: {e}")
 
@@ -463,31 +471,14 @@ async def reset_user_password(username: str, request: PasswordResetRequest,
 
 # Document management endpoints
 def _group_chunks_by_document() -> Dict[str, Dict[str, Any]]:
-    """Collapse stored chunks into one record per uploaded document."""
-    results = chroma_manager.collection.get(include=["metadatas"])
-    grouped: Dict[str, Dict[str, Any]] = {}
-    for chunk_id, metadata in zip(results.get("ids", []), results.get("metadatas", [])):
-        metadata = metadata or {}
-        # Chunks stored before document_id existed are grouped by their source name.
-        doc_id = metadata.get("document_id") or metadata.get("source") or chunk_id
-        entry = grouped.setdefault(doc_id, {
-            "id": doc_id,
-            "filename": metadata.get("filename") or metadata.get("source", "Unknown"),
-            "source": metadata.get("source", "Unknown"),
-            "category": metadata.get("category", "general"),
-            "upload_date": metadata.get("upload_date", "Unknown"),
-            "uploaded_by": metadata.get("uploaded_by", "Unknown"),
-            "content_type": metadata.get("content_type", "text/plain"),
-            "file_size": metadata.get("file_size", 0),
-            "document_type": metadata.get("legal_document_type") or metadata.get("document_type", "general"),
-            "page_count": metadata.get("page_count"),
-            "word_count": metadata.get("word_count"),
-            "chunk_count": 0,
-            "chunk_ids": [],
-        })
-        entry["chunk_count"] += 1
-        entry["chunk_ids"].append(chunk_id)
-    return grouped
+    """One record per uploaded document, read from the registry.
+
+    Previously this rebuilt the mapping by scanning every chunk's metadata on
+    each call; the registry keeps the same facts in SQLite. Chunk ids are no
+    longer part of the record — resolve them with `registry.chunk_ids()` only
+    when a document is being deleted.
+    """
+    return registry.as_grouped()
 
 
 @app.get("/documents")
@@ -513,9 +504,8 @@ async def get_document_stats(current_user: User = Depends(get_current_active_use
     try:
         stats = chroma_manager.get_collection_stats()
         # The collection counts chunks; report documents and passages separately.
-        grouped = _group_chunks_by_document()
         stats["chunk_count"] = stats.get("document_count", 0)
-        stats["document_count"] = len(grouped)
+        stats["document_count"] = registry.totals()["documents"]
         return stats
     except Exception as e:
         logger.error(f"Error getting document stats: {e}")
@@ -527,8 +517,7 @@ async def get_document_stats(current_user: User = Depends(get_current_active_use
 @app.delete("/documents/{document_id}")
 async def delete_document(document_id: str, current_user: User = Depends(get_current_active_user)):
     """Delete an uploaded document and all of its chunks."""
-    grouped = _group_chunks_by_document()
-    document = grouped.get(document_id)
+    document = registry.get(document_id)
     if document is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -540,14 +529,19 @@ async def delete_document(document_id: str, current_user: User = Depends(get_cur
             detail="Only the uploader or an admin can delete this document"
         )
     try:
-        chroma_manager.collection.delete(ids=document["chunk_ids"])
-        logger.info(f"Deleted document {document_id} ({len(document['chunk_ids'])} chunks)")
+        # The vector store is authoritative for which chunks exist.
+        ids = registry.chunk_ids(chroma_manager.collection, document_id)
+        with _index_lock:
+            if ids:
+                chroma_manager.collection.delete(ids=ids)
+            registry.remove(document_id)
+        logger.info(f"Deleted document {document_id} ({len(ids)} chunks)")
         track(current_user.username, "document.delete", resource=document_id,
-              details={"filename": document["filename"], "chunks": len(document["chunk_ids"])})
+              details={"filename": document["filename"], "chunks": len(ids)})
         return {
             "success": True,
             "message": f"Document '{document['filename']}' deleted",
-            "chunks_deleted": len(document["chunk_ids"]),
+            "chunks_deleted": len(ids),
         }
     except Exception as e:
         logger.error(f"Delete document error: {e}")
@@ -665,8 +659,11 @@ def ingest_document(content: bytes, filename: str, uploaded_by: str,
         ids = [f"{document_id}-{i:04d}" for i in range(len(chunks))]
         with _index_lock:
             success = chroma_manager.add_documents(texts=texts, metadatas=metadatas, ids=ids)
-        if not success:
-            raise RuntimeError("Vector store rejected the document chunks")
+            if not success:
+                raise RuntimeError("Vector store rejected the document chunks")
+            # Registered under the same lock as the chunks, so the two stores
+            # cannot disagree about a document that was just indexed.
+            registry.upsert(document_id, enhanced_metadata, len(chunks))
         chunks_processed = len(chunks)
         logger.info(f"Stored {chunks_processed} chunks in ChromaDB with document ID: {document_id}")
 

@@ -169,6 +169,27 @@ document types behind the answer, skipping ones that repeat the question.
 `/query` and `/documents/query` return them as `legal_entities` and
 `query_suggestions`.
 
+### Operational store — `backend/store.py`, `backend/registry.py`
+`data/app.db` (SQLite, WAL) holds the records the application looks up rather
+than searches. `store.py` provides the connection and an append-only
+`MIGRATIONS` list applied by `init_db()`; `registry.py` owns the `documents`
+table — one row per uploaded document with its filename, category, type,
+uploader, size, chunk count and (from the next phase) its matter.
+
+Document identity used to be derived by reading every chunk's metadata out of
+the vector store on each call, which happened on listing, statistics, deletion
+and analytics. Listing 5 000 documents (≈ 50 000 chunks) now takes ~16 ms
+against ~450 ms for the equivalent scan, and `/documents/stats` is a single
+aggregate.
+
+The vector store remains the source of truth for passages. `registry.reconcile()`
+runs at startup: it adds documents that are missing, corrects drifted chunk
+counts and drops rows whose chunks are gone, so the registry can be deleted and
+rebuilt at any time. Documents indexed before `document_id` existed are adopted
+under their `source` name, and the row records which field locates their chunks,
+so deletion still works for them. Registry writes happen under the same
+`_index_lock` as the vector-store write.
+
 ### Vector store — `vector_store/chromadb_setup.py`
 Embedded `chromadb.PersistentClient` at `data/chroma_db`, collection
 `legal_documents`, embedding function `all-MiniLM-L6-v2` via sentence-transformers.
@@ -287,7 +308,7 @@ Two supported ways to run:
   in ≈ 6.5 s on a 2-core runner.
 
 ## Runtime data (git-ignored)
-`data/users.json`, `data/chroma_db/`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,
+`data/users.json`, `data/chroma_db/`, `data/app.db`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,
 `logs/`, `.env`, `.venv/`.
 
 ## Testing
