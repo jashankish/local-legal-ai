@@ -222,6 +222,17 @@ First iteration of the feature-expansion plan — the foundation for matters, re
 - [✅] Listing 5 000 documents ≈ 16 ms vs ≈ 450 ms for the scan it replaces; stats now a single aggregate
 - [✅] Test suite: 54 tests (4 new covering registry/vector-store agreement, legacy adoption, idempotent reconcile and drift repair)
 
+## Phase 22: Local Demo & Testing Environment ✅ **COMPLETE** (2026-10-25)
+- [✅] `scripts/demo.py`: `up`, `down`, `status`, `verify`, `reset`, `tour`, `logs` — the complete product on localhost in one command
+- [✅] Isolated in `.demo/` on ports 8010/8511/8011/8012, so it never touches `data/` and runs alongside `./start_system.sh`
+- [✅] `scripts/demo_event_sink.py`: a Slack/n8n stand-in that records notifications, verifies their HMAC signature and renders them at a refreshing page — the Integrations feature is demonstrable without any external service
+- [✅] Optional local model via `--with-model`; an already-running model is adopted so `reset` keeps generated answers
+- [✅] Printed walkthrough covering citations, the grounding refusal, OCR upload, watched-folder ingestion, user administration, lockouts, the audit chain and analytics
+- [✅] Secrets persist in `.demo/demo.env` (0600) so restarts don't invalidate sessions; OCR absence is explained rather than left as a failed sample
+- [✅] `verify` found a real bug in itself during development (no expected answer mode, so the check could never pass)
+- [✅] CI runs the full `up → status → verify → down` cycle on every push; 6 unit tests cover the helpers and the event sink
+- [✅] `docs/DEMO.md` guided tour; Quick Start now leads with the demo
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - None outstanding. See the roadmap below.

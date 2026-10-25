@@ -136,6 +136,37 @@ Requires Python 3.10–3.12.
 ```bash
 git clone https://github.com/jashankish/local-legal-ai.git
 cd local-legal-ai
+```
+
+### Try the whole product first (recommended)
+
+One command starts the API, the web interface and a stand-in for Slack/n8n,
+loads a fictional firm — four agreements, a team of five, question history and a
+watched folder — and prints a walkthrough:
+
+```bash
+python scripts/demo.py up                 # add --with-model for generated answers
+```
+
+Open **http://localhost:8511** and sign in as `admin` / `LegalDemo-2025`. Other
+accounts let you see the product from a lawyer's, a new joiner's and a disabled
+user's point of view.
+
+| Command | |
+|---|---|
+| `python scripts/demo.py up` | start everything and load the sample firm |
+| `python scripts/demo.py verify` | health, every page, and a real answer |
+| `python scripts/demo.py status` | what is running |
+| `python scripts/demo.py reset` | clean library, fresh sample data |
+| `python scripts/demo.py down` | stop everything |
+
+It keeps all its state in `.demo/` and uses ports 8010/8511, so it never touches
+your own `data/` and can run alongside a real instance. See
+[`docs/DEMO.md`](docs/DEMO.md) for the guided tour.
+
+### Run it for real
+
+```bash
 ./start_system.sh
 ```
 

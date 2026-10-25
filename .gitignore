@@ -33,3 +33,6 @@ workflows/n8n/dropzone/
 # Local model runtime and weights (model/llamacpp_launcher.sh)
 model/.venv/
 model/models/
+
+# Local demo / testing environment
+.demo/

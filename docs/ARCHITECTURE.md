@@ -307,6 +307,20 @@ Two supported ways to run:
   (`scripts/ci_check_answer.py`). First green run: 2026-10-21, generated answer
   in ≈ 6.5 s on a 2-core runner.
 
+### Local demo and testing environment — `scripts/demo.py`
+One command brings up the whole product on localhost for demos, manual testing
+and exploratory work: the event sink (a Slack/n8n stand-in that records and
+signature-checks notifications), an optional llama.cpp model, the API and the
+web interface, then `seed_demo.py` for the sample firm. State lives in `.demo/`
+(git-ignored) and the ports are 8010/8511/8011/8012, so it never touches `data/`
+and coexists with `./start_system.sh`.
+
+`up` is idempotent and adopts an already-running model; `reset` wipes the
+library and reloads it; `verify` checks health, renders every page with
+`ui_smoke.py` and asks a real question with `ci_check_answer.py`, expecting a
+generated answer when a model is up and cited excerpts when one isn't. CI runs
+`up → status → verify → down` on every push.
+
 ## Runtime data (git-ignored)
 `data/users.json`, `data/chroma_db/`, `data/app.db`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,
 `logs/`, `.env`, `.venv/`.
