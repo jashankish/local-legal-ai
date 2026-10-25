@@ -9,6 +9,10 @@ machine. No third-party AI APIs are called.
 
 ![Asking a question: a cited answer with extracted key terms, follow-up suggestions and sources](docs/screenshots/04_ask_answer.png)
 
+**Try it in your browser:** [yappertech.com/legal-ai-demo](https://www.yappertech.com/legal-ai-demo/) —
+the real screens on fictional sample agreements, running entirely client-side
+([how the web demo works](docs/WEB_DEMO.md)).
+
 ## 🚀 Features
 
 | Feature | Status |
@@ -295,6 +299,8 @@ rag/                document processing, chunking, RAG pipeline, key-term extrac
 vector_store/       embedded ChromaDB wrapper
 security/           hash-chained audit log
 frontend/           Streamlit UI
+web/                static browser-only demo (yappertech.com/legal-ai-demo) — docs/WEB_DEMO.md
+tools/              web demo data generator, site build, engine self-test, browser e2e
 model/              local model launchers (llama.cpp, vLLM)
 workflows/n8n/      n8n workflows, compose file and setup guide
 samples/            fictional agreements for demos

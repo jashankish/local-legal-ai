@@ -233,6 +233,16 @@ First iteration of the feature-expansion plan — the foundation for matters, re
 - [✅] CI runs the full `up → status → verify → down` cycle on every push; 6 unit tests cover the helpers and the event sink
 - [✅] `docs/DEMO.md` guided tour; Quick Start now leads with the demo
 
+## Phase 23: Public Web Demo at yappertech.com/legal-ai-demo ✅ **COMPLETE** (2026-10-25)
+- [✅] `web/`: a dependency-free static build of every screen (sign-in, dashboard, upload, Ask Documents, library, analytics ×5 tabs, audit log, users, integrations, account), hash-routed so it runs from any static host and sub-path
+- [✅] Questions are answered live in the visitor's browser: TF-IDF retrieval over the real passages, extractive answers with citations, key terms and follow-ups — the product's own no-model behaviour. A visitor can upload a `.txt` and ask about it
+- [✅] `tools/make_demo_data.py` builds the demo library from `samples/` with the product's own chunker and key-term extractor; CI fails if the committed data drifts (`--check`)
+- [✅] `web/js/engine/insights.js` ports `rag/legal_insights.py`; the self-test proves it extracts identically on all 53 shipped passages
+- [✅] `tools/selftest.mjs`: 15 realistic questions must retrieve and cite the right clause (it caught and drove fixes for headings being quoted as answers, document ambiguity on shared clauses, and misleadingly low relevance scores)
+- [✅] `tools/e2e.mjs`: Playwright walkthrough of every page, a question, an upload-then-ask, the audit chain, user creation, deep links and phone width — passing in Chromium, Firefox and WebKit (it caught the sidebar navigation not responding to clicks)
+- [✅] `tools/build-site.sh` packages `dist/legal-ai-demo/`, with `--head` for the host's analytics tag and `--api-base-url` to point at a deployed backend instead
+- [✅] New `web-demo` CI job (3-browser matrix); the YapperTech monorepo builds and deploys this output — see `docs/WEB_DEMO.md`
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - None outstanding. See the roadmap below.

@@ -1,0 +1,87 @@
+{
+ "inbox": {
+  "running": true,
+  "inbox_dir": "data/inbox",
+  "interval_seconds": 15,
+  "processed": 2,
+  "failed": 1,
+  "waiting": 0,
+  "last_scan": "2026-10-20T16:39:51",
+  "recent": [
+   {
+    "timestamp": "2026-10-19T13:29:00",
+    "file": "scanned_lease_amendment.pdf",
+    "category": "real_estate",
+    "ok": true,
+    "passages": 5,
+    "moved_to": "data/inbox/_processed/scanned_lease_amendment.pdf"
+   },
+   {
+    "timestamp": "2026-10-17T14:07:00",
+    "file": "software_license_agreement.txt",
+    "category": "contracts",
+    "ok": true,
+    "passages": 9,
+    "moved_to": "data/inbox/_processed/software_license_agreement.txt"
+   },
+   {
+    "timestamp": "2026-10-19T20:40:00",
+    "file": "corrupt_scan.pdf",
+    "category": "general",
+    "ok": false,
+    "error": "no extractable text (and OCR found none)",
+    "moved_to": "data/inbox/_failed/corrupt_scan.pdf"
+   }
+  ]
+ },
+ "notifications": {
+  "enabled": true,
+  "n8n": {
+   "configured": true,
+   "target": "http://n8n.internal:5678/webhook/legal-ai",
+   "signed": true
+  },
+  "slack": {
+   "configured": true,
+   "target": "#legal-ops"
+  },
+  "events": [
+   "document.upload",
+   "document.delete",
+   "user.create",
+   "auth.login_failed",
+   "access.ip_denied"
+  ],
+  "recent_deliveries": [
+   {
+    "timestamp": "2026-10-20T12:40:00",
+    "event": "integration.test",
+    "target": "n8n",
+    "ok": true,
+    "attempts": 1
+   },
+   {
+    "timestamp": "2026-10-20T12:40:00",
+    "event": "integration.test",
+    "target": "slack",
+    "ok": true,
+    "attempts": 1
+   },
+   {
+    "timestamp": "2026-10-19T16:40:00",
+    "event": "document.upload",
+    "target": "n8n",
+    "ok": true,
+    "attempts": 1
+   },
+   {
+    "timestamp": "2026-10-19T16:37:00",
+    "event": "document.upload",
+    "target": "slack",
+    "ok": false,
+    "error": "HTTP 429 rate limited",
+    "attempts": 3
+   }
+  ]
+ }
+}

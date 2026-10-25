@@ -1,0 +1,307 @@
+{
+ "a61bd912821f50df350f676265c1fa10-0000": {
+  "organizations": [
+   "Harborview Analytics LLC",
+   "Meridian Data Partners Inc"
+  ],
+  "defined_terms": [
+   "Agreement",
+   "Effective Date",
+   "Client",
+   "Provider"
+  ],
+  "dates": [
+   "March 1, 2025"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0001": {},
+ "a61bd912821f50df350f676265c1fa10-0002": {
+  "monetary_amounts": [
+   "$15,000",
+   "$275"
+  ],
+  "durations": [
+   "thirty (30) days"
+  ],
+  "percentages": [
+   "1.5%"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0003": {
+  "durations": [
+   "two (2) years",
+   "one (1) year",
+   "ninety (90) days"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0004": {
+  "durations": [
+   "sixty (60) days",
+   "thirty (30) days"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0005": {
+  "durations": [
+   "five (5) years"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0006": {
+  "durations": [
+   "twelve (12) months"
+  ]
+ },
+ "a61bd912821f50df350f676265c1fa10-0007": {},
+ "a61bd912821f50df350f676265c1fa10-0008": {
+  "organizations": [
+   "HARBORVIEW ANALYTICS LLC"
+  ],
+  "governing_law": [
+   "State of New York"
+  ]
+ },
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0000": {
+  "organizations": [
+   "Cobalt Ridge Biotech Inc",
+   "Lindenfield Capital Advisors LLC"
+  ],
+  "defined_terms": [
+   "Agreement"
+  ],
+  "dates": [
+   "June 10, 2025"
+  ]
+ },
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0001": {
+  "defined_terms": [
+   "Purpose"
+  ]
+ },
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0002": {},
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0003": {},
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0004": {},
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0005": {
+  "durations": [
+   "two (2) years",
+   "three (3) years"
+  ]
+ },
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0006": {
+  "durations": [
+   "ten (10) business days"
+  ]
+ },
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0007": {},
+ "214cdb56a814fdcb7b3b0f6c5c40d335-0008": {
+  "governing_law": [
+   "State of California"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0000": {
+  "organizations": [
+   "Granite Harbor Properties LLC",
+   "Fernwood Legal Group PLLC"
+  ],
+  "defined_terms": [
+   "Lease",
+   "Landlord",
+   "Tenant"
+  ],
+  "dates": [
+   "January 15, 2025"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0001": {
+  "defined_terms": [
+   "Premises"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0002": {
+  "durations": [
+   "five (5) years"
+  ],
+  "dates": [
+   "April 1, 2025",
+   "March 31, 2030"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0003": {
+  "monetary_amounts": [
+   "$18,900"
+  ],
+  "durations": [
+   "five (5) days"
+  ],
+  "percentages": [
+   "3%",
+   "5%"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0004": {
+  "monetary_amounts": [
+   "$37,800"
+  ],
+  "durations": [
+   "thirty (30) days"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0005": {},
+ "6fdc18f56cf2b684712428c0b200ed46-0006": {},
+ "6fdc18f56cf2b684712428c0b200ed46-0007": {},
+ "6fdc18f56cf2b684712428c0b200ed46-0008": {
+  "durations": [
+   "nine (9) months",
+   "four (4) months"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0009": {
+  "durations": [
+   "ten (10) days",
+   "thirty (30) days"
+  ]
+ },
+ "6fdc18f56cf2b684712428c0b200ed46-0010": {
+  "governing_law": [
+   "State of Texas"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0000": {
+  "organizations": [
+   "Brightwater Robotics Inc"
+  ],
+  "defined_terms": [
+   "Agreement",
+   "Company",
+   "Employee"
+  ],
+  "dates": [
+   "February 3, 2025"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0001": {},
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0002": {
+  "monetary_amounts": [
+   "$210,000"
+  ],
+  "percentages": [
+   "20%"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0003": {
+  "durations": [
+   "four (4) years",
+   "one (1) year"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0004": {
+  "durations": [
+   "twenty (20) days"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0005": {
+  "durations": [
+   "two (2) weeks"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0006": {
+  "durations": [
+   "three (3) months"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0007": {},
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0008": {
+  "durations": [
+   "twelve (12) months"
+  ]
+ },
+ "32ea9f4b6af08c9f11e5f500e049fd2f-0009": {
+  "governing_law": [
+   "Commonwealth of Massachusetts"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0000": {
+  "organizations": [
+   "Quillmark Software Inc",
+   "Finch LLP"
+  ],
+  "defined_terms": [
+   "Agreement",
+   "Licensor",
+   "Licensee"
+  ],
+  "dates": [
+   "May 12, 2025"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0001": {
+  "defined_terms": [
+   "Software"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0002": {
+  "monetary_amounts": [
+   "$48,000",
+   "$320"
+  ],
+  "durations": [
+   "thirty (30) days"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0003": {},
+ "dd7112c84cba34aa9c2a1a33965394de-0004": {},
+ "dd7112c84cba34aa9c2a1a33965394de-0005": {
+  "durations": [
+   "three (3) years",
+   "one (1) year",
+   "sixty (60) days",
+   "thirty (30) days"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0006": {
+  "durations": [
+   "ninety (90) days"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0007": {
+  "durations": [
+   "twelve (12) months"
+  ]
+ },
+ "dd7112c84cba34aa9c2a1a33965394de-0008": {
+  "governing_law": [
+   "State of Washington"
+  ]
+ },
+ "96ae41fbd184fd95cbbc4fcf7f5e59b0-0000": {
+  "organizations": [
+   "Granite Harbor Properties LLC",
+   "Fernwood Legal Group PLLC"
+  ],
+  "defined_terms": [
+   "Amendment",
+   "Landlord",
+   "Tenant"
+  ],
+  "dates": [
+   "September 2, 2025",
+   "January 15, 2025"
+  ]
+ },
+ "96ae41fbd184fd95cbbc4fcf7f5e59b0-0001": {
+  "defined_terms": [
+   "Expansion Space"
+  ],
+  "dates": [
+   "November 1, 2025"
+  ]
+ },
+ "96ae41fbd184fd95cbbc4fcf7f5e59b0-0002": {
+  "monetary_amounts": [
+   "$6,075"
+  ],
+  "percentages": [
+   "3%"
+  ]
+ },
+ "96ae41fbd184fd95cbbc4fcf7f5e59b0-0003": {},
+ "96ae41fbd184fd95cbbc4fcf7f5e59b0-0004": {}
+}

@@ -36,3 +36,7 @@ model/models/
 
 # Local demo / testing environment
 .demo/
+
+# Static web demo build output (tools/build-site.sh) and its test-only deps
+dist/
+node_modules/

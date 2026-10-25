@@ -1,0 +1,64 @@
+{
+ "seeded": [
+  {
+   "user": "admin",
+   "question": "What notice period is required to terminate the services agreement for convenience?",
+   "similarity": 0.84,
+   "seconds": 0.31
+  },
+  {
+   "user": "admin",
+   "question": "What is the monthly retainer and when is it invoiced?",
+   "similarity": 0.81,
+   "seconds": 0.27
+  },
+  {
+   "user": "admin",
+   "question": "How long do the NDA confidentiality obligations survive?",
+   "similarity": 0.79,
+   "seconds": 0.24
+  },
+  {
+   "user": "j.ellis",
+   "question": "What is the base rent for the Market Street lease and how does it escalate?",
+   "similarity": 0.88,
+   "seconds": 0.29
+  },
+  {
+   "user": "j.ellis",
+   "question": "Can the tenant terminate the lease early?",
+   "similarity": 0.82,
+   "seconds": 0.37
+  },
+  {
+   "user": "j.ellis",
+   "question": "What severance is owed if the employee is terminated without cause?",
+   "similarity": 0.86,
+   "seconds": 0.22
+  },
+  {
+   "user": "j.ellis",
+   "question": "Which state's law governs the services agreement and how are disputes resolved?",
+   "similarity": 0.74,
+   "seconds": 0.41
+  },
+  {
+   "user": "j.ellis",
+   "question": "Summarize the limitation of liability clause.",
+   "similarity": 0.71,
+   "seconds": 0.52
+  },
+  {
+   "user": "m.okafor",
+   "question": "What are the payment terms and late-payment consequences?",
+   "similarity": 0.77,
+   "seconds": 0.33
+  },
+  {
+   "user": "m.okafor",
+   "question": "Who is responsible for maintenance and repairs?",
+   "similarity": 0.69,
+   "seconds": 0.28
+  }
+ ]
+}

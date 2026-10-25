@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Legal AI — private document intelligence for legal teams</title>
+<meta name="description" content="A working demo of Local Legal AI: upload legal documents, ask questions in plain English and get answers that cite the exact clauses they came from. Self-hosted — documents, vectors and the model never leave your network.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<meta property="og:title" content="Local Legal AI — private document intelligence for legal teams">
+<meta property="og:description" content="Ask your contracts questions in plain English and get answers that cite the exact clauses. Runs entirely on your own hardware.">
+<meta property="og:type" content="website">
+</head>
+<body>
+
+<div class="demo-banner" id="demo-banner">
+  <span><strong>Live demo.</strong> Everything here runs in your browser on fictional sample agreements — nothing is uploaded.</span>
+  <a href="https://github.com/jashankish/local-legal-ai" target="_blank" rel="noopener">Source &amp; self-hosting guide ↗</a>
+</div>
+
+<div id="app">
+  <div class="login-page">
+    <div class="main-header">
+      <h1>⚖️ Local Legal AI</h1>
+      <p>Private, on-premise document intelligence for legal teams</p>
+    </div>
+    <p class="caption" style="text-align:center">Loading the demo library…</p>
+  </div>
+</div>
+
+<noscript>
+  <div class="login-page">
+    <div class="note note-warn">
+      This demo runs the whole product in your browser, so it needs JavaScript enabled.
+      The source and self-hosting instructions are at
+      <a href="https://github.com/jashankish/local-legal-ai">github.com/jashankish/local-legal-ai</a>.
+    </div>
+  </div>
+</noscript>
+
+<script type="module">
+  import { CONFIG } from "./js/config.js";
+  import { start } from "./js/app.js";
+  start(CONFIG);
+</script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+{
+ "usage": {
+  "query_analytics": {
+   "total_queries": 10,
+   "unique_users": 3,
+   "avg_similarity_score": 0.791,
+   "avg_processing_time": 0.324
+  },
+  "document_analytics": {
+   "total_documents": 6,
+   "total_chunks": 53,
+   "avg_chunks_per_doc": 8.8,
+   "avg_file_size": 8200,
+   "avg_processing_time": 0.05,
+   "library_documents": 6,
+   "library_chunks": 53
+  },
+  "daily_trends": [
+   {
+    "date": "2026-10-14",
+    "queries": 0,
+    "documents": 3
+   },
+   {
+    "date": "2026-10-15",
+    "queries": 0,
+    "documents": 1
+   },
+   {
+    "date": "2026-10-17",
+    "queries": 2,
+    "documents": 1
+   },
+   {
+    "date": "2026-10-18",
+    "queries": 3,
+    "documents": 0
+   },
+   {
+    "date": "2026-10-19",
+    "queries": 3,
+    "documents": 1
+   },
+   {
+    "date": "2026-10-20",
+    "queries": 2,
+    "documents": 0
+   }
+  ],
+  "top_query_types": [
+   {
+    "type": "Termination & notice",
+    "count": 3
+   },
+   {
+    "type": "Fees & payment",
+    "count": 3
+   },
+   {
+    "type": "Confidentiality",
+    "count": 1
+   },
+   {
+    "type": "Liability & risk",
+    "count": 2
+   },
+   {
+    "type": "Other",
+    "count": 1
+   }
+  ]
+ },
+ "performance": {
+  "performance_distribution": [
+   {
+    "category": "fast",
+    "count": 9,
+    "avg_time": 0.302
+   },
+   {
+    "category": "moderate",
+    "count": 1,
+    "avg_time": 0.52
+   }
+  ],
+  "quality_distribution": [
+   {
+    "category": "good",
+    "count": 5
+   },
+   {
+    "category": "excellent",
+    "count": 2
+   },
+   {
+    "category": "fair",
+    "count": 3
+   }
+  ],
+  "slowest_queries": [
+   {
+    "query": "Summarize the limitation of liability clause.",
+    "processing_time": 0.52,
+    "similarity_score": 0.71
+   },
+   {
+    "query": "Which state's law governs the services agreement and how are disputes resolved?",
+    "processing_time": 0.41,
+    "similarity_score": 0.74
+   },
+   {
+    "query": "Can the tenant terminate the lease early?",
+    "processing_time": 0.37,
+    "similarity_score": 0.82
+   },
+   {
+    "query": "What are the payment terms and late-payment consequences?",
+    "processing_time": 0.33,
+    "similarity_score": 0.77
+   },
+   {
+    "query": "What notice period is required to terminate the services agreement for convenience?",
+    "processing_time": 0.31,
+    "similarity_score": 0.84
+   }
+  ],
+  "optimization_suggestions": [
+   "Retrieval quality is good (average similarity 0.79). No tuning needed yet.",
+   "Every question was answered in under a second \u2014 the index is comfortably sized.",
+   "Connect a local model for generated answers; retrieval already returns the right clauses."
+  ]
+ },
+ "activity": {
+  "active_users": 3,
+  "activity_types": [
+   {
+    "type": "query.ask",
+    "count": 10
+   },
+   {
+    "type": "auth.login",
+    "count": 7
+   },
+   {
+    "type": "document.upload",
+    "count": 6
+   },
+   {
+    "type": "user.create",
+    "count": 2
+   },
+   {
+    "type": "analytics.export",
+    "count": 1
+   },
+   {
+    "type": "audit.verify",
+    "count": 2
+   }
+  ],
+  "hourly_patterns": [
+   {
+    "hour": "08:00",
+    "activity_count": 2
+   },
+   {
+    "hour": "09:00",
+    "activity_count": 5
+   },
+   {
+    "hour": "10:00",
+    "activity_count": 7
+   },
+   {
+    "hour": "11:00",
+    "activity_count": 4
+   },
+   {
+    "hour": "12:00",
+    "activity_count": 1
+   },
+   {
+    "hour": "13:00",
+    "activity_count": 2
+   },
+   {
+    "hour": "14:00",
+    "activity_count": 6
+   },
+   {
+    "hour": "15:00",
+    "activity_count": 5
+   },
+   {
+    "hour": "16:00",
+    "activity_count": 3
+   },
+   {
+    "hour": "17:00",
+    "activity_count": 1
+   }
+  ],
+  "top_users": [
+   {
+    "user_id": "j.ellis",
+    "activity_count": 7
+   },
+   {
+    "user_id": "admin",
+    "activity_count": 5
+   },
+   {
+    "user_id": "m.okafor",
+    "activity_count": 4
+   }
+  ]
+ },
+ "similarity": {
+  "overall_stats": {
+   "avg_similarity": 0.503,
+   "max_similarity": 0.91,
+   "total_comparisons": 15,
+   "documents_compared": 6
+  },
+  "similar_document_pairs": [
+   {
+    "doc1": "commercial_lease.pdf",
+    "doc2": "scanned_lease_amendment.pdf",
+    "similarity": 0.91,
+    "doc1_id": "6fdc18f56cf2b684712428c0b200ed46",
+    "doc2_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0"
+   },
+   {
+    "doc1": "master_services_agreement.txt",
+    "doc2": "software_license_agreement.txt",
+    "similarity": 0.83,
+    "doc1_id": "a61bd912821f50df350f676265c1fa10",
+    "doc2_id": "dd7112c84cba34aa9c2a1a33965394de"
+   },
+   {
+    "doc1": "master_services_agreement.txt",
+    "doc2": "employment_agreement.txt",
+    "similarity": 0.64,
+    "doc1_id": "a61bd912821f50df350f676265c1fa10",
+    "doc2_id": "32ea9f4b6af08c9f11e5f500e049fd2f"
+   },
+   {
+    "doc1": "mutual_nda.docx",
+    "doc2": "master_services_agreement.txt",
+    "similarity": 0.61,
+    "doc1_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+    "doc2_id": "a61bd912821f50df350f676265c1fa10"
+   },
+   {
+    "doc1": "employment_agreement.txt",
+    "doc2": "software_license_agreement.txt",
+    "similarity": 0.55,
+    "doc1_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+    "doc2_id": "dd7112c84cba34aa9c2a1a33965394de"
+   },
+   {
+    "doc1": "mutual_nda.docx",
+    "doc2": "employment_agreement.txt",
+    "similarity": 0.52,
+    "doc1_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+    "doc2_id": "32ea9f4b6af08c9f11e5f500e049fd2f"
+   },
+   {
+    "doc1": "commercial_lease.pdf",
+    "doc2": "master_services_agreement.txt",
+    "similarity": 0.49,
+    "doc1_id": "6fdc18f56cf2b684712428c0b200ed46",
+    "doc2_id": "a61bd912821f50df350f676265c1fa10"
+   },
+   {
+    "doc1": "mutual_nda.docx",
+    "doc2": "commercial_lease.pdf",
+    "similarity": 0.44,
+    "doc1_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+    "doc2_id": "6fdc18f56cf2b684712428c0b200ed46"
+   },
+   {
+    "doc1": "commercial_lease.pdf",
+    "doc2": "software_license_agreement.txt",
+    "similarity": 0.43,
+    "doc1_id": "6fdc18f56cf2b684712428c0b200ed46",
+    "doc2_id": "dd7112c84cba34aa9c2a1a33965394de"
+   },
+   {
+    "doc1": "mutual_nda.docx",
+    "doc2": "software_license_agreement.txt",
+    "similarity": 0.41,
+    "doc1_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+    "doc2_id": "dd7112c84cba34aa9c2a1a33965394de"
+   },
+   {
+    "doc1": "employment_agreement.txt",
+    "doc2": "scanned_lease_amendment.pdf",
+    "similarity": 0.38,
+    "doc1_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+    "doc2_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0"
+   },
+   {
+    "doc1": "master_services_agreement.txt",
+    "doc2": "scanned_lease_amendment.pdf",
+    "similarity": 0.37,
+    "doc1_id": "a61bd912821f50df350f676265c1fa10",
+    "doc2_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0"
+   },
+   {
+    "doc1": "mutual_nda.docx",
+    "doc2": "scanned_lease_amendment.pdf",
+    "similarity": 0.33,
+    "doc1_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+    "doc2_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0"
+   },
+   {
+    "doc1": "software_license_agreement.txt",
+    "doc2": "scanned_lease_amendment.pdf",
+    "similarity": 0.32,
+    "doc1_id": "dd7112c84cba34aa9c2a1a33965394de",
+    "doc2_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0"
+   },
+   {
+    "doc1": "commercial_lease.pdf",
+    "doc2": "employment_agreement.txt",
+    "similarity": 0.31,
+    "doc1_id": "6fdc18f56cf2b684712428c0b200ed46",
+    "doc2_id": "32ea9f4b6af08c9f11e5f500e049fd2f"
+   }
+  ]
+ }
+}

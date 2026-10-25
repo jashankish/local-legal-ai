@@ -1,0 +1,457 @@
+{
+ "events": [
+  {
+   "action": "auth.login",
+   "status": "success",
+   "username": "m.okafor",
+   "resource": "",
+   "details": {},
+   "ip_address": "10.0.14.63",
+   "timestamp": "2026-10-20T13:40:00",
+   "id": 29,
+   "previous_hash": "7979a2b11d5afce888893c5c303a86a0971aef2137971d7e5a5e7adff4f23f9c",
+   "hash": "4bf6b1750841c44fb1dc9db36254ec5f5abc7dba2d5e902688fdb97540afef12"
+  },
+  {
+   "action": "integration.test",
+   "status": "success",
+   "username": "admin",
+   "resource": "n8n",
+   "details": {
+    "status_code": 200
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-20T12:40:00",
+   "id": 28,
+   "previous_hash": "7b60cedcfc2d081b7d3186ba249a1cffd1bde945fcb538fcec9b8d92b0bee44b",
+   "hash": "7979a2b11d5afce888893c5c303a86a0971aef2137971d7e5a5e7adff4f23f9c"
+  },
+  {
+   "action": "document.delete",
+   "status": "success",
+   "username": "admin",
+   "resource": "draft_nda_v1.txt",
+   "details": {
+    "passages": 6
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-20T01:40:00",
+   "id": 27,
+   "previous_hash": "1c719be51f7e027c95c22863c5641b64d085254a1b229c1aa51bb7747addc15a",
+   "hash": "7b60cedcfc2d081b7d3186ba249a1cffd1bde945fcb538fcec9b8d92b0bee44b"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "inbox",
+   "resource": "scanned_lease_amendment.pdf",
+   "details": {
+    "passages": 5,
+    "category": "real_estate",
+    "ocr": true,
+    "via": "inbox"
+   },
+   "ip_address": "127.0.0.1",
+   "timestamp": "2026-10-19T13:29:00",
+   "id": 26,
+   "previous_hash": "cce7842cf70162eaa5df911764cc79eaf8e153d9b13edc0ff3272f733c486109",
+   "hash": "1c719be51f7e027c95c22863c5641b64d085254a1b229c1aa51bb7747addc15a"
+  },
+  {
+   "action": "audit.verify",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {
+    "checked": 29
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-19T10:40:00",
+   "id": 25,
+   "previous_hash": "038f3f6c5c94fe74b141b824eb69e1e55cae40313dc9d7e460cd0682feafb6da",
+   "hash": "cce7842cf70162eaa5df911764cc79eaf8e153d9b13edc0ff3272f733c486109"
+  },
+  {
+   "action": "analytics.export",
+   "status": "success",
+   "username": "admin",
+   "resource": "analytics_report.json",
+   "details": {},
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-19T00:40:00",
+   "id": 24,
+   "previous_hash": "c7607f7311d807c6e87a04b349f666ace5bd38ec6de183a139bb9e92b88f2e2f",
+   "hash": "038f3f6c5c94fe74b141b824eb69e1e55cae40313dc9d7e460cd0682feafb6da"
+  },
+  {
+   "action": "access.ip_denied",
+   "status": "denied",
+   "username": "",
+   "resource": "",
+   "details": {
+    "reason": "outside IP allow-list"
+   },
+   "ip_address": "203.0.113.9",
+   "timestamp": "2026-10-18T13:00:00",
+   "id": 23,
+   "previous_hash": "da6bcbd71301c6dcb0fa49a5e107cd0325c45aecba81428a68b182ed97c0fd71",
+   "hash": "c7607f7311d807c6e87a04b349f666ace5bd38ec6de183a139bb9e92b88f2e2f"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "m.okafor",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.69,
+    "seconds": 0.28,
+    "question": "Who is responsible for maintenance and repairs?"
+   },
+   "ip_address": "10.0.14.63",
+   "timestamp": "2026-10-18T00:13:00",
+   "id": 22,
+   "previous_hash": "6fa24494255cd97c24beab66cf94ee6cd04bf9a431cdc6a16ebbf2aa58751af4",
+   "hash": "da6bcbd71301c6dcb0fa49a5e107cd0325c45aecba81428a68b182ed97c0fd71"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "m.okafor",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.77,
+    "seconds": 0.33,
+    "question": "What are the payment terms and late-payment consequences?"
+   },
+   "ip_address": "10.0.14.63",
+   "timestamp": "2026-10-17T23:36:00",
+   "id": 21,
+   "previous_hash": "d294ea1f707b45ec81a889f51fd6bc8a942a9403a043baf2949e0d22c6f5588c",
+   "hash": "6fa24494255cd97c24beab66cf94ee6cd04bf9a431cdc6a16ebbf2aa58751af4"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.71,
+    "seconds": 0.52,
+    "question": "Summarize the limitation of liability clause."
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-17T22:59:00",
+   "id": 20,
+   "previous_hash": "657986e26ee984f67eba5350ce08b82e65cdbbf2ec014276f9baf222057483d6",
+   "hash": "d294ea1f707b45ec81a889f51fd6bc8a942a9403a043baf2949e0d22c6f5588c"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.74,
+    "seconds": 0.41,
+    "question": "Which state's law governs the services agreement and how are disputes resolved?"
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-17T22:22:00",
+   "id": 19,
+   "previous_hash": "e76b806c43292595101688334ff4c6afca21fe1d151acd7ef2d0761c6e4fdc67",
+   "hash": "657986e26ee984f67eba5350ce08b82e65cdbbf2ec014276f9baf222057483d6"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.86,
+    "seconds": 0.22,
+    "question": "What severance is owed if the employee is terminated without cause?"
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-17T21:45:00",
+   "id": 18,
+   "previous_hash": "6a6c236aa943c76e8888f1a2a761424200678210ab937f628bac23325aa46981",
+   "hash": "e76b806c43292595101688334ff4c6afca21fe1d151acd7ef2d0761c6e4fdc67"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.82,
+    "seconds": 0.37,
+    "question": "Can the tenant terminate the lease early?"
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-17T21:08:00",
+   "id": 17,
+   "previous_hash": "8fc3e5cfc6a84f82b4b5b3c6131ff288b2de18baf078b8174f01f0dd7988e4a7",
+   "hash": "6a6c236aa943c76e8888f1a2a761424200678210ab937f628bac23325aa46981"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.88,
+    "seconds": 0.29,
+    "question": "What is the base rent for the Market Street lease and how does it escalate?"
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-17T20:31:00",
+   "id": 16,
+   "previous_hash": "ddea36db8871670701e90d2093a4255654e83a7bbbf87054ce375c041162e080",
+   "hash": "8fc3e5cfc6a84f82b4b5b3c6131ff288b2de18baf078b8174f01f0dd7988e4a7"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.79,
+    "seconds": 0.24,
+    "question": "How long do the NDA confidentiality obligations survive?"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-17T19:54:00",
+   "id": 15,
+   "previous_hash": "9c1a04be3bb7bd526dad5ffedabd86c389ab9409a813bcb5619cc9a43cac7f06",
+   "hash": "ddea36db8871670701e90d2093a4255654e83a7bbbf87054ce375c041162e080"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.81,
+    "seconds": 0.27,
+    "question": "What is the monthly retainer and when is it invoiced?"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-17T19:17:00",
+   "id": 14,
+   "previous_hash": "4efeaf19e3b198222b7a2f76aa64584fbdc791f656f5c46a1f54dedf6adc2fee",
+   "hash": "9c1a04be3bb7bd526dad5ffedabd86c389ab9409a813bcb5619cc9a43cac7f06"
+  },
+  {
+   "action": "query.ask",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {
+    "passages": 5,
+    "top_similarity": 0.84,
+    "seconds": 0.31,
+    "question": "What notice period is required to terminate the services agreement for convenien"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-17T18:40:00",
+   "id": 13,
+   "previous_hash": "2669997d40bbd2ed09eb7f552716724b52f77eb13b70b1adc208e047d8e10f86",
+   "hash": "4efeaf19e3b198222b7a2f76aa64584fbdc791f656f5c46a1f54dedf6adc2fee"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "inbox",
+   "resource": "software_license_agreement.txt",
+   "details": {
+    "passages": 9,
+    "category": "contracts",
+    "via": "inbox"
+   },
+   "ip_address": "127.0.0.1",
+   "timestamp": "2026-10-17T14:07:00",
+   "id": 12,
+   "previous_hash": "4a37a27ac9c009fb67e703742768a65ec51231172f48f11a455769bba55843a5",
+   "hash": "2669997d40bbd2ed09eb7f552716724b52f77eb13b70b1adc208e047d8e10f86"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "admin",
+   "resource": "employment_agreement.txt",
+   "details": {
+    "passages": 10,
+    "category": "employment"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-15T15:38:00",
+   "id": 11,
+   "previous_hash": "e279c604094b4dac143a8fe4f8cd00ace391026610bc6d05abbca3abe29d5c7b",
+   "hash": "4a37a27ac9c009fb67e703742768a65ec51231172f48f11a455769bba55843a5"
+  },
+  {
+   "action": "auth.password_change",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {},
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-14T19:07:00",
+   "id": 10,
+   "previous_hash": "b8a4f519df74307a15dc83bbf07ddebc68a4d389b8327b8ad71f1ddb333051ce",
+   "hash": "e279c604094b4dac143a8fe4f8cd00ace391026610bc6d05abbca3abe29d5c7b"
+  },
+  {
+   "action": "auth.login",
+   "status": "success",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {},
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-14T19:05:00",
+   "id": 9,
+   "previous_hash": "6377fd23ba7dcc0c14c6719055191f56237926b15b3bdff12979f182ad5355cb",
+   "hash": "b8a4f519df74307a15dc83bbf07ddebc68a4d389b8327b8ad71f1ddb333051ce"
+  },
+  {
+   "action": "auth.login",
+   "status": "failure",
+   "username": "j.ellis",
+   "resource": "",
+   "details": {
+    "reason": "bad password"
+   },
+   "ip_address": "10.0.14.51",
+   "timestamp": "2026-10-14T19:00:00",
+   "id": 8,
+   "previous_hash": "ec16f913f6cdec58e408fd5cf8d55a9076233a9a994ad97d77a4acfade97c82f",
+   "hash": "6377fd23ba7dcc0c14c6719055191f56237926b15b3bdff12979f182ad5355cb"
+  },
+  {
+   "action": "user.create",
+   "status": "success",
+   "username": "admin",
+   "resource": "m.okafor",
+   "details": {
+    "role": "lawyer"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T12:40:00",
+   "id": 7,
+   "previous_hash": "1089dc51a4696e929ff4e78d50ba06de28684f66006748208200143c4a1a82fb",
+   "hash": "ec16f913f6cdec58e408fd5cf8d55a9076233a9a994ad97d77a4acfade97c82f"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "admin",
+   "resource": "commercial_lease.pdf",
+   "details": {
+    "passages": 11,
+    "category": "real_estate"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T12:27:00",
+   "id": 6,
+   "previous_hash": "3db6944f6fb1a22cdf2a46aca397f9f442903bb81c13e364e6897712ccbf578b",
+   "hash": "1089dc51a4696e929ff4e78d50ba06de28684f66006748208200143c4a1a82fb"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "admin",
+   "resource": "mutual_nda.docx",
+   "details": {
+    "passages": 9,
+    "category": "nda"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T12:27:00",
+   "id": 5,
+   "previous_hash": "b0b95e40a6a4ec08a54bb6f4e67fc641dcea18acdb073840e8b14cc821bc6d45",
+   "hash": "3db6944f6fb1a22cdf2a46aca397f9f442903bb81c13e364e6897712ccbf578b"
+  },
+  {
+   "action": "document.upload",
+   "status": "success",
+   "username": "admin",
+   "resource": "master_services_agreement.txt",
+   "details": {
+    "passages": 9,
+    "category": "contracts"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T12:27:00",
+   "id": 4,
+   "previous_hash": "2a19d3b23e61b8dcedc38869cd047147dc8879121515bad8b04e0c8c7ec6aa4c",
+   "hash": "b0b95e40a6a4ec08a54bb6f4e67fc641dcea18acdb073840e8b14cc821bc6d45"
+  },
+  {
+   "action": "user.create",
+   "status": "success",
+   "username": "admin",
+   "resource": "j.ellis",
+   "details": {
+    "role": "lawyer"
+   },
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T12:20:00",
+   "id": 3,
+   "previous_hash": "c92b04c0b1113011c262a33857744e439ec8bdaa4e431c3b262538616d77f4b7",
+   "hash": "2a19d3b23e61b8dcedc38869cd047147dc8879121515bad8b04e0c8c7ec6aa4c"
+  },
+  {
+   "action": "auth.password_change",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {},
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T05:45:00",
+   "id": 2,
+   "previous_hash": "dbed89575e81a7e83b4943fc2f34a98a3785687150d6d1de5ef247db1e8706c2",
+   "hash": "c92b04c0b1113011c262a33857744e439ec8bdaa4e431c3b262538616d77f4b7"
+  },
+  {
+   "action": "auth.login",
+   "status": "success",
+   "username": "admin",
+   "resource": "",
+   "details": {},
+   "ip_address": "10.0.14.22",
+   "timestamp": "2026-10-14T05:40:00",
+   "id": 1,
+   "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+   "hash": "dbed89575e81a7e83b4943fc2f34a98a3785687150d6d1de5ef247db1e8706c2"
+  }
+ ],
+ "total": 29,
+ "summary": {
+  "by_action": {
+   "auth.login": 4,
+   "auth.password_change": 2,
+   "user.create": 2,
+   "document.upload": 6,
+   "query.ask": 10,
+   "access.ip_denied": 1,
+   "analytics.export": 1,
+   "audit.verify": 1,
+   "document.delete": 1,
+   "integration.test": 1
+  },
+  "by_status": {
+   "success": 27,
+   "failure": 1,
+   "denied": 1
+  }
+ }
+}

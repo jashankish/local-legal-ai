@@ -1,0 +1,22 @@
+# Cache rules for static hosts that read a _headers file (Netlify, Cloudflare Pages).
+# The pages, code and demo library revalidate on every load so a deploy is picked
+# up at once and a browser never mixes old and new ES modules.
+#
+# yappertech.com does not read this file — its equivalent lives in the monorepo's
+# scripts/deploy.sh and scripts/release.sh, which exclude legal-ai-demo/* from the
+# year-long immutable sync for exactly the same reason.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/js/*
+  Cache-Control: no-cache
+/css/*
+  Cache-Control: no-cache
+/demo/*
+  Cache-Control: no-cache

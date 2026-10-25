@@ -1,0 +1,485 @@
+{
+ "documents": [
+  {
+   "id": "a61bd912821f50df350f676265c1fa10",
+   "filename": "master_services_agreement.txt",
+   "source": "Master Services Agreement \u2014 Harborview / Meridian",
+   "category": "contracts",
+   "document_type": "contract",
+   "page_count": 1,
+   "word_count": 540,
+   "char_count": 3567,
+   "chunk_count": 9,
+   "uploaded_by": "admin",
+   "upload_date": "2026-10-14T12:27:00",
+   "content_type": "text/plain",
+   "file_size": 3567,
+   "ocr": false,
+   "via_inbox": false
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "filename": "mutual_nda.docx",
+   "source": "Mutual NDA \u2014 Cobalt Ridge / Lindenfield",
+   "category": "nda",
+   "document_type": "nda",
+   "page_count": 1,
+   "word_count": 367,
+   "char_count": 2488,
+   "chunk_count": 9,
+   "uploaded_by": "admin",
+   "upload_date": "2026-10-14T12:27:00",
+   "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+   "file_size": 30488,
+   "ocr": false,
+   "via_inbox": false
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46",
+   "filename": "commercial_lease.pdf",
+   "source": "Commercial Lease \u2014 410 Market Street",
+   "category": "real_estate",
+   "document_type": "lease",
+   "page_count": 1,
+   "word_count": 370,
+   "char_count": 2312,
+   "chunk_count": 11,
+   "uploaded_by": "admin",
+   "upload_date": "2026-10-14T12:27:00",
+   "content_type": "application/pdf",
+   "file_size": 6212,
+   "ocr": false,
+   "via_inbox": false
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "filename": "employment_agreement.txt",
+   "source": "Employment Agreement \u2014 Senior Corporate Counsel",
+   "category": "employment",
+   "document_type": "employment",
+   "page_count": 1,
+   "word_count": 297,
+   "char_count": 1964,
+   "chunk_count": 10,
+   "uploaded_by": "admin",
+   "upload_date": "2026-10-15T15:38:00",
+   "content_type": "text/plain",
+   "file_size": 1964,
+   "ocr": false,
+   "via_inbox": false
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de",
+   "filename": "software_license_agreement.txt",
+   "source": "Software License Agreement \u2014 Quillmark / Alder & Finch",
+   "category": "contracts",
+   "document_type": "license",
+   "page_count": 1,
+   "word_count": 315,
+   "char_count": 2051,
+   "chunk_count": 9,
+   "uploaded_by": "inbox",
+   "upload_date": "2026-10-17T14:07:00",
+   "content_type": "text/plain",
+   "file_size": 2051,
+   "ocr": false,
+   "via_inbox": true
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "filename": "scanned_lease_amendment.pdf",
+   "source": "First Amendment to Commercial Lease \u2014 410 Market Street",
+   "category": "real_estate",
+   "document_type": "lease",
+   "page_count": 1,
+   "word_count": 159,
+   "char_count": 1016,
+   "chunk_count": 5,
+   "uploaded_by": "inbox",
+   "upload_date": "2026-10-19T13:29:00",
+   "content_type": "application/pdf",
+   "file_size": 4916,
+   "ocr": true,
+   "via_inbox": true
+  }
+ ],
+ "passages": [
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0000",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 0,
+   "section": "",
+   "text": "MASTER SERVICES AGREEMENT This Master Services Agreement (the \"Agreement\") is entered into as of March 1, 2025 (the \"Effective Date\") by and between Harborview Analytics LLC, a Delaware limited liability company (\"Client\"), and Meridian Data Partners Inc., a New York corporation (\"Provider\"). WHEREAS Client wishes to engage Provider to perform contract review and data analytics services; and WHEREAS Provider is willing to perform such services on the terms set forth below. NOW THEREFORE in consideration of the mutual covenants contained herein, the parties agree as follows:"
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0001",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 1,
+   "section": "Section 1. Services",
+   "text": "Section 1. Services. Provider shall perform the services described in each Statement of Work executed by the parties (each, an \"SOW\"). Each SOW shall describe the deliverables, milestones and acceptance criteria. In the event of a conflict between this Agreement and an SOW, this Agreement controls unless the SOW expressly states otherwise."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0002",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 2,
+   "section": "Section 2. Fees and Payment",
+   "text": "Section 2. Fees and Payment. Client shall pay Provider a monthly retainer of $15,000, invoiced on the first business day of each month. Additional services shall be billed at $275 per hour. All invoices are due within thirty (30) days of receipt. Late payments accrue interest at 1.5% per month or the maximum rate permitted by law, whichever is lower."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0003",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 3,
+   "section": "Section 3. Term",
+   "text": "Section 3. Term. This Agreement commences on the Effective Date and continues for an initial term of two (2) years. Thereafter it renews automatically for successive one (1) year terms unless either party gives notice of non-renewal at least ninety (90) days before the end of the then-current term."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0004",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 4,
+   "section": "Section 4. Termination",
+   "text": "Section 4. Termination. Either party may terminate this Agreement for convenience upon sixty (60) days written notice to the other party. Either party may terminate immediately upon written notice if the other party commits a material breach that remains uncured thirty (30) days after written notice describing the breach. Upon termination, Client shall pay all fees accrued through the effective date of termination."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0005",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 5,
+   "section": "Section 5. Confidentiality",
+   "text": "Section 5. Confidentiality. Each party shall hold the other party's Confidential Information in strict confidence and shall not disclose it to any third party except to employees and contractors who need to know it and are bound by written obligations at least as protective as this Section. These obligations survive for five (5) years following termination of this Agreement."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0006",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 6,
+   "section": "Section 6. Limitation of Liability",
+   "text": "Section 6. Limitation of Liability. Except for breaches of Section 5 or a party's indemnification obligations, neither party's aggregate liability under this Agreement shall exceed the fees paid by Client in the twelve (12) months preceding the claim. In no event shall either party be liable for indirect, incidental, consequential or punitive damages."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0007",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 7,
+   "section": "Section 7. Indemnification",
+   "text": "Section 7. Indemnification. Provider shall defend, indemnify and hold harmless Client from any third-party claim alleging that the deliverables infringe any intellectual property right, provided Client promptly notifies Provider of the claim and gives Provider sole control of its defense."
+  },
+  {
+   "id": "a61bd912821f50df350f676265c1fa10-0008",
+   "document_id": "a61bd912821f50df350f676265c1fa10",
+   "chunk_index": 8,
+   "section": "Section 8. Governing Law and Disputes",
+   "text": "Section 8. Governing Law and Disputes. This Agreement is governed by the laws of the State of New York, without regard to its conflict-of-laws principles. Any dispute shall be resolved by binding arbitration in New York County under the Commercial Rules of the American Arbitration Association. IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date. HARBORVIEW ANALYTICS LLC MERIDIAN DATA PARTNERS INC. By: Dana Whitfield, General Counsel By: Samuel Ortega, Chief Executive Officer"
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0000",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 0,
+   "section": "",
+   "text": "MUTUAL NON-DISCLOSURE AGREEMENT This Mutual Non-Disclosure Agreement (the \"Agreement\") is made as of June 10, 2025 between Cobalt Ridge Biotech Inc., a California corporation, and Lindenfield Capital Advisors LLC, a Delaware limited liability company (each a \"Party\" and together the \"Parties\")."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0001",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 1,
+   "section": "Section 1. Purpose",
+   "text": "Section 1. Purpose. The Parties wish to evaluate a potential investment transaction (the \"Purpose\") and, in connection with the Purpose, may disclose Confidential Information to one another."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0002",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 2,
+   "section": "Section 2. Confidential Information",
+   "text": "Section 2. Confidential Information. \"Confidential Information\" means all non-public business, technical, financial and scientific information disclosed by a Party, including trade secrets, clinical data, formulas, investor lists and financial projections, whether disclosed orally, in writing or electronically."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0003",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 3,
+   "section": "Section 3. Exclusions",
+   "text": "Section 3. Exclusions. Confidential Information does not include information that (a) is or becomes publicly available through no fault of the receiving Party; (b) was lawfully known to the receiving Party before disclosure; (c) is independently developed without use of the disclosing Party's information; or (d) is received from a third party without a duty of confidentiality."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0004",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 4,
+   "section": "Section 4. Obligations",
+   "text": "Section 4. Obligations. The receiving Party shall use Confidential Information solely for the Purpose, shall protect it with at least the degree of care it uses for its own confidential information and in no event less than reasonable care, and shall not disclose it except to its directors, employees and professional advisers who need to know it for the Purpose."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0005",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 5,
+   "section": "Section 5. Term",
+   "text": "Section 5. Term. This Agreement remains in effect for two (2) years from the date above. The obligations of confidentiality survive for three (3) years after expiration, and for trade secrets for so long as the information remains a trade secret under applicable law."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0006",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 6,
+   "section": "Section 6. Return of Materials",
+   "text": "Section 6. Return of Materials. Within ten (10) business days of a written request, the receiving Party shall return or destroy all Confidential Information and certify the destruction in writing."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0007",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 7,
+   "section": "Section 7. Remedies",
+   "text": "Section 7. Remedies. Each Party acknowledges that unauthorized disclosure may cause irreparable harm for which monetary damages would be inadequate, and that the disclosing Party is entitled to seek injunctive relief without posting a bond."
+  },
+  {
+   "id": "214cdb56a814fdcb7b3b0f6c5c40d335-0008",
+   "document_id": "214cdb56a814fdcb7b3b0f6c5c40d335",
+   "chunk_index": 8,
+   "section": "Section 8. Governing Law",
+   "text": "Section 8. Governing Law. This Agreement is governed by the laws of the State of California. The state and federal courts located in San Francisco County have exclusive jurisdiction over any dispute arising from this Agreement."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0000",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 0,
+   "section": "",
+   "text": "COMMERCIAL LEASE AGREEMENT This Commercial Lease Agreement (the \"Lease\") is entered into on January 15, 2025 between Granite Harbor Properties LLC (\"Landlord\") and Fernwood Legal Group PLLC (\"Tenant\")."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0001",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 1,
+   "section": "Section 1. Premises",
+   "text": "Section 1. Premises. Landlord leases to Tenant approximately 4,200 rentable square feet on the 12th floor of the building located at 410 Market Street, Austin, Texas (the \"Premises\")."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0002",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 2,
+   "section": "Section 2. Term",
+   "text": "Section 2. Term. The term of this Lease is five (5) years, commencing on April 1, 2025 and ending on March 31, 2030, unless terminated earlier as provided herein."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0003",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 3,
+   "section": "Section 3. Base Rent",
+   "text": "Section 3. Base Rent. Tenant shall pay base rent of $18,900 per month, due on the first day of each calendar month. Base rent increases by three percent (3%) on each anniversary of the commencement date. Rent not received within five (5) days of the due date incurs a late fee of five percent (5%) of the overdue amount."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0004",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 4,
+   "section": "Section 4. Security Deposit",
+   "text": "Section 4. Security Deposit. Tenant shall deposit $37,800 with Landlord as security for Tenant's performance. Landlord shall return the deposit, less lawful deductions, within thirty (30) days after the Lease ends."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0005",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 5,
+   "section": "Section 5. Use",
+   "text": "Section 5. Use. Tenant shall use the Premises only for general office purposes, including the practice of law, and for no other purpose without Landlord's prior written consent."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0006",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 6,
+   "section": "Section 6. Maintenance and Repairs",
+   "text": "Section 6. Maintenance and Repairs. Landlord is responsible for the roof, structure, elevators and building systems. Tenant is responsible for interior repairs and for damage caused by Tenant or its invitees."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0007",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 7,
+   "section": "Section 7. Assignment and Subletting",
+   "text": "Section 7. Assignment and Subletting. Tenant may not assign this Lease or sublet any part of the Premises without Landlord's prior written consent, which shall not be unreasonably withheld, conditioned or delayed."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0008",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 8,
+   "section": "Section 8. Early Termination",
+   "text": "Section 8. Early Termination. Tenant may terminate this Lease effective on the last day of the thirty-sixth (36th) month by giving Landlord at least nine (9) months prior written notice and paying a termination fee equal to four (4) months of then-current base rent."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0009",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 9,
+   "section": "Section 9. Default",
+   "text": "Section 9. Default. If Tenant fails to pay rent within ten (10) days after written notice of non-payment, or fails to cure any other default within thirty (30) days after written notice, Landlord may terminate this Lease and pursue all remedies available at law."
+  },
+  {
+   "id": "6fdc18f56cf2b684712428c0b200ed46-0010",
+   "document_id": "6fdc18f56cf2b684712428c0b200ed46",
+   "chunk_index": 10,
+   "section": "Section 10. Governing Law",
+   "text": "Section 10. Governing Law. This Lease is governed by the laws of the State of Texas."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0000",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 0,
+   "section": "",
+   "text": "EMPLOYMENT AGREEMENT This Employment Agreement (the \"Agreement\") is made effective as of February 3, 2025 between Brightwater Robotics Inc., a Massachusetts corporation (the \"Company\"), and Jordan Ellis (the \"Employee\")."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0001",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 1,
+   "section": "Section 1. Position",
+   "text": "Section 1. Position. The Company employs the Employee as Senior Corporate Counsel, reporting to the General Counsel. The Employee shall devote full business time and efforts to the Company."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0002",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 2,
+   "section": "Section 2. Compensation",
+   "text": "Section 2. Compensation. The Company shall pay the Employee an annual base salary of $210,000, payable in accordance with the Company's regular payroll practices. The Employee is eligible for an annual performance bonus of up to twenty percent (20%) of base salary, determined at the Company's discretion."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0003",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 3,
+   "section": "Section 3. Equity",
+   "text": "Section 3. Equity. Subject to board approval, the Employee will receive an option to purchase 40,000 shares of common stock, vesting over four (4) years with a one (1) year cliff."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0004",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 4,
+   "section": "Section 4. Benefits",
+   "text": "Section 4. Benefits. The Employee may participate in the Company's health, dental and retirement plans and receives twenty (20) days of paid time off per year."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0005",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 5,
+   "section": "Section 5. At-Will Employment",
+   "text": "Section 5. At-Will Employment. Employment is at will. Either party may terminate the employment at any time, with or without cause, upon two (2) weeks written notice."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0006",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 6,
+   "section": "Section 6. Severance",
+   "text": "Section 6. Severance. If the Company terminates the Employee without cause, the Company shall pay severance equal to three (3) months of base salary, conditioned on the Employee signing a general release of claims."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0007",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 7,
+   "section": "Section 7. Confidentiality and Inventions",
+   "text": "Section 7. Confidentiality and Inventions. The Employee shall not disclose the Company's confidential information during or after employment, and assigns to the Company all inventions conceived during employment that relate to the Company's business."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0008",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 8,
+   "section": "Section 8. Non-Solicitation",
+   "text": "Section 8. Non-Solicitation. For twelve (12) months after employment ends, the Employee shall not solicit any Company employee or customer to leave the Company."
+  },
+  {
+   "id": "32ea9f4b6af08c9f11e5f500e049fd2f-0009",
+   "document_id": "32ea9f4b6af08c9f11e5f500e049fd2f",
+   "chunk_index": 9,
+   "section": "Section 9. Governing Law",
+   "text": "Section 9. Governing Law. This Agreement is governed by the laws of the Commonwealth of Massachusetts."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0000",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 0,
+   "section": "",
+   "text": "SOFTWARE LICENSE AGREEMENT This Software License Agreement (the \"Agreement\") is entered into as of May 12, 2025 between Quillmark Software Inc., a Washington corporation (\"Licensor\"), and Alder & Finch LLP, a New York limited liability partnership (\"Licensee\")."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0001",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 1,
+   "section": "Section 1. License Grant",
+   "text": "Section 1. License Grant. Licensor grants Licensee a non-exclusive, non-transferable license to install and use the DocketFlow case management software (the \"Software\") for up to 150 named users at Licensee's offices."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0002",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 2,
+   "section": "Section 2. Fees",
+   "text": "Section 2. Fees. Licensee shall pay an annual license fee of $48,000, due within thirty (30) days of each anniversary of the Effective Date. Fees for additional users are $320 per user per year, prorated monthly."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0003",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 3,
+   "section": "Section 3. Support and Updates",
+   "text": "Section 3. Support and Updates. Licensor shall provide email and telephone support during business hours and shall respond to critical incidents within four (4) hours. Updates and security patches are included in the annual fee."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0004",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 4,
+   "section": "Section 4. Data Protection",
+   "text": "Section 4. Data Protection. Licensee data remains the property of Licensee. Licensor shall not access Licensee data except to provide support at Licensee's request and shall notify Licensee of any security breach within seventy-two (72) hours of discovery."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0005",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 5,
+   "section": "Section 5. Term and Termination",
+   "text": "Section 5. Term and Termination. This Agreement has an initial term of three (3) years and renews for successive one (1) year terms unless either party gives sixty (60) days written notice of non-renewal. Either party may terminate for material breach not cured within thirty (30) days of written notice."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0006",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 6,
+   "section": "Section 6. Warranty",
+   "text": "Section 6. Warranty. Licensor warrants that the Software will perform substantially in accordance with its documentation for ninety (90) days after delivery. Licensee's exclusive remedy for breach of this warranty is repair or replacement of the Software or a refund of the fees paid."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0007",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 7,
+   "section": "Section 7. Limitation of Liability",
+   "text": "Section 7. Limitation of Liability. Neither party's aggregate liability shall exceed the fees paid in the twelve (12) months preceding the claim, except for breaches of Section 4."
+  },
+  {
+   "id": "dd7112c84cba34aa9c2a1a33965394de-0008",
+   "document_id": "dd7112c84cba34aa9c2a1a33965394de",
+   "chunk_index": 8,
+   "section": "Section 8. Governing Law",
+   "text": "Section 8. Governing Law. This Agreement is governed by the laws of the State of Washington."
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0-0000",
+   "document_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "chunk_index": 0,
+   "section": "",
+   "text": "FIRST AMENDMENT TO COMMERCIAL LEASE This First Amendment (the \"Amendment\") is made on September 2, 2025 between Granite Harbor Properties LLC (\"Landlord\") and Fernwood Legal Group PLLC (\"Tenant\") and amends the Commercial Lease dated January 15, 2025 for the 12th floor of 410 Market Street, Austin, Texas."
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0-0001",
+   "document_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "chunk_index": 1,
+   "section": "Section 1. Expansion Premises",
+   "text": "Section 1. Expansion Premises. Effective November 1, 2025, the Premises are expanded to include an additional 1,350 rentable square feet on the 12th floor (the \"Expansion Space\")."
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0-0002",
+   "document_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "chunk_index": 2,
+   "section": "Section 2. Rent for Expansion Space",
+   "text": "Section 2. Rent for Expansion Space. Tenant shall pay additional base rent of $6,075 per month for the Expansion Space, subject to the same three percent (3%) annual increase as the original Premises."
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0-0003",
+   "document_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "chunk_index": 3,
+   "section": "Section 3. Parking",
+   "text": "Section 3. Parking. Landlord shall provide Tenant with six (6) reserved parking spaces in the building garage at no additional charge for the remainder of the term."
+  },
+  {
+   "id": "96ae41fbd184fd95cbbc4fcf7f5e59b0-0004",
+   "document_id": "96ae41fbd184fd95cbbc4fcf7f5e59b0",
+   "chunk_index": 4,
+   "section": "Section 4. Ratification",
+   "text": "Section 4. Ratification. Except as amended here, the Lease remains in full force and effect. Signed copies of this Amendment were exchanged by scanned email."
+  }
+ ],
+ "stats": {
+  "document_count": 6,
+  "chunk_count": 53,
+  "name": "legal_documents",
+  "status": "healthy"
+ }
+}

@@ -31,6 +31,8 @@ jobs:
         run: python -c "from rag.ocr import ocr_available, tessdata_path; assert ocr_available(), 'no OCR'; print('tessdata:', tessdata_path())"
       - name: Run pytest
         run: pytest -rs
+      - name: Web demo library matches the samples and the real chunker
+        run: python tools/make_demo_data.py --check
       - name: Local demo environment starts, serves and stops
         run: |
           python scripts/demo.py up
@@ -40,6 +42,36 @@ jobs:
       - name: Demo logs on failure
         if: failure()
         run: tail -n 100 .demo/logs/*.log || true
+
+  # The static demo published at yappertech.com/legal-ai-demo (web/). Its build is
+  # what the YapperTech site copies in, so a red run here means a broken deploy.
+  web-demo:
+    name: Web demo (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]   # webkit = Safari's engine
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: JavaScript parses
+        run: |
+          for f in web/js/*.js web/js/engine/*.js tools/*.mjs; do
+            node --input-type=module --check < "$f" || { echo "syntax error in $f"; exit 1; }
+          done
+      - name: Engine self-test (retrieval, citations, key terms match the Python extractor)
+        run: node tools/selftest.mjs
+      - name: Site build
+        run: bash tools/build-site.sh
+      - name: Browser end-to-end in ${{ matrix.browser }}
+        run: |
+          npm i --no-save --silent playwright@1.55.0
+          npx playwright install --with-deps ${{ matrix.browser }}
+          node tools/e2e.mjs --browser ${{ matrix.browser }}
 
   docker:
     name: Docker Compose stack
