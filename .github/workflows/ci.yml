@@ -47,7 +47,10 @@ jobs:
   # what the YapperTech site copies in, so a red run here means a broken deploy.
   web-demo:
     name: Web demo (${{ matrix.browser }})
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: Playwright only installs browsers on the Ubuntu
+    # releases it was built for, so a runner-image bump would fail every run.
+    # Move this together with the playwright@ version below.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
