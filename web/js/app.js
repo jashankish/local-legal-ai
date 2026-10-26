@@ -177,13 +177,13 @@ function loginPage(notice) {
         <label class="field"><span>Username</span>
           <input type="text" name="username" value="admin" autocomplete="username" required></label>
         <label class="field"><span>Password</span>
-          <input type="password" name="password" value="admin123" autocomplete="current-password" required></label>
+          <input type="password" name="password" value="admin" autocomplete="current-password" required></label>
         <div id="login-error"></div>
         <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
       </form>
       <p class="caption" style="margin:.9rem 0 0">
-        This public demo is pre-filled: sign in with <code>admin</code> / <code>admin123</code>.
-        A real installation forces a new password on first sign-in.
+        This public demo is pre-filled: sign in with <code>admin</code> / <code>admin</code>.
+        A real installation makes the administrator choose a strong password at first sign-in.
       </p>
     </div>
     <div class="feature-grid">

@@ -152,9 +152,15 @@ watched folder — and prints a walkthrough:
 python scripts/demo.py up                 # add --with-model for generated answers
 ```
 
-Open **http://localhost:8511** and sign in as `admin` / `LegalDemo-2025`. Other
+Open **http://localhost:8511** and sign in as `admin` / `admin`. Other
 accounts let you see the product from a lawyer's, a new joiner's and a disabled
 user's point of view.
+
+The simple password is deliberate and confined to this testing environment: it
+holds only fictional sample agreements, listens on localhost alone, and runs the
+API with `DEMO_MODE=true`, which relaxes the password rules. The API refuses to
+start in demo mode on any other address; a normal install keeps the full rules and
+makes the administrator replace `admin123` at first sign-in.
 
 | Command | |
 |---|---|

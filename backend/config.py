@@ -47,6 +47,23 @@ class Settings(BaseSettings):
             )
         return value
     
+    # Local testing environment (scripts/demo.py) only. Relaxes the password rules
+    # so the demo can sign in as admin / admin: it holds nothing but fictional
+    # sample agreements and listens on localhost alone. Refused on any other
+    # address, so it cannot weaken a networked install by accident.
+    demo_mode: bool = Field(default=False, env="DEMO_MODE")
+
+    @field_validator("demo_mode")
+    @classmethod
+    def _demo_mode_only_on_loopback(cls, value: bool, info) -> bool:
+        host = (info.data.get("host") or "").strip()
+        if value and host not in {"127.0.0.1", "localhost", "::1"}:
+            raise ValueError(
+                f"DEMO_MODE relaxes the password rules and is only allowed when HOST is "
+                f"127.0.0.1 or localhost (got {host!r}). Unset DEMO_MODE for a real install."
+            )
+        return value
+
     # Database/Vector Store Settings
     chromadb_host: str = Field(default="localhost", env="CHROMADB_HOST")
     chromadb_port: int = Field(default=8002, env="CHROMADB_PORT")

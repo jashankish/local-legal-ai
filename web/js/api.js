@@ -22,7 +22,7 @@ async function loadDemoData(base) {
 }
 
 const DEMO_ACCOUNTS = {
-  admin: { password: "admin123", role: "admin", email: "admin@fernwoodlegal.example" },
+  admin: { password: "admin", role: "admin", email: "admin@fernwoodlegal.example" },
   "j.ellis": { password: "demo1234", role: "lawyer", email: "j.ellis@fernwoodlegal.example" },
 };
 

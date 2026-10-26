@@ -73,6 +73,9 @@ MIN_PASSWORD_LENGTH = 8
 
 def validate_new_password(password: str, username: str) -> Optional[str]:
     """Return a human-readable problem with a proposed password, or None if acceptable."""
+    if settings.demo_mode:
+        # Local testing environment: simple credentials such as admin / admin.
+        return None if password else "Password cannot be empty"
     if len(password) < MIN_PASSWORD_LENGTH:
         return f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
     if password.lower() == username.lower():

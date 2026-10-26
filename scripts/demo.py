@@ -29,7 +29,11 @@ import urllib.request
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PYTHON = sys.executable
-ADMIN_PASSWORD = "LegalDemo-2025"
+# Deliberately simple: the demo holds only fictional sample agreements, listens on
+# localhost alone and runs the API with DEMO_MODE, which allows a password this short.
+ADMIN_PASSWORD = "admin"
+# What earlier versions of the demo set; adopted and replaced on the next `up`.
+PREVIOUS_ADMIN_PASSWORDS = ("LegalDemo-2025",)
 
 # Deliberately not 8000/8501: a demo should never collide with a real instance.
 PORTS = {"api": 8010, "ui": 8511, "model": 8011, "events": 8012}
@@ -223,6 +227,7 @@ def cmd_up(args):
             "PYTHONPATH": REPO,
             "HOST": "127.0.0.1",
             "PORT": str(PORTS["api"]),
+            "DEMO_MODE": "true",
             "LLM_ENABLED": "true" if model_endpoint else "false",
             "MODEL_ENDPOINT": model_endpoint or "http://127.0.0.1:1",
             "INBOX_DIR": "data/inbox",
@@ -248,6 +253,8 @@ def cmd_up(args):
               {**base_env, "BACKEND_URL": api_url}, REPO)
     wait_for(f"http://127.0.0.1:{PORTS['ui']}/_stcore/health", 90, "Web UI")
     say(f"   Web UI       {ui_url}", "✓ ")
+
+    adopt_admin_password(api_url)
 
     # 5. Sample firm.
     if not args.no_seed:
@@ -282,6 +289,38 @@ def ocr_available(api_url):
             return json.load(response).get("services", {}).get("ocr") == "available"
     except Exception:
         return True  # don't nag if we can't tell
+
+
+def _post_json(url, body, token=None):
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(url, method="POST", data=json.dumps(body).encode(), headers=headers)
+    with urllib.request.urlopen(request, timeout=10) as response:
+        return json.load(response)
+
+
+def adopt_admin_password(api_url):
+    """Move a demo created by an earlier version onto the current admin password.
+
+    Its library and history stay as they are; only the password changes, so a
+    `.demo/` from before keeps working with admin / admin.
+    """
+    try:
+        _post_json(f"{api_url}/auth/login", {"username": "admin", "password": ADMIN_PASSWORD})
+        return  # already current (or a fresh install, which seeding handles)
+    except Exception:
+        pass
+    for old in PREVIOUS_ADMIN_PASSWORDS:
+        try:
+            token = _post_json(f"{api_url}/auth/login",
+                               {"username": "admin", "password": old})["access_token"]
+            _post_json(f"{api_url}/auth/change-password",
+                       {"current_password": old, "new_password": ADMIN_PASSWORD}, token)
+            say(f"   Admin password updated to {ADMIN_PASSWORD!r}", "· ")
+            return
+        except Exception:
+            continue
 
 
 def seeded(api_url):
@@ -422,7 +461,7 @@ def print_tour(args, model_running):
     say("=" * 72)
     say()
     say("  Sign in as any of these:")
-    say(f"    admin / {ADMIN_PASSWORD}      administrator — sees everything")
+    say(f"    admin / {ADMIN_PASSWORD}                    administrator — sees everything")
     say("    associate / associate-demo-1     lawyer")
     say("    paralegal / paralegal-demo-1     standard user")
     say("    new.hire / Welcome-temp-1        must choose a password at first sign-in")

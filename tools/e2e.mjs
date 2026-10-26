@@ -105,7 +105,7 @@ await check("wrong credentials are rejected", async () => {
 
 await check("admin can sign in", async () => {
   await page.fill('input[name="username"]', "admin");
-  await page.fill('input[name="password"]', "admin123");
+  await page.fill('input[name="password"]', "admin");
   await page.click('button[type="submit"]');
   await page.waitForSelector(".sidebar", { timeout: 15000 });
   return (await text("h1")).includes("Dashboard") ? null : "no dashboard after sign-in";
@@ -270,7 +270,7 @@ await check("the layout works at phone width", async () => {
     await phone.goto(base, { waitUntil: "load" });
     await phone.waitForSelector("#login-form", { timeout: 15000 });
     await phone.fill('input[name="username"]', "admin");
-    await phone.fill('input[name="password"]', "admin123");
+    await phone.fill('input[name="password"]', "admin");
     await phone.click('button[type="submit"]');
     await phone.waitForSelector(".sidebar", { timeout: 15000 });
 

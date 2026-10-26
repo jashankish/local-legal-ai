@@ -26,9 +26,15 @@ touches your own `data/` and you can run both at once.
 
 ## Sign in as
 
+The admin login is simply `admin` / `admin`. That is safe here and only here: the
+environment holds fictional sample agreements, binds to `127.0.0.1`, and starts the
+API with `DEMO_MODE=true`, which relaxes the password rules. The API refuses demo mode
+on any other address. A demo created by an earlier version is moved onto the new
+password automatically on the next `up`.
+
 | Account | Password | What it shows |
 |---|---|---|
-| `admin` | `LegalDemo-2025` | everything, including Users, Analytics, Audit Log and Integrations |
+| `admin` | `admin` | everything, including Users, Analytics, Audit Log and Integrations |
 | `associate` | `associate-demo-1` | a lawyer: documents and questions, no admin pages |
 | `paralegal` | `paralegal-demo-1` | a standard user |
 | `new.hire` | `Welcome-temp-1` | forced to choose a password before anything else works |

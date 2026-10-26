@@ -82,3 +82,27 @@ def test_strong_secret_key_is_accepted():
     from backend.config import Settings
 
     assert Settings(secret_key="a-long-random-value-0123456789").secret_key.startswith("a-long")
+
+
+def test_demo_mode_is_refused_unless_the_api_listens_on_localhost():
+    from backend.config import Settings
+
+    secret = "a-long-random-value-0123456789"
+    for host in ("127.0.0.1", "localhost"):
+        assert Settings(secret_key=secret, host=host, demo_mode=True).demo_mode is True
+    with pytest.raises(ValidationError, match="DEMO_MODE"):
+        Settings(secret_key=secret, host="0.0.0.0", demo_mode=True)
+    # Off by default, so a normal install keeps the full password rules.
+    assert Settings(secret_key=secret).demo_mode is False
+
+
+def test_demo_mode_allows_the_simple_testing_credentials(monkeypatch):
+    from backend import auth
+
+    # The real rules reject admin / admin...
+    monkeypatch.setattr(auth.settings, "demo_mode", False)
+    assert auth.validate_new_password("admin", "admin") is not None
+    # ...the local testing environment accepts it, but never an empty password.
+    monkeypatch.setattr(auth.settings, "demo_mode", True)
+    assert auth.validate_new_password("admin", "admin") is None
+    assert auth.validate_new_password("", "admin") is not None
