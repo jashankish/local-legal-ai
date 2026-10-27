@@ -11,10 +11,15 @@
 #   bash tools/build-site.sh --api-base-url URL   → point the build at a real backend
 #                                                   instead of the in-browser demo;
 #                                                   LEGAL_AI_API_BASE_URL=URL does the same
+#   bash tools/build-site.sh --site-url URL       → where the build will be served, for the
+#                                                   absolute link-preview URLs (og:image…);
+#                                                   LEGAL_AI_SITE_URL=URL does the same.
+#                                                   Default: https://www.yappertech.com/legal-ai-demo/
 set -euo pipefail
 
 HEAD_FILE="${LEGAL_AI_DEMO_HEAD:-}"
 API_BASE_URL="${LEGAL_AI_API_BASE_URL:-}"
+SITE_URL="${LEGAL_AI_SITE_URL:-https://www.yappertech.com/legal-ai-demo/}"
 ZIP=false
 
 while [ $# -gt 0 ]; do
@@ -22,6 +27,7 @@ while [ $# -gt 0 ]; do
     --zip) ZIP=true ;;
     --head) HEAD_FILE="$2"; shift ;;
     --api-base-url) API_BASE_URL="$2"; shift ;;
+    --site-url) SITE_URL="$2"; shift ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
   shift
@@ -43,9 +49,30 @@ tar -C web --exclude='./serve.py' --exclude='.DS_Store' --exclude='__pycache__' 
 for f in index.html css/styles.css js/app.js js/api.js js/config.js js/charts.js \
          js/engine/retrieval.js js/engine/insights.js \
          demo/library.json demo/analytics.json demo/audit.json demo/users.json \
-         demo/integrations.json demo/questions.json favicon.svg; do
+         demo/integrations.json demo/questions.json favicon.svg \
+         og-image.png apple-touch-icon.png; do
   [ -f "$OUT/$f" ] || { echo "missing $f in the build" >&2; exit 1; }
 done
+
+# Link previews: iMessage, Slack and friends ignore relative og:/twitter: URLs,
+# so resolve them against where this build will be served.
+python3 - "$OUT/index.html" "$SITE_URL" <<'PY'
+import re, sys
+from urllib.parse import urljoin
+path, site = sys.argv[1], sys.argv[2]
+if not re.match(r"^https?://", site):
+    sys.exit(f"--site-url must be an absolute http(s) URL, got {site!r}")
+site = site if site.endswith("/") else site + "/"
+html = open(path).read()
+absolute = lambda m: f'{m.group(1)}"{urljoin(site, m.group(2))}"'
+html, count = re.subn(
+    r'(<meta (?:property|name)="(?:og:url|og:image|og:image:secure_url|twitter:image)" content=)"([^"]*)"',
+    absolute, html)
+html, canonical = re.subn(r'(<link rel="canonical" href=)"([^"]*)"', absolute, html)
+assert count == 4 and canonical == 1, f"expected 4 preview URLs and a canonical link, found {count} and {canonical}"
+open(path, "w").write(html)
+PY
+echo "Link previews point at ${SITE_URL%/}/og-image.png"
 
 # A build with no documents would render an empty product. Catch that here.
 python3 - "$OUT/demo/library.json" <<'PY'

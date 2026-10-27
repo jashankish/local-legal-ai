@@ -58,13 +58,32 @@ web/
   js/engine/retrieval.js  TF-IDF index, ranking, extractive answers
   js/engine/insights.js   port of rag/legal_insights.py
   demo/*.json           generated library, analytics, audit, users, integrations
+  og-image.png          1200×630 link-preview card (generated)
+  apple-touch-icon.png  180×180 icon (generated)
   serve.py              local dev server (not shipped)
 tools/
   make_demo_data.py     generates web/demo/ from samples/ with the real pipeline
+  og-card.html          source of the link-preview card
+  make_og_image.mjs     renders og-card.html and the favicon to the two PNGs
   build-site.sh         packages web/ into dist/legal-ai-demo/
   selftest.mjs          engine checks: 15 questions → right clause, JS key terms == Python
   e2e.mjs               Playwright walkthrough of every page, incl. phone width
 ```
+
+## Link previews
+
+Sharing the page in iMessage, Slack, LinkedIn or X shows `web/og-image.png`: the
+headline and a real cited answer from the demo. To change it, edit
+`tools/og-card.html` and run `node tools/make_og_image.mjs` (needs Playwright),
+then commit the regenerated PNGs. The page source uses relative URLs; the build
+makes the `og:` / `twitter:` URLs absolute against `--site-url` (default
+`https://www.yappertech.com/legal-ai-demo/`), because preview scrapers ignore
+relative ones. The e2e test fails if the image URL isn't absolute or the PNG isn't
+1200×630.
+
+iMessage caches a preview per link on each device, so a link that was already
+shared before the image existed may keep its old, image-less preview there. New
+shares, and other devices, fetch the current one.
 
 ## Working on it
 
@@ -78,7 +97,8 @@ node tools/e2e.mjs --browser chromium
 
 `tools/build-site.sh` options: `--head FILE` (insert an analytics tag into every
 page; `LEGAL_AI_DEMO_HEAD` does the same), `--api-base-url URL` (live mode;
-`LEGAL_AI_API_BASE_URL`), `--zip`.
+`LEGAL_AI_API_BASE_URL`), `--site-url URL` (where the build is served, for the
+absolute link-preview URLs; `LEGAL_AI_SITE_URL`), `--zip`.
 
 Routing is hash-based (`#/ask`, `#/analytics`, …) so every deep link is a request
 for `index.html` and no server rewrite rule is needed. Every path is relative, so

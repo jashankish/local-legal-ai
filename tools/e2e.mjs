@@ -96,6 +96,24 @@ await check("the sign-in page renders", async () => {
   return heading.includes("Local Legal AI") ? null : `header reads "${heading}"`;
 });
 
+await check("link previews (iMessage, Slack…) have an absolute 1200×630 image", async () => {
+  const meta = (key) => page.locator(`meta[property="${key}"], meta[name="${key}"]`).first().getAttribute("content");
+  const image = await meta("og:image");
+  if (!/^https:\/\//.test(image || "")) return `og:image is not an absolute https URL: ${image}`;
+  if ((await meta("twitter:card")) !== "summary_large_image") return "twitter:card is not summary_large_image";
+  for (const key of ["og:title", "og:description", "og:url", "twitter:image"]) {
+    if (!(await meta(key))) return `missing ${key}`;
+  }
+  // The file the absolute URL names must be in this build, at the advertised size.
+  const png = await readFile(join(SITE, new URL(image).pathname.split("/").pop()));
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  if (width !== 1200 || height !== 630) return `og image is ${width}×${height}`;
+  const icon = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+  const iconResponse = await page.request.get(new URL(icon, page.url()).href);
+  return iconResponse.ok() ? null : `apple-touch-icon ${icon} returned ${iconResponse.status()}`;
+});
+
 await check("no login is pre-filled or printed on the sign-in page", async () => {
   const username = await page.locator('input[name="username"]').inputValue();
   const password = await page.locator('input[name="password"]').inputValue();

@@ -1,0 +1,118 @@
+<!doctype html>
+<!--
+  Link-preview card for the web demo (iMessage, Slack, LinkedIn, X…).
+  Rendered to web/og-image.png (1200×630) and web/apple-touch-icon.png by
+  tools/make_og_image.mjs. Edit here, then regenerate; never edit the PNGs.
+  The question, key terms and cited clause are what the demo returns for this
+  question; the answer text is shortened to fit.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --navy: #1e3a8a; --navy-deep: #13265c; --blue: #3b82f6;
+    --ink: #0f172a; --muted: #64748b; --line: #e2e8f0;
+    --green: #15803d;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    font-family: var(--font);
+    color: #fff;
+    background:
+      radial-gradient(900px 520px at 100% 0%, rgba(59, 130, 246, .55), transparent 62%),
+      linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 55%, #2448a8 100%);
+    overflow: hidden;
+    position: relative;
+  }
+  .wrap { position: absolute; inset: 0; padding: 64px 72px; display: grid; grid-template-columns: 470px 1fr; gap: 56px; }
+
+  .brand { display: flex; align-items: center; gap: 16px; font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+  .brand svg { width: 56px; height: 56px; flex: none; }
+  h1 { font-size: 58px; line-height: 1.04; font-weight: 800; letter-spacing: -.03em; margin-top: 40px; }
+  h1 em { font-style: normal; color: #bfdbfe; }
+  .sub { margin-top: 24px; font-size: 24px; line-height: 1.4; color: #dbeafe; max-width: 440px; }
+  .foot { position: absolute; left: 72px; bottom: 56px; display: flex; gap: 12px; align-items: center; }
+  .pill {
+    font-size: 19px; font-weight: 600; color: #fff;
+    background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .28);
+    border-radius: 999px; padding: 8px 18px;
+  }
+  .url { font-size: 20px; color: #bfdbfe; font-weight: 500; margin-left: 6px; }
+
+  /* The answer, as the Ask Documents page shows it. */
+  .panel {
+    align-self: center;
+    background: #fff; color: var(--ink);
+    border-radius: 20px; padding: 30px 32px 28px;
+    box-shadow: 0 30px 70px rgba(8, 20, 60, .45);
+    transform: rotate(-1.2deg);
+  }
+  .q { font-size: 21px; font-weight: 700; line-height: 1.35; }
+  .q span { color: var(--muted); font-weight: 600; }
+  .answer {
+    margin-top: 18px; border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; font-size: 20px; line-height: 1.5;
+  }
+  .cite {
+    font-size: 15px; font-weight: 800; color: var(--navy);
+    background: #eff6ff; border: 1.5px solid #dbeafe; border-radius: 6px;
+    padding: 0 7px; margin-left: 4px; vertical-align: 2px;
+  }
+  .terms { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .term {
+    font: 600 15px ui-monospace, "SF Mono", Menlo, monospace; color: #334155;
+    background: #f1f5f9; border: 1.5px solid var(--line); border-radius: 7px; padding: 3px 10px;
+  }
+  .source {
+    margin-top: 18px; padding-top: 16px; border-top: 1.5px solid var(--line);
+    font-size: 16px; color: var(--muted); line-height: 1.45;
+  }
+  .source b { color: var(--ink); }
+  .source .ok { color: var(--green); font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <div class="brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <rect width="64" height="64" rx="14" fill="#fff"/>
+          <g stroke="#1e3a8a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <path d="M32 14v36"/><path d="M18 22h28"/><path d="M22 50h20"/>
+            <path d="M18 22 11 37h14z"/><path d="M46 22 39 37h14z"/>
+          </g>
+          <circle cx="32" cy="14" r="3.6" fill="#1e3a8a"/>
+        </svg>
+        Local Legal AI
+      </div>
+      <h1>Ask your contracts.<br><em>Get the exact clause.</em></h1>
+      <p class="sub">Plain-English questions, answers that cite their source. Private and self-hosted.</p>
+    </div>
+
+    <div class="panel">
+      <div class="q"><span>Q:</span> Can the tenant terminate the lease early, and what does it cost?</div>
+      <div class="answer">
+        Yes — on the last day of the 36th month, with nine (9) months’ written notice and a fee
+        of four (4) months of base rent.<span class="cite">1</span>
+      </div>
+      <div class="terms">
+        <span class="term">nine (9) months</span>
+        <span class="term">four (4) months</span>
+        <span class="term">Granite Harbor Properties LLC</span>
+      </div>
+      <div class="source">
+        <b>[1] Commercial Lease — 410 Market Street</b><br>
+        Section 8. Early Termination · <span class="ok">✓ cited</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="pill">Live demo</span>
+    <span class="url">yappertech.com/legal-ai-demo</span>
+  </div>
+</body>
+</html>
