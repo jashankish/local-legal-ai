@@ -24,6 +24,7 @@ async function loadDemoData(base) {
 const DEMO_ACCOUNTS = {
   admin: { password: "admin", role: "admin", email: "admin@fernwoodlegal.example" },
   "j.ellis": { password: "demo1234", role: "lawyer", email: "j.ellis@fernwoodlegal.example" },
+  liz: { password: "tran", role: "admin", email: "liz@fernwoodlegal.example" },
 };
 
 function nowIso() { return new Date().toISOString().slice(0, 19); }

@@ -294,6 +294,18 @@ await check("signing out returns to the sign-in page", async () => {
   return null;
 });
 
+await check("liz / tran signs in as an administrator", async () => {
+  await page.fill('input[name="username"]', "liz");
+  await page.fill('input[name="password"]', "tran");
+  await page.click('button[type="submit"]');
+  await page.waitForSelector(".sidebar", { timeout: 15000 });
+  const user = await text(".sidebar");
+  if (!user.includes("liz")) return "sidebar does not show liz";
+  // Admin-only pages must be in the navigation.
+  const admin = await page.locator('button[data-nav="users"]').count();
+  return admin ? null : "no admin pages for liz";
+});
+
 await check("nothing logged a console error", () => (
   consoleErrors.length ? consoleErrors.slice(0, 3).join(" | ") : null));
 
