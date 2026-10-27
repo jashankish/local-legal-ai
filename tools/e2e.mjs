@@ -96,7 +96,16 @@ await check("the sign-in page renders", async () => {
   return heading.includes("Local Legal AI") ? null : `header reads "${heading}"`;
 });
 
+await check("no login is pre-filled or printed on the sign-in page", async () => {
+  const username = await page.locator('input[name="username"]').inputValue();
+  const password = await page.locator('input[name="password"]').inputValue();
+  if (username || password) return `fields load with "${username}" / "${password ? "•••" : ""}"`;
+  const card = await text(".login-card");
+  return /admin\s*\/\s*admin|\btran\b/.test(card) ? "credentials are printed on the page" : null;
+});
+
 await check("wrong credentials are rejected", async () => {
+  await page.fill('input[name="username"]', "admin");
   await page.fill('input[name="password"]', "nope");
   await page.click('button[type="submit"]');
   await page.waitForSelector("#login-error .note-err", { timeout: 10000 });

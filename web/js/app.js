@@ -175,15 +175,14 @@ function loginPage(notice) {
       <h4 style="margin-top:0">🔐 Sign in</h4>
       <form id="login-form">
         <label class="field"><span>Username</span>
-          <input type="text" name="username" value="admin" autocomplete="username" required></label>
+          <input type="text" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
         <label class="field"><span>Password</span>
-          <input type="password" name="password" value="admin" autocomplete="current-password" required></label>
+          <input type="password" name="password" autocomplete="current-password" required></label>
         <div id="login-error"></div>
         <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Sign in</button>
       </form>
       <p class="caption" style="margin:.9rem 0 0">
-        This public demo is pre-filled: sign in with <code>admin</code> / <code>admin</code>.
-        A real installation makes the administrator choose a strong password at first sign-in.
+        Runs entirely in your browser on fictional sample agreements. Ask the YapperTech team for demo access.
       </p>
     </div>
     <div class="feature-grid">
