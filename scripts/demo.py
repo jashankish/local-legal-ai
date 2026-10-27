@@ -37,6 +37,8 @@ PREVIOUS_ADMIN_PASSWORDS = ("LegalDemo-2025",)
 
 # Deliberately not 8000/8501: a demo should never collide with a real instance.
 PORTS = {"api": 8010, "ui": 8511, "model": 8011, "events": 8012}
+# scripts/ci.sh shifts every port so its throwaway demo can run beside yours.
+PORTS = {name: port + int(os.environ.get("DEMO_PORT_OFFSET", "0")) for name, port in PORTS.items()}
 SERVICES = ("events", "model", "api", "ui")
 
 

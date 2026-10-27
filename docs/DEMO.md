@@ -106,7 +106,8 @@ Without it the demo still runs; that one sample is quarantined in
 `verify` is the quick confidence check — it confirms the services are healthy,
 renders all nine pages looking for exceptions, and asks a real question,
 expecting a generated answer when a model is running and cited excerpts when one
-isn't. CI runs `up → status → verify → down` on every push.
+isn't. Local CI (`bash scripts/ci.sh`) runs `up → status → verify → down` on a
+fresh copy with shifted ports, so it never disturbs a demo you have running.
 
 For a clean slate between test runs, `reset` wipes the library, users, audit
 trail and notification history, then reloads the samples — so every run starts

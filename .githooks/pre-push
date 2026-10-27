@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Runs the project's CI before anything leaves this machine. There is no
+# hosted CI, so this is what stands between a broken commit and origin/main.
+# Quick mode (~1-2 min): pytest, demo-data check, web demo in Chromium.
+# The full run (testing environment, all browsers, Docker) is
+#   bash scripts/ci.sh
+# Enable once per clone:  git config core.hooksPath .githooks
+# Skip in an emergency:   git push --no-verify
+set -euo pipefail
+exec bash "$(git rev-parse --show-toplevel)/scripts/ci.sh" --quick

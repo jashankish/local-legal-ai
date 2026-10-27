@@ -243,6 +243,13 @@ First iteration of the feature-expansion plan — the foundation for matters, re
 - [✅] `tools/build-site.sh` packages `dist/legal-ai-demo/`, with `--head` for the host's analytics tag and `--api-base-url` to point at a deployed backend instead
 - [✅] New `web-demo` CI job (3-browser matrix); the YapperTech monorepo builds and deploys this output — see `docs/WEB_DEMO.md`
 
+## Phase 24: Single Branch, Simple Demo Logins, Local CI ✅ **COMPLETE** (2026-10-27)
+- [✅] Repository consolidated onto one `main` branch (`dev-branch` had no commits of its own and was deleted)
+- [✅] Testing environment signs in as `admin` / `admin` through an opt-in `DEMO_MODE` that relaxes the password rules and is refused unless the API binds to localhost; a `.demo/` from before is moved onto the new password on the next `up`
+- [✅] Web demo: `liz` / `tran` administrator login; the sign-in form no longer pre-fills or prints any credentials
+- [✅] GitHub Actions removed. `scripts/ci.sh` runs the same pipeline locally — Python suite, demo-data drift check, a fresh testing environment on shifted ports (`DEMO_PORT_OFFSET`) beside your own, the web demo in Chromium/Firefox/WebKit, and the Docker stack in a temporary worktree when a Docker daemon is running
+- [✅] `.githooks/pre-push` runs `scripts/ci.sh --quick` before every push; the YapperTech deploy and release scripts run `scripts/ci.sh --web` before publishing the web demo
+
 ## Remaining Work (toward the advertised feature set)
 Tracked honestly here; items move into a numbered phase when completed.
 - None outstanding. See the roadmap below.

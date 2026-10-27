@@ -1,7 +1,5 @@
 # 🧠 Local Legal AI
 
-[![CI](https://github.com/jashankish/local-legal-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/jashankish/local-legal-ai/actions/workflows/ci.yml)
-
 A private, self-hosted assistant for **law firms**: upload contracts, filings and
 policies, then ask questions and get answers that cite the exact passages they
 came from. Everything — documents, vectors, the language model — stays on your
@@ -201,9 +199,9 @@ image so containers need no internet access at runtime, and all state (users,
 vector store, audit and analytics databases) lives in the `legal_data` volume.
 Drop files into `./inbox/` on the host to have them indexed.
 
-Every push to `main` builds the image in CI and runs the stack end to end:
-healthchecks, seeding, a cited answer, watched-inbox ingestion and a generated
-answer from the `llm` profile. To use a model running on the host instead of the
+`bash scripts/ci.sh` builds the image and runs the stack end to end whenever a
+Docker daemon is running: healthchecks, seeding, a cited answer, watched-inbox
+ingestion and a generated answer from the `llm` profile. To use a model running on the host instead of the
 `llm` container, set `DOCKER_MODEL_ENDPOINT=http://host.docker.internal:8001` in
 `.env`. On Linux, make the inbox folder writable for the container user
 (`mkdir -p inbox && chmod 777 inbox`, or `chown 1000 inbox`).
@@ -287,15 +285,28 @@ To regenerate the README screenshots from a seeded instance:
 
 ## 🧪 Testing
 
+CI runs on your own machine. There is no hosted pipeline (no GitHub Actions):
+
 ```bash
-.venv/bin/python -m pytest tests/
+git config core.hooksPath .githooks   # once per clone: run CI before every push
+bash scripts/ci.sh                    # full run
+bash scripts/ci.sh --quick            # what the pre-push hook runs (~1–2 min)
+.venv/bin/python -m pytest tests/     # just the Python suite
 ```
 
-The suite drives the API end to end against a temporary data directory, with a
-mocked LLM for the generative path. GitHub Actions ([`ci.yml`](.github/workflows/ci.yml))
-runs it on every push and also builds and exercises the Docker stack, including a
-real local model; `scripts/ci_check_answer.py` is the post-deployment check it uses. `scripts/ui_smoke.py` renders every UI page
-against a running backend and fails on any exception.
+`scripts/ci.sh` runs, in order, with logs in `.ci/logs/`:
+
+| Stage | What it checks |
+|---|---|
+| Python | pytest (the API end to end against a temporary data directory, mocked LLM for the generative path), and that `web/demo/` still matches the samples and the real chunker |
+| Testing environment | a fresh `scripts/demo.py up → status → verify → down` in a throwaway directory on shifted ports, so it runs beside your own testing environment without touching it |
+| Web demo | JS syntax, the engine self-test, the site build, and a browser walkthrough in Chromium, Firefox and WebKit |
+| Docker | the Compose stack built and exercised end to end, including a real local model, in a temporary worktree (skipped unless a Docker daemon is running; `--require-docker` makes that a failure) |
+
+OCR tests skip when Tesseract isn't installed (`brew install tesseract`;
+`--require-ocr` makes that a failure). `scripts/ci_check_answer.py` is the
+post-deployment check the Docker stage uses, and `scripts/ui_smoke.py` renders
+every UI page against a running backend and fails on any exception.
 
 ## 📂 Repository layout
 
@@ -310,7 +321,8 @@ tools/              web demo data generator, site build, engine self-test, brows
 model/              local model launchers (llama.cpp, vLLM)
 workflows/n8n/      n8n workflows, compose file and setup guide
 samples/            fictional agreements for demos
-scripts/            demo seeding, UI smoke test, screenshot capture, sample builder
+scripts/            local CI (ci.sh), testing environment (demo.py), seeding, UI smoke test, screenshots
+.githooks/          pre-push hook running scripts/ci.sh --quick
 tests/              pytest suite (run with `pytest`)
 docs/               architecture, screenshots, historical reports (docs/history/)
 legacy/             superseded scripts from earlier phases (not used)

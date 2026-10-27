@@ -40,3 +40,6 @@ model/models/
 # Static web demo build output (tools/build-site.sh) and its test-only deps
 dist/
 node_modules/
+
+# Local CI logs (scripts/ci.sh)
+.ci/

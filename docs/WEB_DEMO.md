@@ -31,7 +31,7 @@ scans need the server's parsers and OCR, and the demo says so.
 
 ```bash
 .venv/bin/python tools/make_demo_data.py          # regenerate
-.venv/bin/python tools/make_demo_data.py --check  # verify (CI runs this)
+.venv/bin/python tools/make_demo_data.py --check  # verify (scripts/ci.sh runs this)
 ```
 
 It chunks the agreements in `samples/` with the product's own clause-aware chunker
@@ -41,8 +41,9 @@ real install would index and cite. Analytics, audit trail (hash-chained), users 
 integration status are derived from the same library and the questions
 `scripts/seed_demo.py` asks.
 
-If you change the samples, the chunker or the extractor, regenerate and commit —
-CI fails until you do, so the demo cannot quietly drift from the product.
+If you change the samples, the chunker or the extractor, regenerate and commit.
+Local CI (`scripts/ci.sh`, and so the pre-push hook) fails until you do, so the
+demo cannot quietly drift from the product.
 
 ## Layout
 
@@ -98,9 +99,15 @@ file names are not content-hashed, both scripts serve `legal-ai-demo/*` with
 
 So publishing a change is:
 
-1. Commit to `main` here (CI must be green).
+1. Commit to `main` here and push. The pre-push hook runs `scripts/ci.sh --quick`
+   (enable it once with `git config core.hooksPath .githooks`).
 2. In the monorepo checkout, make sure the sibling `../local-legal-ai` is on `main`
    and up to date (or set `LEGAL_AI_REPO`), then run `bash scripts/deploy.sh`.
+   Its test phase runs `scripts/ci.sh --web` in this repo first, so a broken demo
+   stops the deploy before anything is uploaded.
+
+There is no hosted CI anywhere in this pipeline: every check runs on the machine
+doing the push or the deploy.
 
 To point the public demo at a real backend, deploy the API with CORS allowing
 `https://www.yappertech.com` and `https://yappertech.com`, then build with

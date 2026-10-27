@@ -1,7 +1,8 @@
 """The local demo environment: its helpers and the event sink it ships with.
 
-The full start/verify/stop cycle is exercised in CI (`demo.py up` → `verify` →
-`down`); these are the parts worth pinning down without spawning servers.
+The full start/verify/stop cycle is exercised by local CI (`scripts/ci.sh`:
+`demo.py up` → `verify` → `down`); these are the parts worth pinning down
+without spawning servers.
 """
 
 import importlib.util

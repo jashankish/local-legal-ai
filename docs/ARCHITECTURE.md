@@ -300,12 +300,13 @@ Two supported ways to run:
   If the inbox folder isn't writable by uid 1000 the API starts without the
   watcher and logs why.
 
-  Verification: CI (`.github/workflows/ci.yml`) builds the image on every push,
-  starts `api` + `ui` with `docker compose up --wait`, seeds the samples, checks
-  a cited extractive answer, drops a file in `./inbox` and waits for it to be
-  indexed, then starts the `llm` profile and waits for a generated answer
-  (`scripts/ci_check_answer.py`). First green run: 2026-10-21, generated answer
-  in ≈ 6.5 s on a 2-core runner.
+  Verification: the Docker stage of `scripts/ci.sh` (local CI; it needs a
+  running Docker daemon) builds the image in a temporary worktree, starts
+  `api` + `ui` with `docker compose up --wait`, seeds the samples, checks a cited
+  extractive answer, drops files in `./inbox` (including a scanned PDF for OCR)
+  and waits for them to be indexed, then starts the `llm` profile and waits for a
+  generated answer (`scripts/ci_check_answer.py`). First green run: 2026-10-21,
+  generated answer in ≈ 6.5 s on a 2-core machine.
 
 ### Local demo and testing environment — `scripts/demo.py`
 One command brings up the whole product on localhost for demos, manual testing
@@ -318,8 +319,18 @@ and coexists with `./start_system.sh`.
 `up` is idempotent and adopts an already-running model; `reset` wipes the
 library and reloads it; `verify` checks health, renders every page with
 `ui_smoke.py` and asks a real question with `ci_check_answer.py`, expecting a
-generated answer when a model is up and cited excerpts when one isn't. CI runs
-`up → status → verify → down` on every push.
+generated answer when a model is up and cited excerpts when one isn't.
+`scripts/ci.sh` runs `up → status → verify → down` against a fresh throwaway
+directory, with every port shifted by `DEMO_PORT_OFFSET`, so it can run while
+your own demo is up.
+
+## Continuous integration — `scripts/ci.sh`
+CI runs locally; there is no hosted pipeline. Stages: Python (pytest and the
+`web/demo` drift check), testing environment (above), web demo (syntax,
+self-test, build, Playwright in three engines) and Docker (above). `--quick`
+runs Python plus the web demo in Chromium and is what `.githooks/pre-push` runs;
+`--web` is the gate the YapperTech deploy scripts call before publishing the
+web demo.
 
 ## Runtime data (git-ignored)
 `data/users.json`, `data/chroma_db/`, `data/app.db`, `data/audit.db`, `data/analytics.db`, `data/inbox/`,

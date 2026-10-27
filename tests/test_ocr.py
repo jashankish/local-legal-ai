@@ -50,7 +50,7 @@ def test_image_upload_without_ocr_explains_how_to_enable_it(client, admin_header
 
 
 @pytest.mark.skipif(not __import__("rag.ocr", fromlist=["ocr_available"]).ocr_available(),
-                    reason="Tesseract OCR is not installed (runs in CI and in the Docker image)")
+                    reason="Tesseract OCR is not installed (brew install tesseract; the Docker image has it)")
 @pytest.mark.parametrize("name, fmt, mime", [("lease-scan.png", "png", "image/png"),
                                              ("lease-scan.jpg", "jpeg", "image/jpeg")])
 def test_scanned_image_is_ocred_and_indexed(client, admin_headers, name, fmt, mime):
@@ -75,7 +75,7 @@ def test_scan_without_ocr_explains_how_to_enable_it(client, admin_headers, monke
 
 
 @pytest.mark.skipif(not __import__("rag.ocr", fromlist=["ocr_available"]).ocr_available(),
-                    reason="Tesseract OCR is not installed (runs in CI and in the Docker image)")
+                    reason="Tesseract OCR is not installed (brew install tesseract; the Docker image has it)")
 def test_scanned_pdf_is_ocred_indexed_and_answerable(client, admin_headers):
     result = upload_scan(client, admin_headers, "scanned-lease.pdf")
     assert result["success"], result["message"]
